@@ -2,4 +2,5 @@
 *.pyc
 *.pyo
 build*/
+.vscode*/
 examples/*.py

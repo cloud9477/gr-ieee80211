@@ -7,5 +7,5 @@
 #
 
 install(FILES
-    DESTINATION share/gnuradio/grc/blocks
+    ieee80211_trigger.block.yml DESTINATION share/gnuradio/grc/blocks
 )

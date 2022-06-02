@@ -28,18 +28,15 @@ namespace gr {
 
     class trigger_impl : public trigger
     {
-     private:
+      private:
+      // for block
       int d_nBuf;
       int d_nProc;
+      // for processing
       int d_nPlateau;
-      float d_tAutoCorre;
       float d_conjAc;
-      gr_complex d_conjMulti;
-      float d_radStep;
-      int d_sampCount;
       // for debug
       uint64_t sampCount;
-      uint64_t triggerCount;
 
      public:
       trigger_impl();
@@ -52,9 +49,7 @@ namespace gr {
            gr_vector_int &ninput_items,
            gr_vector_const_void_star &input_items,
            gr_vector_void_star &output_items);
-
     };
-
   } // namespace ieee80211
 } // namespace gr
 

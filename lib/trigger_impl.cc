@@ -33,17 +33,15 @@ namespace gr {
 
     trigger_impl::trigger_impl()
       : gr::block("trigger",
-              gr::io_signature::makev(3, 3, std::vector<int>{sizeof(gr_complex), sizeof(float), sizeof(gr_complex)}),
-              gr::io_signature::makev(2, 2, std::vector<int>{sizeof(gr_complex), sizeof(unsigned char)}))
+              gr::io_signature::make(1, 1, sizeof(float)),
+              gr::io_signature::make(1, 1, sizeof(unsigned char)))
     {
-      d_nBuf = 80;
+      d_nBuf = 0;
       d_nProc = 0;
-      d_tAutoCorre = 0.3f;
       d_nPlateau = 0;
       d_conjAc = 0.0f;
 
       sampCount = 0;
-      triggerCount = 0;
     }
 
     trigger_impl::~trigger_impl()
@@ -65,11 +63,8 @@ namespace gr {
                        gr_vector_const_void_star &input_items,
                        gr_vector_void_star &output_items)
     {
-      const gr_complex* inSig = static_cast<const gr_complex*>(input_items[0]);
-      const float* inAc = static_cast<const float*>(input_items[1]);
-      const gr_complex* inConj = static_cast<const gr_complex*>(input_items[2]);
-      gr_complex* outSig = static_cast<gr_complex*>(output_items[0]);
-      char* outTrigger = static_cast<char*>(output_items[1]);
+      const float* inAc = static_cast<const float*>(input_items[0]);
+      char* outTrigger = static_cast<char*>(output_items[0]);
 
       if(noutput_items < d_nBuf)
       {
@@ -80,14 +75,14 @@ namespace gr {
       d_nProc = noutput_items - d_nBuf;
       for(int i=0;i<d_nProc;i++){
         sampCount++;
-        outSig[i] = inSig[i];
         outTrigger[i] = 0;
-        if(inAc[i] > d_tAutoCorre){
+        if(inAc[i] > 0.3f){
           d_nPlateau++;
           if(inAc[i] > d_conjAc)
           {
             d_conjAc = inAc[i];
-            d_conjMulti = inConj[i];
+            // indicate to update conjugate
+            outTrigger[i] |= 0x02;
           }
         }
         else
@@ -96,9 +91,11 @@ namespace gr {
           {
             if(d_nPlateau < 180)
             {
-              d_radStep = atan2f(d_conjMulti.imag(), d_conjMulti.real()) / 16.0f;
-              float tmpCfo = d_radStep * 20000000.0f / 2.0f / M_PI;
-              std::cout<<"ieee80211 stf: trigger "<<sampCount<<" "<<tmpCfo<<std::endl;
+              // d_radStep = atan2f(d_conjMulti.imag(), d_conjMulti.real()) / 16.0f;
+              // float tmpCfo = d_radStep * 20000000.0f / 2.0f / M_PI;
+              // indicate to trigger
+              outTrigger[i] |= 0x01;
+              std::cout<<"ieee80211 stf: trigger "<<sampCount<<std::endl;
             }
           }
           d_nPlateau = 0;

@@ -11,5 +11,6 @@
 ########################################################################
 install(FILES
     api.h
-    trigger.h DESTINATION include/ieee80211
+    trigger.h
+    sync.h DESTINATION include/ieee80211
 )

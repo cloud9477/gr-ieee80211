@@ -29,7 +29,8 @@ include(GrPybind)
 ########################################################################
 
 list(APPEND ieee80211_python_files
-    trigger_python.cc python_bindings.cc)
+    trigger_python.cc
+    sync_python.cc python_bindings.cc)
 
 GR_PYBIND_MAKE_OOT(ieee80211
    ../..

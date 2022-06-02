@@ -40,3 +40,4 @@ add_custom_target(
           ${CMAKE_BINARY_DIR}/test_modules/ieee80211/
 )
 GR_ADD_TEST(qa_trigger ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_trigger.py)
+GR_ADD_TEST(qa_sync ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_sync.py)

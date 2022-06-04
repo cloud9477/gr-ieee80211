@@ -34,6 +34,9 @@ namespace gr {
       int d_nProc;
       // for processing
       int d_nPlateau;
+      int d_fPlateau;
+      int d_fPlateauEnd;
+      int d_countDown;
       float d_conjAc;
       // for debug
       uint64_t sampCount;

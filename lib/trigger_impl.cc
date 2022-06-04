@@ -39,6 +39,8 @@ namespace gr {
       d_nBuf = 0;
       d_nProc = 0;
       d_nPlateau = 0;
+      d_fPlateau = 0;
+      d_fPlateauEnd = 0;
       d_conjAc = 0.0f;
 
       sampCount = 0;
@@ -75,7 +77,7 @@ namespace gr {
       d_nProc = noutput_items - d_nBuf;
       for(int i=0;i<d_nProc;i++){
         sampCount++;
-        outTrigger[i] = 0;
+        // outTrigger[i] = 0;
         if(inAc[i] > 0.3f){
           d_nPlateau++;
           if(inAc[i] > d_conjAc)
@@ -84,22 +86,30 @@ namespace gr {
             // indicate to update conjugate
             outTrigger[i] |= 0x02;
           }
+          if(d_nPlateau > 20 && (d_fPlateau+d_fPlateauEnd)==0)
+          {
+            d_fPlateau = 1;
+            d_fPlateauEnd = 1;
+            d_countDown = 80;
+          }
         }
         else
         {
-          if(d_nPlateau > 20)
-          {
-            if(d_nPlateau < 180)
-            {
-              // d_radStep = atan2f(d_conjMulti.imag(), d_conjMulti.real()) / 16.0f;
-              // float tmpCfo = d_radStep * 20000000.0f / 2.0f / M_PI;
-              // indicate to trigger
-              outTrigger[i] |= 0x01;
-              std::cout<<"ieee80211 stf: trigger "<<sampCount<<std::endl;
-            }
-          }
+          //     // d_radStep = atan2f(d_conjMulti.imag(), d_conjMulti.real()) / 16.0f;
+          //     // float tmpCfo = d_radStep * 20000000.0f / 2.0f / M_PI;
           d_nPlateau = 0;
+          d_fPlateauEnd = 0;
           d_conjAc = 0.0f;
+        }
+        if(d_fPlateau)
+        {
+          d_countDown--;
+          if(d_countDown==0)
+          {
+            d_fPlateau = 0;
+            outTrigger[i] |= 0x01;
+            std::cout<<"ieee80211 stf: trigger "<<sampCount<<std::endl;
+          }
         }
       }
 

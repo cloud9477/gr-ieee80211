@@ -39,6 +39,7 @@ namespace gr {
       gr_complex d_conjMultiAvg;
       float d_stfCfo;
       float d_tmpAc[SYNC_MAX_RES_LEN];
+      gr_complex d_tmpConjSamp[128];
 
      public:
       sync_impl();
@@ -52,7 +53,7 @@ namespace gr {
            gr_vector_const_void_star &input_items,
            gr_vector_void_star &output_items);
       void ltf_autoCorrelation(const gr_complex* sig);
-
+      float ltf_cfo(const gr_complex* sig, gr_complex stfConjAvg);    // STF CFO with LTF residual CFO
     };
 
   } // namespace ieee80211

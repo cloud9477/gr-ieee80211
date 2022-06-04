@@ -37,7 +37,7 @@ namespace gr {
      */
     sync_impl::sync_impl()
       : gr::block("sync",
-              gr::io_signature::makev(2, 2, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex), sizeof(gr_complex)}),
+              gr::io_signature::makev(3, 3, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex), sizeof(gr_complex)}),
               gr::io_signature::makev(2, 2, std::vector<int>{sizeof(uint8_t), sizeof(float)}))
     {
       d_nBuf = 0;
@@ -68,11 +68,11 @@ namespace gr {
                        gr_vector_void_star &output_items)
     {
       const uint8_t* trigger = static_cast<const uint8_t*>(input_items[0]);
-      const gr_complex* inSig = static_cast<const gr_complex*>(input_items[0]);
-      const gr_complex* inConj = static_cast<const gr_complex*>(input_items[0]);
+      const gr_complex* inSig = static_cast<const gr_complex*>(input_items[1]);
+      const gr_complex* inConj = static_cast<const gr_complex*>(input_items[2]);
 
       uint8_t* sync = static_cast<uint8_t*>(output_items[0]);
-      float* outRad = static_cast<float*>(output_items[0]);
+      float* outRad = static_cast<float*>(output_items[1]);
 
       if(noutput_items < d_nBuf)
       {
@@ -89,10 +89,42 @@ namespace gr {
           {
             // proc and return
             ltf_autoCorrelation(&inSig[i]);
+            // memcpy(&outRad[i], d_tmpAc, sizeof(float) * SYNC_MAX_RES_LEN);
             // get max and find L R shoulder
             float* tmpMaxAcP = std::max_element(d_tmpAc, d_tmpAc + SYNC_MAX_RES_LEN);
-            float tmpMaxAc = *tmpMaxAcP * 0.8;
-
+            if(*tmpMaxAcP > 0.5)  // some miss trigger not higher than 0.5
+            {
+              float tmpMaxAc = *tmpMaxAcP * 0.8;
+              int tmpMaxIndex = std::distance(d_tmpAc, tmpMaxAcP);
+              int tmpL, tmpR, tmpM;
+              for(int j=tmpMaxIndex; j>=0; j--)
+              {
+                if(d_tmpAc[j] < tmpMaxAc)
+                {
+                  tmpL = j;
+                  break;
+                }
+              }
+              for(int j=tmpMaxIndex; j<SYNC_MAX_RES_LEN; j++)
+              {
+                if(d_tmpAc[j] < tmpMaxAc)
+                {
+                  tmpR = j;
+                  break;
+                }
+              }
+              tmpM = (tmpL+tmpR)/2;
+              if(tmpM>=8)
+              {
+                std::cout<<"max value: "<<*tmpMaxAcP<<", max index: "<<(tmpMaxIndex)<<", L: "<<tmpL<<", R: "<<tmpR<<", mid: "<<tmpM<<std::endl;
+                float tmpTotalRadStep = ltf_cfo(&inSig[i+tmpMaxIndex], d_conjMultiAvg);
+                std::cout<<"total cfo:"<<(tmpTotalRadStep) * 20000000.0f / 2.0f / M_PI<<std::endl;
+                sync[i+tmpM-8] = 0x01;
+                outRad[i+tmpM-8] = tmpTotalRadStep;
+              }
+            }
+            consume_each (i+80);  //80 is the same with trigger gap
+            return (i+80);
           }
           else
           {
@@ -107,8 +139,8 @@ namespace gr {
           {
             d_conjMultiAvg = inConj[i];
           }
-          sync[i] = 0x00;
-          outRad[i] = 0.0f;
+          // sync[i] = 0x00;
+          // outRad[i] = 0.0f;
         }
       }
 
@@ -125,20 +157,38 @@ namespace gr {
       // for 20MHz, init part 64 samples
       for(int i=0;i<64;i++)
       {
-        tmpMultiSum += sig[i] * sig[i+64];
+        tmpMultiSum += sig[i] * std::conj(sig[i+64]);
         tmpSig1Sum += std::abs(sig[i])*std::abs(sig[i]);
         tmpSig2Sum += std::abs(sig[i+64])*std::abs(sig[i+64]);
       }
       for(int i=0;i<SYNC_MAX_RES_LEN;i++)
       {
         d_tmpAc[i] = std::abs(tmpMultiSum)/std::sqrt(tmpSig1Sum)/std::sqrt(tmpSig2Sum);
-        tmpMultiSum -= sig[i] * sig[i+64];
+        tmpMultiSum -= sig[i] * std::conj(sig[i+64]);
         tmpSig1Sum -= std::abs(sig[i])*std::abs(sig[i]);
         tmpSig2Sum -= std::abs(sig[i+64])*std::abs(sig[i+64]);
-        tmpMultiSum += sig[i+1] * sig[i+1+64];
-        tmpSig1Sum += std::abs(sig[i+1])*std::abs(sig[i+1]);
-        tmpSig2Sum += std::abs(sig[i+1+64])*std::abs(sig[i+1+64]);
+        tmpMultiSum += sig[i+64] * std::conj(sig[i+64+64]);
+        tmpSig1Sum += std::abs(sig[i+64])*std::abs(sig[i+64]);
+        tmpSig2Sum += std::abs(sig[i+64+64])*std::abs(sig[i+64+64]);
       }
+    }
+
+    float
+    sync_impl::ltf_cfo(const gr_complex* sig, gr_complex stfConjAvg)
+    {
+      gr_complex tmpConjSum = gr_complex(0.0f, 0.0f);
+      float tmpRadStepStf = atan2f(d_conjMultiAvg.imag(), d_conjMultiAvg.real()) / 16.0f;
+      for(int i=0;i<128;i++)
+      {
+        d_tmpConjSamp[i] = sig[i] * gr_complex(cosf(i * tmpRadStepStf), sinf(i * tmpRadStepStf));
+      }
+      for(int i=0;i<64;i++)
+      {
+        tmpConjSum += d_tmpConjSamp[i] * std::conj(d_tmpConjSamp[i+64]);
+      }
+      float tmpRadStepLtf = atan2f((tmpConjSum/64.0f).imag(), (tmpConjSum/64.0f).real()) / 64.0f;
+      std::cout<<"stf cfo:"<<(tmpRadStepStf) * 20000000.0f / 2.0f / M_PI<<", ltf cfo:"<<(tmpRadStepLtf) * 20000000.0f / 2.0f / M_PI<<std::endl;
+      return tmpRadStepStf + tmpRadStepLtf;
     }
 
   } /* namespace ieee80211 */

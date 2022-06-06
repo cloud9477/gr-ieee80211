@@ -113,6 +113,11 @@ endif(APPLE)
 # Find gnuradio build dependencies
 ########################################################################
 find_package(Doxygen)
+# to link the fftw3 library
+find_package(PkgConfig REQUIRED)
+pkg_search_module(FFTW REQUIRED fftw3 IMPORTED_TARGET)
+include_directories(PkgConfig::FFTW)
+link_libraries     (PkgConfig::FFTW)
 
 ########################################################################
 # Setup doxygen option

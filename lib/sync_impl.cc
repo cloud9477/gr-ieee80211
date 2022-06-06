@@ -90,7 +90,7 @@ namespace gr {
             // proc and return
             ltf_autoCorrelation(&inSig[i]);
             // memcpy(&outRad[i], d_tmpAc, sizeof(float) * SYNC_MAX_RES_LEN);
-            // get max and find L R shoulder
+            // get max, if max high enough then find L R shoulder
             float* tmpMaxAcP = std::max_element(d_tmpAc, d_tmpAc + SYNC_MAX_RES_LEN);
             if(*tmpMaxAcP > 0.5)  // some miss trigger not higher than 0.5
             {

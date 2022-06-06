@@ -166,7 +166,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1256, 412.0]
+    coordinate: [1120, 340.0]
     rotation: 0
     state: true
 - name: blocks_file_sink_1
@@ -184,7 +184,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1448, 412.0]
+    coordinate: [1536, 348.0]
     rotation: 0
     state: true
 - name: blocks_file_sink_2
@@ -280,7 +280,39 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [472, 152.0]
+    coordinate: [464, 152.0]
+    rotation: 0
+    state: true
+- name: blocks_null_sink_0
+  id: blocks_null_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    bus_structure_sink: '[[0,],]'
+    comment: ''
+    num_inputs: '1'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [704, 560.0]
+    rotation: 0
+    state: true
+- name: ieee80211_signal_0
+  id: ieee80211_signal
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [416, 528.0]
     rotation: 0
     state: true
 - name: ieee80211_sync_0
@@ -319,6 +351,7 @@ connections:
 - [blocks_add_xx_0, '0', blocks_complex_to_mag_squared_0, '0']
 - [blocks_add_xx_0, '0', blocks_delay_0, '0']
 - [blocks_add_xx_0, '0', blocks_multiply_conjugate_cc_0, '0']
+- [blocks_add_xx_0, '0', ieee80211_signal_0, '1']
 - [blocks_add_xx_0, '0', ieee80211_sync_0, '1']
 - [blocks_complex_to_mag_0, '0', blocks_divide_xx_0, '0']
 - [blocks_complex_to_mag_squared_0, '0', blocks_moving_average_xx_1, '0']
@@ -330,8 +363,11 @@ connections:
 - [blocks_moving_average_xx_0, '0', ieee80211_sync_0, '2']
 - [blocks_moving_average_xx_1, '0', blocks_divide_xx_0, '1']
 - [blocks_multiply_conjugate_cc_0, '0', blocks_moving_average_xx_0, '0']
+- [ieee80211_signal_0, '0', blocks_null_sink_0, '0']
 - [ieee80211_sync_0, '0', blocks_file_sink_2, '0']
+- [ieee80211_sync_0, '0', ieee80211_signal_0, '0']
 - [ieee80211_sync_0, '1', blocks_file_sink_1, '0']
+- [ieee80211_sync_0, '1', ieee80211_signal_0, '2']
 - [ieee80211_trigger_0, '0', ieee80211_sync_0, '0']
 
 metadata:

@@ -41,3 +41,4 @@ add_custom_target(
 )
 GR_ADD_TEST(qa_trigger ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_trigger.py)
 GR_ADD_TEST(qa_sync ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_sync.py)
+GR_ADD_TEST(qa_signal ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_signal.py)

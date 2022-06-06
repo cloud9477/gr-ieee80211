@@ -1,0 +1,31 @@
+id: ieee80211_signal
+label: signal
+category: '[ieee80211]'
+
+templates:
+  imports: import ieee80211
+  make: ieee80211.signal()
+
+inputs:
+- label: sync
+  domain: stream
+  dtype: byte
+#  vlen: ...
+#  optional: ...
+- label: inSig
+  domain: stream
+  dtype: complex
+- label: inCfoRad
+  domain: stream
+  dtype: float
+
+outputs:
+- label: outSig
+  domain: stream
+  dtype: complex
+#  vlen: ...
+#  optional: ...
+
+#  'file_format' specifies the version of the GRC yml format used in the file
+#  and should usually not be changed.
+file_format: 1

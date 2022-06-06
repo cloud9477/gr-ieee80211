@@ -45,12 +45,29 @@ blocks:
     coordinate: [184, 12]
     rotation: 0
     state: enabled
+- name: analog_const_source_x_0
+  id: analog_const_source_x
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    const: '0'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: complex
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [96, 92.0]
+    rotation: 0
+    state: true
 - name: analog_noise_source_x_0
   id: analog_noise_source_x
   parameters:
     affinity: ''
     alias: ''
-    amp: '0.0001'
+    amp: '0.0000001'
     comment: ''
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -63,7 +80,7 @@ blocks:
     bus_structure: null
     coordinate: [24, 116.0]
     rotation: 0
-    state: true
+    state: disabled
 - name: blocks_add_xx_0
   id: blocks_add_xx
   parameters:
@@ -148,7 +165,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1064, 168.0]
+    coordinate: [1024, 168.0]
     rotation: 0
     state: true
 - name: blocks_file_sink_0
@@ -166,7 +183,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1120, 340.0]
+    coordinate: [984, 20.0]
     rotation: 0
     state: true
 - name: blocks_file_sink_1
@@ -184,7 +201,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1536, 348.0]
+    coordinate: [1392, 252.0]
     rotation: 0
     state: true
 - name: blocks_file_sink_2
@@ -202,7 +219,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1448, 516.0]
+    coordinate: [1384, 12.0]
     rotation: 0
     state: true
 - name: blocks_file_source_0
@@ -297,7 +314,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [704, 560.0]
+    coordinate: [1600, 104.0]
     rotation: 0
     state: true
 - name: ieee80211_signal_0
@@ -312,7 +329,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [416, 528.0]
+    coordinate: [1504, 120.0]
     rotation: 0
     state: true
 - name: ieee80211_sync_0
@@ -327,7 +344,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1456, 184.0]
+    coordinate: [1296, 120.0]
     rotation: 0
     state: true
 - name: ieee80211_trigger_0
@@ -342,11 +359,12 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1272, 184.0]
+    coordinate: [1136, 120.0]
     rotation: 0
     state: true
 
 connections:
+- [analog_const_source_x_0, '0', blocks_add_xx_0, '0']
 - [analog_noise_source_x_0, '0', blocks_add_xx_0, '0']
 - [blocks_add_xx_0, '0', blocks_complex_to_mag_squared_0, '0']
 - [blocks_add_xx_0, '0', blocks_delay_0, '0']

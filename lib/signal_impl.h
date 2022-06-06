@@ -23,6 +23,7 @@
 
 #include <ieee80211/signal.h>
 #include <fftw3.h>
+#include "cloud80211phy.h"
 
 #define S_TRIGGER 0
 #define S_DEMOD 1
@@ -41,8 +42,6 @@ namespace gr {
       int d_sSignal;    //  block state
       int d_nSym; 
       int d_nSample;
-      float d_cLtfReal[64];
-      gr_complex d_cLtfComp[64];
       gr_complex d_ltf1[64];
       gr_complex d_ltf2[64];
       gr_complex d_H[64];

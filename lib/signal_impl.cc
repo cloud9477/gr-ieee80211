@@ -21,11 +21,10 @@
 #include <gnuradio/io_signature.h>
 #include "signal_impl.h"
 
-const float __LTF_L[26] = {1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
-const float __LTF_R[26] = {1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
-
 namespace gr {
   namespace ieee80211 {
+
+    const gr_complex LTF_L_26_F[64] = {gr_complex(0.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f)};
 
     signal::sptr
     signal::make()
@@ -42,13 +41,7 @@ namespace gr {
       d_nProc = 0;
 
       d_sSignal = S_TRIGGER;
-      memset(d_cLtfReal, 0, sizeof(float) * 64);
-      memcpy(&d_cLtfReal[1], __LTF_R, sizeof(float) * 26);
-      memcpy(&d_cLtfReal[38], __LTF_R, sizeof(float) * 26);
-      for(int i=0;i<64;i++)
-      {
-        d_cLtfComp[i] = gr_complex(d_cLtfReal[i], 0.0f);
-      }
+      
       d_fftLtfIn1 = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
       d_fftLtfIn2 = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
       d_fftLtfOut1 = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
@@ -105,8 +98,10 @@ namespace gr {
         {
           if(d_fTest == 0)
           {
+            std::cout<<"start debug sample 1"<<std::endl;
             for(int i=0;i<64;i++)
             {
+              std::cout<<inSig[i+8].real()<<" "<<inSig[i+8].imag()<<std::endl;
               d_fftLtfIn1[i][0] = (double)inSig[i+8].real();
               d_fftLtfIn1[i][1] = (double)inSig[i+8].imag();
               d_fftLtfIn2[i][0] = (double)inSig[i+8+64].real();
@@ -114,6 +109,7 @@ namespace gr {
               d_fftSigIn[i][0] = (double)inSig[i+8+64+80].real();
               d_fftSigIn[i][1] = (double)inSig[i+8+64+80].imag();
             }
+            std::cout<<"end debug sample 1"<<std::endl;
             d_fftP = fftw_plan_dft_1d(64, d_fftLtfIn1, d_fftLtfOut1, FFTW_FORWARD, FFTW_ESTIMATE);
             fftw_execute(d_fftP);
             d_fftP = fftw_plan_dft_1d(64, d_fftLtfIn2, d_fftLtfOut2, FFTW_FORWARD, FFTW_ESTIMATE);
@@ -131,7 +127,7 @@ namespace gr {
               }
               else
               {
-                d_H[i] = (d_ltf1[i] + d_ltf2[i]) / d_cLtfComp[i] / 2.0f;
+                d_H[i] = (d_ltf1[i] + d_ltf2[i]) / LTF_L_26_F[i] / 2.0f;
                 d_sig[i] = gr_complex((float)d_fftSigOut[i][0], (float)d_fftSigOut[i][1]) / d_H[i];
               }
             }

@@ -3,7 +3,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 import numpy as np
 
-fWaveComp = open("E:/stftrigger.bin",'rb')
+fWaveComp = open("/home/cloud/sdr/stftrigger.bin",'rb')
 
 index = 0
 fWaveComp.read(index * 8)

@@ -114,14 +114,12 @@ namespace gr {
                 }
               }
               tmpM = (tmpL+tmpR)/2;
-              if(tmpM>=8)
-              {
-                std::cout<<"max value: "<<*tmpMaxAcP<<", max index: "<<(tmpMaxIndex)<<", L: "<<tmpL<<", R: "<<tmpR<<", mid: "<<tmpM<<std::endl;
-                float tmpTotalRadStep = ltf_cfo(&inSig[i+tmpMaxIndex], d_conjMultiAvg);
-                std::cout<<"total cfo:"<<(tmpTotalRadStep) * 20000000.0f / 2.0f / M_PI<<std::endl;
-                sync[i+tmpM-8] = 0x01;
-                outRad[i+tmpM-8] = tmpTotalRadStep;
-              }
+              // sync index is LTF starting index + 16
+              std::cout<<"max value: "<<*tmpMaxAcP<<", max index: "<<(tmpMaxIndex)<<", L: "<<tmpL<<", R: "<<tmpR<<", mid: "<<tmpM<<std::endl;
+              float tmpTotalRadStep = ltf_cfo(&inSig[i+tmpMaxIndex], d_conjMultiAvg);
+              std::cout<<"total cfo:"<<(tmpTotalRadStep) * 20000000.0f / 2.0f / M_PI<<std::endl;
+              sync[i+tmpM] = 0x01;
+              outRad[i+tmpM] = tmpTotalRadStep;
             }
             consume_each (i+80);  //80 is the same with trigger gap
             return (i+80);

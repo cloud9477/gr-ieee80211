@@ -23,7 +23,6 @@
 
 #include <ieee80211/signal.h>
 #include <fftw3.h>
-#include "cloud80211phy.h"
 
 #define S_TRIGGER 0
 #define S_DEMOD 1

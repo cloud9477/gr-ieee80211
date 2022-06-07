@@ -24,8 +24,6 @@
 namespace gr {
   namespace ieee80211 {
 
-    const gr_complex LTF_L_26_F[64] = {gr_complex(0.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(0.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f)};
-
     signal::sptr
     signal::make()
     {
@@ -98,11 +96,8 @@ namespace gr {
         {
           if(d_fTest == 0)
           {
-            std::cout<<"start debug sample 1"<<std::endl;
             for(int i=0;i<64;i++)
             {
-              std::cout<<inSig[i+8].real()<<" "<<inSig[i+8].imag()<<std::endl;
-              //std::cout<<inSig[i+8+64].real()<<" "<<inSig[i+8+64].imag()<<std::endl;
               d_fftLtfIn1[i][0] = (double)inSig[i+8].real();
               d_fftLtfIn1[i][1] = (double)inSig[i+8].imag();
               d_fftLtfIn2[i][0] = (double)inSig[i+8+64].real();
@@ -110,20 +105,14 @@ namespace gr {
               d_fftSigIn[i][0] = (double)inSig[i+8+64+80].real();
               d_fftSigIn[i][1] = (double)inSig[i+8+64+80].imag();
             }
-            std::cout<<"end debug sample 1"<<std::endl;
             d_fftP = fftw_plan_dft_1d(64, d_fftLtfIn1, d_fftLtfOut1, FFTW_FORWARD, FFTW_ESTIMATE);
             fftw_execute(d_fftP);
             d_fftP = fftw_plan_dft_1d(64, d_fftLtfIn2, d_fftLtfOut2, FFTW_FORWARD, FFTW_ESTIMATE);
             fftw_execute(d_fftP);
             d_fftP = fftw_plan_dft_1d(64, d_fftSigIn, d_fftSigOut, FFTW_FORWARD, FFTW_ESTIMATE);
             fftw_execute(d_fftP);
-            std::cout<<"start debug sample 2"<<std::endl;
             for(int i=0;i<64;i++)
             {
-              d_ltf1[i] = gr_complex((float)d_fftLtfOut1[i][0], (float)d_fftLtfOut1[i][1]);
-              d_ltf2[i] = gr_complex((float)d_fftLtfOut2[i][0], (float)d_fftLtfOut2[i][1]);
-              //std::cout<<d_ltf1[i].real()<<" "<<d_ltf1[i].imag()<<std::endl;
-              //std::cout<<d_ltf2[i].real()<<" "<<d_ltf2[i].imag()<<std::endl;
               if(i==0 || (i>=27 && i<=37))
               {
                 d_H[i] = gr_complex(0.0f, 0.0f);
@@ -131,12 +120,10 @@ namespace gr {
               }
               else
               {
-                d_H[i] = (d_ltf1[i] + d_ltf2[i]) / LTF_L_26_F[i] / gr_complex(2.0f, 0.0f);
+                d_H[i] = (gr_complex((float)d_fftLtfOut1[i][0], (float)d_fftLtfOut1[i][1]) + gr_complex((float)d_fftLtfOut2[i][0], (float)d_fftLtfOut2[i][1])) / LTF_L_26_F[i] / gr_complex(2.0f, 0.0f);
                 d_sig[i] = gr_complex((float)d_fftSigOut[i][0], (float)d_fftSigOut[i][1]) / d_H[i];
               }
-              std::cout<<d_sig[i].real()<<" "<<d_sig[i].imag()<<std::endl;
             }
-            std::cout<<"end debug sample 2"<<std::endl;
             gr_complex tmpPilotsSum = d_sig[7] - d_sig[21] + d_sig[43] + d_sig[57];
             int j=24;
             for(int i=0;i<64;i++)
@@ -147,7 +134,6 @@ namespace gr {
               else
               {
                 d_sig[i] = d_sig[i] * std::conj(tmpPilotsSum) / std::abs(tmpPilotsSum);
-                
                 if(d_sig[i].real() > 0.0f)
                 {
                   d_sigIntedBits[j] = 1;
@@ -163,6 +149,11 @@ namespace gr {
                 }
               }
             }
+            procDeintLegacyBpsk(d_sigIntedBits, d_sigCodedBits);
+            std::cout<<"inted bits: ";
+            for(int i=0;i<48;i++)
+            {std::cout<<(int)d_sigCodedBits[i]<<", ";}
+            std::cout<<std::endl;
 
             d_fTest = 1;
             

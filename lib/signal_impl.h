@@ -44,8 +44,12 @@ namespace gr {
       int d_nSample;
       gr_complex d_H[64];
       gr_complex d_sig[64];
+      // hard viterbi ver
       uint8_t d_sigIntedBits[48];
       uint8_t d_sigCodedBits[48];
+      // soft viterbi ver
+      float d_sigIntedLlr[48];
+      float d_sigCodedLlr[48];
       uint8_t d_sigBits[24];
       // fft
       fftw_complex* d_fftLtfIn1;

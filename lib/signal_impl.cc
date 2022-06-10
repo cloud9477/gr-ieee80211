@@ -134,14 +134,17 @@ namespace gr {
               else
               {
                 d_sig[i] = d_sig[i] * std::conj(tmpPilotsSum) / std::abs(tmpPilotsSum);
-                if(d_sig[i].real() > 0.0f)
-                {
-                  d_sigIntedBits[j] = 1;
-                }
-                else
-                {
-                  d_sigIntedBits[j] = 0;
-                }
+                /* hard ver */
+                // if(d_sig[i].real() > 0.0f)
+                // {
+                //   d_sigIntedBits[j] = 1;
+                // }
+                // else
+                // {
+                //   d_sigIntedBits[j] = 0;
+                // }
+                /* soft ver */
+                d_sigIntedLlr[j] = d_sig[i].real();
                 j++;
                 if(j == 48)
                 {
@@ -149,10 +152,14 @@ namespace gr {
                 }
               }
             }
-            procDeintLegacyBpsk(d_sigIntedBits, d_sigCodedBits);
-            std::cout<<"inted bits: ";
-            for(int i=0;i<48;i++)
-            {std::cout<<(int)d_sigCodedBits[i]<<", ";}
+            /* hard ver */
+            //procDeintLegacyBpsk(d_sigIntedBits, d_sigCodedBits);
+            /* soft ver */
+            procDeintLegacyBpsk(d_sigIntedLlr, d_sigCodedLlr);
+            SV_Decode_Sig(d_sigCodedLlr, d_sigBits);
+            std::cout<<"sig data bits: ";
+            for(int i=0;i<24;i++)
+            {std::cout<<(int)d_sigBits[i]<<", ";}
             std::cout<<std::endl;
 
             d_fTest = 1;

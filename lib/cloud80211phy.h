@@ -23,6 +23,10 @@
 
 #include <gnuradio/io_signature.h>
 
+#define C8P_BW_20   0
+#define C8P_BW_40   1
+#define C8P_BW_80   2
+
 /* legacy signal field class, use mcs 0 to 7 to represent rates from 6 to 54*/
 class sigL
 {
@@ -33,11 +37,28 @@ class sigL
     ~sigL();
 };
 
+class sigHt
+{
+    public:
+    int mcs;
+    int len;
+    int bw;
+    int smooth;
+    int noSound;
+    int aggre;
+    int stbc;
+    int coding;
+    int shortGi;
+    int nExtSs;
+    sigHt();
+    ~sigHt();
+};
+
 extern const gr_complex LTF_L_26_F[64];
 
 void procDeintLegacyBpsk(uint8_t* inBits, uint8_t* outBits);
 void procDeintLegacyBpsk(float* inBits, float* outBits);
-void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits);
+void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits, int trellisLen);
 bool signalParserL(uint8_t* inBits, sigL* outSigL);
 
 

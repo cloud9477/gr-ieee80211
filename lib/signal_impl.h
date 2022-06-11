@@ -30,6 +30,10 @@
 #define S_NONLEGACY 2
 #define S_COPY 3
 
+#define F_LEGACY 0
+#define F_HT 1
+#define F_VHT 2
+
 namespace gr {
   namespace ieee80211 {
 
@@ -44,6 +48,10 @@ namespace gr {
       int d_nSample;
       gr_complex d_H[64];
       gr_complex d_sig[64];
+      gr_complex d_sig2[64];
+      sigL d_sigLegacy;
+      int d_format;
+      int d_nSymbol;
       // hard viterbi ver
       uint8_t d_sigIntedBits[48];
       uint8_t d_sigCodedBits[48];
@@ -52,6 +60,8 @@ namespace gr {
       float d_sigLegacyCodedLlr[48];
       float d_sigHtIntedLlr[96];
       float d_sigHtCodedLlr[96];
+      float d_sigVhtIntedLlr[96];
+      float d_sigVhtCodedLlr[96];
       // data bits
       uint8_t d_sigLegacyBits[24];
       uint8_t d_sigHtBits[48];
@@ -64,8 +74,6 @@ namespace gr {
       fftw_complex* d_fftSigIn;
       fftw_complex* d_fftSigOut;
       fftw_plan d_fftP;
-      // for signal
-      sigL d_sigLegacy;
       // for debug
       int d_fTest;
 

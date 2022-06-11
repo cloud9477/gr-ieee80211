@@ -35,6 +35,16 @@ sigL::~sigL()
 {
 }
 
+sigHt::sigHt()
+{
+
+}
+
+sigHt::~sigHt()
+{
+
+}
+
 bool signalParserL(uint8_t* inBits, sigL* outSigL)
 {
 	uint8_t tmpRate = 0;
@@ -97,9 +107,20 @@ bool signalParserL(uint8_t* inBits, sigL* outSigL)
 	return true;
 }
 
+bool signalParserHt(uint8_t* inBits, sigHt* outSigHt)
+{
+
+}
+
 /***************************************************/
 /* coding */
 /***************************************************/
+
+uint8_t procBitCrc8(uint8_t inBits)
+{
+	
+}
+
 const int mapDeintLegacyBpsk[48] = {
     0, 16, 32, 1, 17, 33, 2, 18, 34, 3, 19, 35, 4, 20, 36, 5, 21, 37, 6, 22, 38, 7, 23, 39, 8, 24, 
     40, 9, 25, 41, 10, 26, 42, 11, 27, 43, 12, 28, 44, 13, 29, 45, 14, 30, 46, 15, 31, 47};
@@ -147,7 +168,7 @@ const int SV_STATE_OUTPUT[64][2] =
 };
 
 // viterbi, soft decoding
-void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits)
+void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits, int trellisLen)
 {
 	int i, j, t;
 
@@ -157,21 +178,20 @@ void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits)
 	float *tmp, *pre_accum_err_metric, *cur_accum_err_metric;
 	int *state_history[64];			/* state history table */
 	int *state_sequence; 					/* state sequence list */
-	int depth_of_trellis = 24;
 	int op0, op1, next0, next1, tmp_index;
 	float acc_tmp0, acc_tmp1, t0, t1, tmp_val;
 	float tbl_t[4];
 
 	/* allocate memory for state tables */
 	for (i = 0; i < 64; i++)
-		state_history[i] = (int*)malloc((depth_of_trellis+1) * sizeof(int));
+		state_history[i] = (int*)malloc((trellisLen+1) * sizeof(int));
 
-	state_sequence = (int*)malloc((depth_of_trellis+1) * sizeof(int));
+	state_sequence = (int*)malloc((trellisLen+1) * sizeof(int));
 
 	/* initialize data structures */
 	for (i = 0; i < 64; i++)
 	{
-		for (j = 0; j <= depth_of_trellis; j++)
+		for (j = 0; j <= trellisLen; j++)
 			state_history[i][j] = 0;
 
 		/* initial the accumulated error metrics */
@@ -183,7 +203,7 @@ void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits)
     pre_accum_err_metric = &accum_err_metric0[0];
 
 	/* start viterbi decoding */
-	for (t = 0; t < depth_of_trellis; t++)
+	for (t = 0; t < trellisLen; t++)
 	{
 		t0 = *llrv++;
 		t1 = *llrv++;
@@ -230,16 +250,16 @@ void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits)
 	} // end of t loop
 
     // The final state should be 0
-    state_sequence[depth_of_trellis] = 0;
+    state_sequence[trellisLen] = 0;
 
-    for (j = depth_of_trellis; j > 0; j--)
+    for (j = trellisLen; j > 0; j--)
 	{
         state_sequence[j-1] = state_history[state_sequence[j]][j];
 	}
     
-	//memset(decoded_bits, 0, depth_of_trellis * sizeof(int));
+	//memset(decoded_bits, 0, trellisLen * sizeof(int));
 
-	for (j = 0; j < depth_of_trellis; j++)
+	for (j = 0; j < trellisLen; j++)
 	{
 		if (state_sequence[j+1] == SV_STATE_NEXT[state_sequence[j]][1])
 		{

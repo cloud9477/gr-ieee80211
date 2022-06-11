@@ -48,9 +48,14 @@ namespace gr {
       uint8_t d_sigIntedBits[48];
       uint8_t d_sigCodedBits[48];
       // soft viterbi ver
-      float d_sigIntedLlr[48];
-      float d_sigCodedLlr[48];
-      uint8_t d_sigBits[24];
+      float d_sigLegacyIntedLlr[48];
+      float d_sigLegacyCodedLlr[48];
+      float d_sigHtIntedLlr[96];
+      float d_sigHtCodedLlr[96];
+      // data bits
+      uint8_t d_sigLegacyBits[24];
+      uint8_t d_sigHtBits[48];
+      uint8_t d_sigVhtABits[48];
       // fft
       fftw_complex* d_fftLtfIn1;
       fftw_complex* d_fftLtfIn2;
@@ -59,6 +64,8 @@ namespace gr {
       fftw_complex* d_fftSigIn;
       fftw_complex* d_fftSigOut;
       fftw_plan d_fftP;
+      // for signal
+      sigL d_sigLegacy;
       // for debug
       int d_fTest;
 

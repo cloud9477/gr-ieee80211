@@ -23,10 +23,23 @@
 
 #include <gnuradio/io_signature.h>
 
+/* legacy signal field class, use mcs 0 to 7 to represent rates from 6 to 54*/
+class sigL
+{
+    public:
+    int mcs;
+    int len;
+    sigL();
+    ~sigL();
+};
+
 extern const gr_complex LTF_L_26_F[64];
 
 void procDeintLegacyBpsk(uint8_t* inBits, uint8_t* outBits);
 void procDeintLegacyBpsk(float* inBits, float* outBits);
 void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits);
+bool signalParserL(uint8_t* inBits, sigL* outSigL);
+
+
 
 #endif /* INCLUDED_IEEE80211_SIGNAL_IMPL_H */

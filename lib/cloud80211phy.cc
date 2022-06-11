@@ -1,5 +1,8 @@
 #include "cloud80211phy.h"
 
+/***************************************************/
+/* training field */
+/***************************************************/
 const gr_complex LTF_L_26_F[64] = {
     gr_complex(0.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), 
     gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), 
@@ -18,11 +21,88 @@ const gr_complex LTF_L_26_F[64] = {
     gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), 
     gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f)};
 
+/***************************************************/
+/* signal field */
+/***************************************************/
+
+sigL::sigL()
+{
+	mcs = 0;
+	len = 0;
+}
+
+sigL::~sigL()
+{
+}
+
+bool signalParserL(uint8_t* inBits, sigL* outSigL)
+{
+	uint8_t tmpRate = 0;
+	uint8_t tmpSumP = 0;
+	uint16_t tmpLen = 0;
+
+	if(inBits[4] != 0)
+	{
+		return false;
+	}
+
+	for(int i=0;i<17;i++)
+	{
+		tmpSumP += inBits[i];
+	}
+	if((tmpSumP & 0x01) != inBits[17])
+	{
+		return false;
+	}
+
+	for(int i=0;i<4;i++)
+	{
+		tmpRate |= (inBits[i]<<i);
+	}
+	switch(tmpRate)
+	{
+		case 11:	// 0b1101
+			outSigL->mcs = 0;
+			break;
+		case 15:	// 0b1111
+			outSigL->mcs = 1;
+			break;
+		case 10:	// 0b0101
+			outSigL->mcs = 2;
+			break;
+		case 14:	// 0b0111
+			outSigL->mcs = 3;
+			break;
+		case 9:		// 0b1001
+			outSigL->mcs = 4;
+			break;
+		case 13:	// 0b1011
+			outSigL->mcs = 5;
+			break;
+		case 8:		// 0b0001
+			outSigL->mcs = 6;
+			break;
+		case 12:	// 0b0011
+			outSigL->mcs = 7;
+			break;
+		default:
+			return false;
+	}
+
+	for(int i=0;i<12;i++)
+	{
+		tmpLen |= (((uint16_t)inBits[i+5])<<i);
+	}
+	outSigL->len = (int)tmpLen;
+	return true;
+}
+
+/***************************************************/
+/* coding */
+/***************************************************/
 const int mapDeintLegacyBpsk[48] = {
     0, 16, 32, 1, 17, 33, 2, 18, 34, 3, 19, 35, 4, 20, 36, 5, 21, 37, 6, 22, 38, 7, 23, 39, 8, 24, 
     40, 9, 25, 41, 10, 26, 42, 11, 27, 43, 12, 28, 44, 13, 29, 45, 14, 30, 46, 15, 31, 47};
-
-
 
 void procDeintLegacyBpsk(uint8_t* inBits, uint8_t* outBits)
 {
@@ -40,10 +120,7 @@ void procDeintLegacyBpsk(float* inBits, float* outBits)
     }
 }
 
-/*
- * soft viterbi
-*/
-// next state of each state with S1 = 0 and 1
+// viterbi, next state of each state with S1 = 0 and 1
 const int SV_STATE_NEXT[64][2] =
 {
  {0, 32}, {0, 32}, {1, 33}, {1, 33}, {2, 34}, {2, 34}, {3, 35}, {3, 35},
@@ -56,7 +133,7 @@ const int SV_STATE_NEXT[64][2] =
  {28, 60}, {28, 60}, {29, 61}, {29, 61}, {30, 62}, {30, 62}, {31, 63}, {31, 63}
 };
 
-// output coded 2 bits of each state with S1 = 0 and 1
+// viterbi, output coded 2 bits of each state with S1 = 0 and 1
 const int SV_STATE_OUTPUT[64][2] =
 {
  {0, 3}, {3, 0}, {2, 1}, {1, 2}, {0, 3}, {3, 0}, {2, 1}, {1, 2},
@@ -69,7 +146,7 @@ const int SV_STATE_OUTPUT[64][2] =
  {1, 2}, {2, 1}, {3, 0}, {0, 3}, {1, 2}, {2, 1}, {3, 0}, {0, 3}, 
 };
 
-/* Viterbi decoding */
+// viterbi, soft decoding
 void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits)
 {
 	int i, j, t;

@@ -94,80 +94,81 @@ namespace gr {
       {
         if(d_nProc > 320)
         {
-          if(d_fTest == 0)
-          {
-            for(int i=0;i<64;i++)
-            {
-              d_fftLtfIn1[i][0] = (double)inSig[i+8].real();
-              d_fftLtfIn1[i][1] = (double)inSig[i+8].imag();
-              d_fftLtfIn2[i][0] = (double)inSig[i+8+64].real();
-              d_fftLtfIn2[i][1] = (double)inSig[i+8+64].imag();
-              d_fftSigIn[i][0] = (double)inSig[i+8+64+80].real();
-              d_fftSigIn[i][1] = (double)inSig[i+8+64+80].imag();
-            }
-            d_fftP = fftw_plan_dft_1d(64, d_fftLtfIn1, d_fftLtfOut1, FFTW_FORWARD, FFTW_ESTIMATE);
-            fftw_execute(d_fftP);
-            d_fftP = fftw_plan_dft_1d(64, d_fftLtfIn2, d_fftLtfOut2, FFTW_FORWARD, FFTW_ESTIMATE);
-            fftw_execute(d_fftP);
-            d_fftP = fftw_plan_dft_1d(64, d_fftSigIn, d_fftSigOut, FFTW_FORWARD, FFTW_ESTIMATE);
-            fftw_execute(d_fftP);
-            for(int i=0;i<64;i++)
-            {
-              if(i==0 || (i>=27 && i<=37))
-              {
-                d_H[i] = gr_complex(0.0f, 0.0f);
-                d_sig[i] = gr_complex(0.0f, 0.0f);
-              }
-              else
-              {
-                d_H[i] = (gr_complex((float)d_fftLtfOut1[i][0], (float)d_fftLtfOut1[i][1]) + gr_complex((float)d_fftLtfOut2[i][0], (float)d_fftLtfOut2[i][1])) / LTF_L_26_F[i] / gr_complex(2.0f, 0.0f);
-                d_sig[i] = gr_complex((float)d_fftSigOut[i][0], (float)d_fftSigOut[i][1]) / d_H[i];
-              }
-            }
-            gr_complex tmpPilotsSum = d_sig[7] - d_sig[21] + d_sig[43] + d_sig[57];
-            int j=24;
-            for(int i=0;i<64;i++)
-            {
-              if(i==0 || (i>=27 && i<=37) || i==7 || i==21 || i==43 || i==57)
-              {
-              }
-              else
-              {
-                d_sig[i] = d_sig[i] * std::conj(tmpPilotsSum) / std::abs(tmpPilotsSum);
-                /* hard ver */
-                // if(d_sig[i].real() > 0.0f)
-                // {
-                //   d_sigIntedBits[j] = 1;
-                // }
-                // else
-                // {
-                //   d_sigIntedBits[j] = 0;
-                // }
-                /* soft ver */
-                d_sigIntedLlr[j] = d_sig[i].real();
-                j++;
-                if(j == 48)
-                {
-                  j = 0;
-                }
-              }
-            }
-            /* hard ver */
-            //procDeintLegacyBpsk(d_sigIntedBits, d_sigCodedBits);
-            /* soft ver */
-            procDeintLegacyBpsk(d_sigIntedLlr, d_sigCodedLlr);
-            SV_Decode_Sig(d_sigCodedLlr, d_sigBits);
-            std::cout<<"sig data bits: ";
-            for(int i=0;i<24;i++)
-            {std::cout<<(int)d_sigBits[i]<<", ";}
-            std::cout<<std::endl;
-
-            d_fTest = 1;
-            
-          }
           d_sSignal = S_TRIGGER;
-          consume_each(80);
-          return 0;
+          for(int i=0;i<64;i++)
+          {
+            d_fftLtfIn1[i][0] = (double)inSig[i+8].real();
+            d_fftLtfIn1[i][1] = (double)inSig[i+8].imag();
+            d_fftLtfIn2[i][0] = (double)inSig[i+8+64].real();
+            d_fftLtfIn2[i][1] = (double)inSig[i+8+64].imag();
+            d_fftSigIn[i][0] = (double)inSig[i+8+64+80].real();
+            d_fftSigIn[i][1] = (double)inSig[i+8+64+80].imag();
+          }
+          d_fftP = fftw_plan_dft_1d(64, d_fftLtfIn1, d_fftLtfOut1, FFTW_FORWARD, FFTW_ESTIMATE);
+          fftw_execute(d_fftP);
+          d_fftP = fftw_plan_dft_1d(64, d_fftLtfIn2, d_fftLtfOut2, FFTW_FORWARD, FFTW_ESTIMATE);
+          fftw_execute(d_fftP);
+          d_fftP = fftw_plan_dft_1d(64, d_fftSigIn, d_fftSigOut, FFTW_FORWARD, FFTW_ESTIMATE);
+          fftw_execute(d_fftP);
+          for(int i=0;i<64;i++)
+          {
+            if(i==0 || (i>=27 && i<=37))
+            {
+              d_H[i] = gr_complex(0.0f, 0.0f);
+              d_sig[i] = gr_complex(0.0f, 0.0f);
+            }
+            else
+            {
+              d_H[i] = (gr_complex((float)d_fftLtfOut1[i][0], (float)d_fftLtfOut1[i][1]) + gr_complex((float)d_fftLtfOut2[i][0], (float)d_fftLtfOut2[i][1])) / LTF_L_26_F[i] / gr_complex(2.0f, 0.0f);
+              d_sig[i] = gr_complex((float)d_fftSigOut[i][0], (float)d_fftSigOut[i][1]) / d_H[i];
+            }
+          }
+          gr_complex tmpPilotsSum = d_sig[7] - d_sig[21] + d_sig[43] + d_sig[57];
+          int j=24;
+          for(int i=0;i<64;i++)
+          {
+            if(i==0 || (i>=27 && i<=37) || i==7 || i==21 || i==43 || i==57)
+            {
+            }
+            else
+            {
+              d_sig[i] = d_sig[i] * std::conj(tmpPilotsSum) / std::abs(tmpPilotsSum);
+              /* soft ver */
+              d_sigLegacyIntedLlr[j] = d_sig[i].real();
+              j++;
+              if(j == 48)
+              {
+                j = 0;
+              }
+            }
+          }
+          /* soft ver */
+          procDeintLegacyBpsk(d_sigLegacyIntedLlr, d_sigLegacyCodedLlr);
+          SV_Decode_Sig(d_sigLegacyCodedLlr, d_sigLegacyBits);
+          std::cout<<"sig data bits: ";
+          for(int i=0;i<24;i++)
+          {std::cout<<(int)d_sigLegacyBits[i]<<", ";}
+          std::cout<<std::endl;
+          if(signalParserL(d_sigLegacyBits, &d_sigLegacy))
+          {
+            std::cout<<"mcs: "<<d_sigLegacy.mcs<<", len:"<<d_sigLegacy.len<<std::endl;
+            if(d_sigLegacy.mcs == 0)
+            {
+              // if rate is 6M, keep checking if HT or VHT
+              d_sSignal = S_NONLEGACY;
+            }
+            else
+            {
+              d_sSignal = S_COPY;
+            }
+            consume_each(224);
+            return 0;
+          }
+          else
+          {
+            consume_each(80);
+            return 0;
+          }
         }
         else
         {
@@ -175,10 +176,23 @@ namespace gr {
           return 0;
         }
       }
+      else if(d_sSignal == S_NONLEGACY)
+      {
+        std::cout<<"to check ht and vht"<<std::endl;
+        d_sSignal = S_TRIGGER;
+        consume_each(160);
+        return 0;
+      }
+      else if(d_sSignal == S_COPY)
+      {
+        std::cout<<"to copy samples"<<std::endl;
+        d_sSignal = S_TRIGGER;
+        consume_each(160);
+        return 0;
+      }
 
-      // Tell runtime system how many input items we consumed on each input stream.
+      // if no process and no state changing
       consume_each(d_nProc);
-      // Tell runtime system how many output items we produced.
       return 0;
     }
 

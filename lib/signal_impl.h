@@ -50,6 +50,8 @@ namespace gr {
       gr_complex d_sig[64];
       gr_complex d_sig2[64];
       sigL d_sigLegacy;
+      sigHt d_sigHt;
+      sigVhtA d_sigVhtA;
       int d_format;
       int d_nSymbol;
       // hard viterbi ver
@@ -60,8 +62,8 @@ namespace gr {
       float d_sigLegacyCodedLlr[48];
       float d_sigHtIntedLlr[96];
       float d_sigHtCodedLlr[96];
-      float d_sigVhtIntedLlr[96];
-      float d_sigVhtCodedLlr[96];
+      float d_sigVhtAIntedLlr[96];
+      float d_sigVhtACodedLlr[96];
       // data bits
       uint8_t d_sigLegacyBits[24];
       uint8_t d_sigHtBits[48];

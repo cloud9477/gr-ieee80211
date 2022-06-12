@@ -45,6 +45,47 @@ sigHt::~sigHt()
 
 }
 
+sigVhtA::sigVhtA()
+{
+
+}
+
+sigVhtA::~sigVhtA()
+{
+
+}
+
+bool signalParserVht(uint8_t* inBits, sigVhtA* outSigVhtA)
+{
+	uint8_t tmpCrc = 0;
+	if((inBits[2] != 1) || (inBits[23] != 1) || (inBits[33] != 1))
+	{
+		return false;
+	}
+	for(int i=34;i<42;i++)
+	{
+		tmpCrc = tmpCrc << 1;
+		tmpCrc |= inBits[i];
+	}
+	std::cout<<"vht crc compare, recv: "<<(int)tmpCrc<<", compute: "<<(int)procBitCrc8(inBits, 34)<<std::endl;
+	return true;
+}
+
+bool signalParserHt(uint8_t* inBits, sigHt* outSigHt)
+{
+	uint8_t tmpCrc = 0;
+	if(inBits[26] != 1)
+	{
+		return false;
+	}
+	for(int i=34;i<42;i++)
+	{
+		tmpCrc |= (inBits[i]<<(i-34));
+	}
+	std::cout<<"ht crc compare, recv: "<<(int)tmpCrc<<", compute: "<<(int)procBitCrc8(inBits, 34)<<std::endl;
+	return true;
+}
+
 bool signalParserL(uint8_t* inBits, sigL* outSigL)
 {
 	uint8_t tmpRate = 0;
@@ -107,18 +148,35 @@ bool signalParserL(uint8_t* inBits, sigL* outSigL)
 	return true;
 }
 
-bool signalParserHt(uint8_t* inBits, sigHt* outSigHt)
-{
-
-}
-
 /***************************************************/
 /* coding */
 /***************************************************/
 
-uint8_t procBitCrc8(uint8_t inBits)
+uint8_t procBitCrc8(uint8_t* inBits, int len)
 {
-	
+	uint16_t c = 0x00ff;
+	for(int i=0;i<len;i++)
+	{
+		c = c << 1;
+		if(c & 0x0100)
+		{
+			c = c + 1;
+			c = c ^ 0x0006;
+		}
+		else
+		{
+			c = c ^ 0x0000;
+		}
+		if(inBits[i])
+		{
+			c = c ^ 0x0007;
+		}
+		else
+		{
+			c = c ^ 0x0000;
+		}
+	}
+	return (uint8_t)(0x00ff - (c & 0x00ff));
 }
 
 const int mapDeintLegacyBpsk[48] = {

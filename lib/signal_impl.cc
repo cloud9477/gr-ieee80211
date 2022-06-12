@@ -216,8 +216,8 @@ namespace gr {
             {
               d_sigHtIntedLlr[j] = (d_sig[i] * tmpPilotSum1 / tmpPilotSumAbs1).imag();
               d_sigHtIntedLlr[j + 48] = (d_sig2[i] * tmpPilotSum2 / tmpPilotSumAbs2).imag();
-              d_sigVhtIntedLlr[j] = (d_sig[i] * tmpPilotSum1 / tmpPilotSumAbs1).real();
-              d_sigVhtIntedLlr[j + 48] = (d_sig2[i] * tmpPilotSum2 / tmpPilotSumAbs2).imag();
+              d_sigVhtAIntedLlr[j] = (d_sig[i] * tmpPilotSum1 / tmpPilotSumAbs1).real();
+              d_sigVhtAIntedLlr[j + 48] = (d_sig2[i] * tmpPilotSum2 / tmpPilotSumAbs2).imag();
               j++;
               if(j == 48)
               {
@@ -228,10 +228,27 @@ namespace gr {
           procDeintLegacyBpsk(d_sigHtIntedLlr, d_sigHtCodedLlr);
           procDeintLegacyBpsk(&d_sigHtIntedLlr[48], &d_sigHtCodedLlr[48]);
           SV_Decode_Sig(d_sigHtCodedLlr, d_sigHtBits, 48);
-          procDeintLegacyBpsk(d_sigVhtIntedLlr, d_sigVhtCodedLlr);
-          procDeintLegacyBpsk(&d_sigVhtIntedLlr[48], &d_sigVhtCodedLlr[48]);
-          
+          if(signalParserHt(d_sigHtBits, &d_sigHt))
+          {
+          }
+          else
+          {
+            procDeintLegacyBpsk(d_sigVhtAIntedLlr, d_sigVhtACodedLlr);
+            procDeintLegacyBpsk(&d_sigVhtAIntedLlr[48], &d_sigVhtACodedLlr[48]);
+            SV_Decode_Sig(d_sigVhtACodedLlr, d_sigVhtABits, 48);
+            std::cout<<"vht a sig bits"<<std::endl;
+            for(int i=0;i<24;i++)
+              std::cout<<(int)d_sigVhtABits[i]<<", ";
+            std::cout<<std::endl;
+            for(int i=0;i<24;i++)
+              std::cout<<(int)d_sigVhtABits[i+24]<<", ";
+            std::cout<<std::endl;
+            if(signalParserVht(d_sigVhtABits, &d_sigVhtA))
+            {
 
+            }
+          }
+          
           d_sSignal = S_TRIGGER;
           consume_each(160);
         }

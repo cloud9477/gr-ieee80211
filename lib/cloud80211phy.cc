@@ -3,7 +3,7 @@
 /***************************************************/
 /* training field */
 /***************************************************/
-const gr_complex LTF_L_26_F[64] = {
+const gr_complex LTF_L_26_F_COMP[64] = {
     gr_complex(0.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), 
     gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), 
     gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), 
@@ -20,6 +20,24 @@ const gr_complex LTF_L_26_F[64] = {
     gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), 
     gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(-1.0f, 0.0f), 
     gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f), gr_complex(1.0f, 0.0f)};
+
+const float LTF_L_26_F_FLOAT[64] = {
+    0.0f, 1.0f, -1.0f, -1.0f, 
+    1.0f, 1.0f, -1.0f, 1.0f, 
+    -1.0f, 1.0f, -1.0f, -1.0f, 
+    -1.0f, -1.0f, -1.0f, 1.0f, 
+    1.0f, -1.0f, -1.0f, 1.0f, 
+    -1.0f, 1.0f, -1.0f, 1.0f, 
+    1.0f, 1.0f, 1.0f, 0.0f, 
+    0.0f, 0.0f, 0.0f, 0.0f, 
+    0.0f, 0.0f, 0.0f, 0.0f, 
+    0.0f, 0.0f, 1.0f, 1.0f, 
+    -1.0f, -1.0f, 1.0f, 1.0f, 
+    -1.0f, 1.0f, -1.0f, 1.0f, 
+    1.0f, 1.0f, 1.0f, 1.0f, 
+    1.0f, -1.0f, -1.0f, 1.0f, 
+    1.0f, -1.0f, 1.0f, -1.0f, 
+    1.0f, 1.0f, 1.0f, 1.0f};
 
 /***************************************************/
 /* signal field */
@@ -55,34 +73,107 @@ sigVhtA::~sigVhtA()
 
 }
 
+bool signalCheckLegacy(uint8_t* inBits, int* mcs, int* len, int* nDBPS)
+{
+	uint8_t tmpSumP = 0;
+	int tmpRate = 0;
+
+	if(!inBits[3])
+	{
+		return false;
+	}
+
+	if(inBits[4])
+	{
+		return false;
+	}
+
+	for(int i=0;i<17;i++)
+	{
+		tmpSumP += inBits[i];
+	}
+	if((tmpSumP & 0x01) ^ inBits[17])
+	{
+		return false;
+	}
+
+	for(int i=0;i<4;i++)
+	{
+		tmpRate |= (((int)inBits[i])<<i);
+	}
+	switch(tmpRate)
+	{
+		case 11:	// 0b1101
+			*mcs = 0;
+			*nDBPS = 24;
+			break;
+		case 15:	// 0b1111
+			*mcs = 1;
+			*nDBPS = 36;
+			break;
+		case 10:	// 0b0101
+			*mcs = 2;
+			*nDBPS = 48;
+			break;
+		case 14:	// 0b0111
+			*mcs = 3;
+			*nDBPS = 72;
+			break;
+		case 9:		// 0b1001
+			*mcs = 4;
+			*nDBPS = 96;
+			break;
+		case 13:	// 0b1011
+			*mcs = 5;
+			*nDBPS = 144;
+			break;
+		case 8:		// 0b0001
+			*mcs = 6;
+			*nDBPS = 192;
+			break;
+		case 12:	// 0b0011
+			*mcs = 7;
+			*nDBPS = 216;
+			break;
+		default:
+			*mcs = 0;
+			*nDBPS = 24;
+			break;
+	}
+
+	*len = 0;
+	for(int i=0;i<12;i++)
+	{
+		*len |= (((int)inBits[i+5])<<i);
+	}
+	return true;
+}
+
 bool signalParserVht(uint8_t* inBits, sigVhtA* outSigVhtA)
 {
-	uint8_t tmpCrc = 0;
 	if((inBits[2] != 1) || (inBits[23] != 1) || (inBits[33] != 1))
 	{
 		return false;
 	}
-	for(int i=34;i<42;i++)
+	if(!checkBitCrc8(inBits, 34, &inBits[34]))
 	{
-		tmpCrc = tmpCrc << 1;
-		tmpCrc |= inBits[i];
+		return false;
 	}
-	std::cout<<"vht crc compare, recv: "<<(int)tmpCrc<<", compute: "<<(int)procBitCrc8(inBits, 34)<<std::endl;
+	std::cout<<"vht sig a crc check pass"<<std::endl;
 	return true;
 }
 
 bool signalParserHt(uint8_t* inBits, sigHt* outSigHt)
 {
-	uint8_t tmpCrc = 0;
 	if(inBits[26] != 1)
 	{
 		return false;
 	}
-	for(int i=34;i<42;i++)
+	if(!checkBitCrc8(inBits, 34, &inBits[34]))
 	{
-		tmpCrc |= (inBits[i]<<(i-34));
+		return false;
 	}
-	std::cout<<"ht crc compare, recv: "<<(int)tmpCrc<<", compute: "<<(int)procBitCrc8(inBits, 34)<<std::endl;
+	std::cout<<"ht sig crc check pass"<<std::endl;
 	return true;
 }
 
@@ -90,7 +181,6 @@ bool signalParserL(uint8_t* inBits, sigL* outSigL)
 {
 	uint8_t tmpRate = 0;
 	uint8_t tmpSumP = 0;
-	uint16_t tmpLen = 0;
 
 	if(inBits[4] != 0)
 	{
@@ -114,37 +204,62 @@ bool signalParserL(uint8_t* inBits, sigL* outSigL)
 	{
 		case 11:	// 0b1101
 			outSigL->mcs = 0;
+			outSigL->nDBPS = 24;
+			outSigL->nCBPS = 48;
+			outSigL->nBPSC = 1;
 			break;
 		case 15:	// 0b1111
 			outSigL->mcs = 1;
+			outSigL->nDBPS = 36;
+			outSigL->nCBPS = 48;
+			outSigL->nBPSC = 1;
 			break;
 		case 10:	// 0b0101
 			outSigL->mcs = 2;
+			outSigL->nDBPS = 48;
+			outSigL->nCBPS = 96;
+			outSigL->nBPSC = 2;
 			break;
 		case 14:	// 0b0111
 			outSigL->mcs = 3;
+			outSigL->nDBPS = 72;
+			outSigL->nCBPS = 96;
+			outSigL->nBPSC = 2;
 			break;
 		case 9:		// 0b1001
 			outSigL->mcs = 4;
+			outSigL->nDBPS = 96;
+			outSigL->nCBPS = 192;
+			outSigL->nBPSC = 4;
 			break;
 		case 13:	// 0b1011
 			outSigL->mcs = 5;
+			outSigL->nDBPS = 144;
+			outSigL->nCBPS = 192;
+			outSigL->nBPSC = 4;
 			break;
 		case 8:		// 0b0001
 			outSigL->mcs = 6;
+			outSigL->nDBPS = 192;
+			outSigL->nCBPS = 288;
+			outSigL->nBPSC = 6;
 			break;
 		case 12:	// 0b0011
 			outSigL->mcs = 7;
+			outSigL->nDBPS = 216;
+			outSigL->nCBPS = 288;
+			outSigL->nBPSC = 6;
 			break;
 		default:
 			return false;
 	}
 
+	outSigL->len = 0;
 	for(int i=0;i<12;i++)
 	{
-		tmpLen |= (((uint16_t)inBits[i+5])<<i);
+		outSigL->len |= (((int)inBits[i+5])<<i);
 	}
-	outSigL->len = (int)tmpLen;
+	outSigL->nSym = (outSigL->len*8 + 16 + 6)/outSigL->nDBPS + (((outSigL->len*8 + 16 + 6)%outSigL->nDBPS) != 0);
 	return true;
 }
 
@@ -152,13 +267,14 @@ bool signalParserL(uint8_t* inBits, sigL* outSigL)
 /* coding */
 /***************************************************/
 
-uint8_t procBitCrc8(uint8_t* inBits, int len)
+uint8_t genByteCrc8(uint8_t* inBits, int len)
 {
 	uint16_t c = 0x00ff;
-	for(int i=0;i<len;i++)
+	uint8_t cf = 0x00;
+	for (int i = 0; i < len; i++)
 	{
 		c = c << 1;
-		if(c & 0x0100)
+		if (c & 0x0100)
 		{
 			c = c + 1;
 			c = c ^ 0x0006;
@@ -167,7 +283,7 @@ uint8_t procBitCrc8(uint8_t* inBits, int len)
 		{
 			c = c ^ 0x0000;
 		}
-		if(inBits[i])
+		if (inBits[i])
 		{
 			c = c ^ 0x0007;
 		}
@@ -176,7 +292,53 @@ uint8_t procBitCrc8(uint8_t* inBits, int len)
 			c = c ^ 0x0000;
 		}
 	}
-	return (uint8_t)(0x00ff - (c & 0x00ff));
+	c = (0x00ff - (c & 0x00ff));
+	for (int i = 0; i < 8; i++)
+	{
+		if (c & (1 << i))
+		{
+			cf |= (1 << (7 - i));
+		}
+	}
+	return cf;
+}
+
+bool checkBitCrc8(uint8_t* inBits, int len, uint8_t* crcBits)
+{
+	uint16_t c = 0x00ff;
+	for (int i = 0; i < len; i++)
+	{
+		c = c << 1;
+		if (c & 0x0100)
+		{
+			c = c + 1;
+			c = c ^ 0x0006;
+		}
+		else
+		{
+			c = c ^ 0x0000;
+		}
+		if (inBits[i])
+		{
+			c = c ^ 0x0007;
+		}
+		else
+		{
+			c = c ^ 0x0000;
+		}
+	}
+	for (int i = 0; i < 8; i++)
+	{
+		if (crcBits[i])
+		{
+			c ^= (1 << (7 - i));
+		}
+	}
+	if ((c & 0x00ff) == 0x00ff)
+	{
+		return true;
+	}
+	return false;
 }
 
 const int mapDeintLegacyBpsk[48] = {

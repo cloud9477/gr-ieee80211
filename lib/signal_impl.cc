@@ -46,8 +46,6 @@ namespace gr {
       d_fftLtfOut2 = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
       d_fftSigIn = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
       d_fftSigOut = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
-      //for debug
-      d_fTest = 0;
     }
 
     signal_impl::~signal_impl()
@@ -92,9 +90,8 @@ namespace gr {
       }
       else if(d_sSignal == S_DEMOD)
       {
-        if(d_nProc > 320)
+        if(d_nProc > 240)
         {
-          d_sSignal = S_TRIGGER;
           for(int i=0;i<64;i++)
           {
             d_fftLtfIn1[i][0] = (double)inSig[i+8].real();
@@ -114,12 +111,10 @@ namespace gr {
           {
             if(i==0 || (i>=27 && i<=37))
             {
-              d_H[i] = gr_complex(0.0f, 0.0f);
-              d_sig[i] = gr_complex(0.0f, 0.0f);
             }
             else
             {
-              d_H[i] = (gr_complex((float)d_fftLtfOut1[i][0], (float)d_fftLtfOut1[i][1]) + gr_complex((float)d_fftLtfOut2[i][0], (float)d_fftLtfOut2[i][1])) / LTF_L_26_F[i] / gr_complex(2.0f, 0.0f);
+              d_H[i] = (gr_complex((float)d_fftLtfOut1[i][0], (float)d_fftLtfOut1[i][1]) + gr_complex((float)d_fftLtfOut2[i][0], (float)d_fftLtfOut2[i][1])) / LTF_L_26_F_FLOAT[i] / 2.0f;
               d_sig[i] = gr_complex((float)d_fftSigOut[i][0], (float)d_fftSigOut[i][1]) / d_H[i];
             }
           }
@@ -134,38 +129,51 @@ namespace gr {
             else
             {
               d_sig[i] = d_sig[i] * tmpPilotSum / tmpPilotSumAbs;
-              /* soft ver */
               d_sigLegacyIntedLlr[j] = d_sig[i].real();
               j++;
-              if(j == 48)
-              {
-                j = 0;
-              }
+              if(j >= 48){j = 0;}
             }
           }
           /* soft ver */
           procDeintLegacyBpsk(d_sigLegacyIntedLlr, d_sigLegacyCodedLlr);
           SV_Decode_Sig(d_sigLegacyCodedLlr, d_sigLegacyBits, 24);
-          std::cout<<"sig data bits: ";
-          for(int i=0;i<24;i++)
-          {std::cout<<(int)d_sigLegacyBits[i]<<", ";}
-          std::cout<<std::endl;
-          if(signalParserL(d_sigLegacyBits, &d_sigLegacy))
+          if(signalCheckLegacy(d_sigLegacyBits, &d_nSigMcs, &d_nSigLen, &d_nSigDBPS))
           {
-            std::cout<<"mcs: "<<d_sigLegacy.mcs<<", len:"<<d_sigLegacy.len<<std::endl;
-            if(d_sigLegacy.mcs == 0)
+            d_nSymbol = (d_nSigLen*8 + 16 + 6)/d_nSigDBPS + (((d_nSigLen*8 + 16 + 6)%d_nSigDBPS) != 0);
+            d_nSample = d_nSymbol * 80;
+            d_nSampleCopied = 0;
+            std::cout<<"ieee80211 signal, mcs: "<<d_nSigMcs<<", len:"<<d_nSigLen<<", nSym:"<<d_nSymbol<<std::endl;
+
+            // add info into tag
+            std::vector<gr_complex> csi;
+            csi.reserve(52);
+            for(int i=0;i<64;i++)
             {
-              // if rate is 6M, keep checking if HT or VHT
-              d_sSignal = S_NONLEGACY;
+              if((i>0 && i<27)|| (i > 37))
+              {
+                csi.push_back(d_H[i]);
+              }
             }
-            else
-            {
-              d_sSignal = S_COPY;
+            pmt::pmt_t dict = pmt::make_dict();
+            dict = pmt::dict_add(dict, pmt::mp("mcs"), pmt::from_long(d_nSigMcs));
+            dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_nSigLen));
+            dict = pmt::dict_add(dict, pmt::mp("csi"), pmt::init_c32vector(csi.size(), csi));
+            pmt::pmt_t pairs = pmt::dict_items(dict);
+            for (int i = 0; i < pmt::length(pairs); i++) {
+                pmt::pmt_t pair = pmt::nth(i, pairs);
+                add_item_tag(0,
+                              nitems_written(0),
+                              pmt::car(pair),
+                              pmt::cdr(pair),
+                              alias_pmt());
             }
+            
+            d_sSignal = S_COPY;
             consume_each(224);
           }
           else
           {
+            d_sSignal = S_TRIGGER;
             consume_each(80);
           }
         }
@@ -175,95 +183,30 @@ namespace gr {
         }
         return 0;
       }
-      else if(d_sSignal == S_NONLEGACY)
+      else if(d_sSignal == S_COPY)
       {
-        if(d_nProc >= 160)
+        if(d_nProc >= (d_nSample - d_nSampleCopied))
         {
-          std::cout<<"check ht and vht"<<std::endl;
-          for(int i=0;i<64;i++)
+          std::cout<<"ieee80211 signal, copy "<<(d_nSample - d_nSampleCopied)<<" samples"<<std::endl;
+          for(int i=0;i<(d_nSample - d_nSampleCopied);i++)
           {
-            d_fftLtfIn1[i][0] = (double)inSig[i+8].real();
-            d_fftLtfIn1[i][1] = (double)inSig[i+8].imag();
-            d_fftLtfIn2[i][0] = (double)inSig[i+8+80].real();
-            d_fftLtfIn2[i][1] = (double)inSig[i+8+80].imag();
+            outSig[i] = inSig[i];
           }
-          d_fftP = fftw_plan_dft_1d(64, d_fftLtfIn1, d_fftLtfOut1, FFTW_FORWARD, FFTW_ESTIMATE);
-          fftw_execute(d_fftP);
-          d_fftP = fftw_plan_dft_1d(64, d_fftLtfIn2, d_fftLtfOut2, FFTW_FORWARD, FFTW_ESTIMATE);
-          fftw_execute(d_fftP);
-          for(int i=0;i<64;i++)
-          {
-            if(i==0 || (i>=27 && i<=37))
-            {
-            }
-            else
-            {
-              d_sig[i] = gr_complex((float)d_fftLtfOut1[i][0], (float)d_fftLtfOut1[i][1]) / d_H[i];
-              d_sig2[i] = gr_complex((float)d_fftLtfOut2[i][0], (float)d_fftLtfOut2[i][1]) / d_H[i];
-            }
-          }
-          gr_complex tmpPilotSum1 = std::conj(d_sig[7] - d_sig[21] + d_sig[43] + d_sig[57]);
-          gr_complex tmpPilotSum2 = std::conj(d_sig2[7] - d_sig2[21] + d_sig2[43] + d_sig2[57]);
-          float tmpPilotSumAbs1 = std::abs(tmpPilotSum1);
-          float tmpPilotSumAbs2 = std::abs(tmpPilotSum2);
-          int j=24;
-          for(int i=0;i<64;i++)
-          {
-            if(i==0 || (i>=27 && i<=37) || i==7 || i==21 || i==43 || i==57)
-            {
-            }
-            else
-            {
-              d_sigHtIntedLlr[j] = (d_sig[i] * tmpPilotSum1 / tmpPilotSumAbs1).imag();
-              d_sigHtIntedLlr[j + 48] = (d_sig2[i] * tmpPilotSum2 / tmpPilotSumAbs2).imag();
-              d_sigVhtAIntedLlr[j] = (d_sig[i] * tmpPilotSum1 / tmpPilotSumAbs1).real();
-              d_sigVhtAIntedLlr[j + 48] = (d_sig2[i] * tmpPilotSum2 / tmpPilotSumAbs2).imag();
-              j++;
-              if(j == 48)
-              {
-                j = 0;
-              }
-            }
-          }
-          procDeintLegacyBpsk(d_sigHtIntedLlr, d_sigHtCodedLlr);
-          procDeintLegacyBpsk(&d_sigHtIntedLlr[48], &d_sigHtCodedLlr[48]);
-          SV_Decode_Sig(d_sigHtCodedLlr, d_sigHtBits, 48);
-          if(signalParserHt(d_sigHtBits, &d_sigHt))
-          {
-          }
-          else
-          {
-            procDeintLegacyBpsk(d_sigVhtAIntedLlr, d_sigVhtACodedLlr);
-            procDeintLegacyBpsk(&d_sigVhtAIntedLlr[48], &d_sigVhtACodedLlr[48]);
-            SV_Decode_Sig(d_sigVhtACodedLlr, d_sigVhtABits, 48);
-            std::cout<<"vht a sig bits"<<std::endl;
-            for(int i=0;i<24;i++)
-              std::cout<<(int)d_sigVhtABits[i]<<", ";
-            std::cout<<std::endl;
-            for(int i=0;i<24;i++)
-              std::cout<<(int)d_sigVhtABits[i+24]<<", ";
-            std::cout<<std::endl;
-            if(signalParserVht(d_sigVhtABits, &d_sigVhtA))
-            {
-
-            }
-          }
-          
           d_sSignal = S_TRIGGER;
-          consume_each(160);
+          consume_each(d_nSample - d_nSampleCopied);
+          return (d_nSample - d_nSampleCopied);
         }
         else
         {
-          consume_each(0);
+          std::cout<<"ieee80211 signal, copy "<<d_nProc<<" samples"<<std::endl;
+          for(int i=0;i<d_nProc;i++)
+          {
+            outSig[i] = inSig[i];
+          }
+          d_nSampleCopied += d_nProc;
+          consume_each(d_nProc);
+          return (d_nProc);
         }
-        return 0;
-      }
-      else if(d_sSignal == S_COPY)
-      {
-        std::cout<<"to copy samples"<<std::endl;
-        d_sSignal = S_TRIGGER;
-        consume_each(160);
-        return 0;
       }
 
       // if no process and no state changing

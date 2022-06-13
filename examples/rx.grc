@@ -308,13 +308,28 @@ blocks:
     bus_structure_sink: '[[0,],]'
     comment: ''
     num_inputs: '1'
-    type: complex
+    type: byte
     vlen: '1'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1600, 104.0]
+    coordinate: [1688, 240.0]
+    rotation: 0
+    state: true
+- name: ieee80211_demod_0
+  id: ieee80211_demod
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1656, 152.0]
     rotation: 0
     state: true
 - name: ieee80211_signal_0
@@ -381,7 +396,8 @@ connections:
 - [blocks_moving_average_xx_0, '0', ieee80211_sync_0, '2']
 - [blocks_moving_average_xx_1, '0', blocks_divide_xx_0, '1']
 - [blocks_multiply_conjugate_cc_0, '0', blocks_moving_average_xx_0, '0']
-- [ieee80211_signal_0, '0', blocks_null_sink_0, '0']
+- [ieee80211_demod_0, '0', blocks_null_sink_0, '0']
+- [ieee80211_signal_0, '0', ieee80211_demod_0, '0']
 - [ieee80211_sync_0, '0', blocks_file_sink_2, '0']
 - [ieee80211_sync_0, '0', ieee80211_signal_0, '0']
 - [ieee80211_sync_0, '1', blocks_file_sink_1, '0']

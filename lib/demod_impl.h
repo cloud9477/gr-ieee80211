@@ -1,7 +1,7 @@
 /*
  *
  *     GNU Radio IEEE 802.11a/g/n/ac 2x2
- *     Legacy Signal Field Information
+ *     Demodulation of 802.11a/g/n/ac 1x1 and 2x2 formats
  *     Copyright (C) June 1, 2022  Zelin Yun
  *
  *     This program is free software: you can redistribute it and/or modify
@@ -18,54 +18,46 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDED_IEEE80211_SIGNAL_IMPL_H
-#define INCLUDED_IEEE80211_SIGNAL_IMPL_H
+#ifndef INCLUDED_IEEE80211_DEMOD_IMPL_H
+#define INCLUDED_IEEE80211_DEMOD_IMPL_H
 
-#include <ieee80211/signal.h>
+#include <ieee80211/demod.h>
 #include <fftw3.h>
 #include "cloud80211phy.h"
 
-#define S_TRIGGER 0
+#define S_WAIT 0
 #define S_DEMOD 1
-#define S_COPY 2
-
-#define F_LEGACY 0
-#define F_HT 1
-#define F_VHT 2
 
 namespace gr {
   namespace ieee80211 {
 
-    class signal_impl : public signal
+    class demod_impl : public demod
     {
      private:
-      // for block
+      //block
       int d_nProc;
-      int d_sSignal;
-      // signal soft viterbi ver
-      gr_complex d_H[64];
-      gr_complex d_sig[64];
-      float d_sigLegacyIntedLlr[48];
-      float d_sigLegacyCodedLlr[48];
-      uint8_t d_sigLegacyBits[24];
+      int d_sDemod;
+      //legacy signal part
+      std::vector<gr::tag_t> tags;
       int d_nSigMcs;
       int d_nSigLen;
-      int d_nSigDBPS;
-      int d_nSymbol;
-      int d_nSample;
-      int d_nSampleCopied;
-      // fft
-      fftw_complex* d_fftLtfIn1;
-      fftw_complex* d_fftLtfIn2;
-      fftw_complex* d_fftLtfOut1;
-      fftw_complex* d_fftLtfOut2;
-      fftw_complex* d_fftSigIn;
-      fftw_complex* d_fftSigOut;
-      fftw_plan d_fftP;
+      gr_complex d_H[64];
+
+      gr_complex d_sig[64];
+      gr_complex d_sig2[64];
+      sigL d_sigLegacy;
+      sigHt d_sigHt;
+      sigVhtA d_sigVhtA;
+      float d_sigHtIntedLlr[96];
+      float d_sigHtCodedLlr[96];
+      float d_sigVhtAIntedLlr[96];
+      float d_sigVhtACodedLlr[96];
+      uint8_t d_sigHtBits[48];
+      uint8_t d_sigVhtABits[48];
 
      public:
-      signal_impl();
-      ~signal_impl();
+      demod_impl();
+      ~demod_impl();
 
       // Where all the action really happens
       void forecast (int noutput_items, gr_vector_int &ninput_items_required);
@@ -80,4 +72,4 @@ namespace gr {
   } // namespace ieee80211
 } // namespace gr
 
-#endif /* INCLUDED_IEEE80211_SIGNAL_IMPL_H */
+#endif /* INCLUDED_IEEE80211_DEMOD_IMPL_H */

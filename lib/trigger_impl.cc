@@ -108,7 +108,7 @@ namespace gr {
           {
             d_fPlateau = 0;
             outTrigger[i] |= 0x01;
-            std::cout<<"ieee80211 stf: trigger "<<sampCount<<std::endl;
+            std::cout<<"ieee80211 trigger, trigger at "<<sampCount<<std::endl;
           }
         }
       }

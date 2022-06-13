@@ -115,9 +115,9 @@ namespace gr {
               }
               tmpM = (tmpL+tmpR)/2;
               // sync index is LTF starting index + 16
-              std::cout<<"max value: "<<*tmpMaxAcP<<", max index: "<<(tmpMaxIndex)<<", L: "<<tmpL<<", R: "<<tmpR<<", mid: "<<tmpM<<std::endl;
+              std::cout<<"ieee80211 sync, ac max value: "<<*tmpMaxAcP<<", max index: "<<(tmpMaxIndex)<<", L: "<<tmpL<<", R: "<<tmpR<<", mid: "<<tmpM<<std::endl;
               float tmpTotalRadStep = ltf_cfo(&inSig[i+tmpMaxIndex], d_conjMultiAvg);
-              std::cout<<"total cfo:"<<(tmpTotalRadStep) * 20000000.0f / 2.0f / M_PI<<std::endl;
+              std::cout<<"ieee80211 sync, total cfo:"<<(tmpTotalRadStep) * 20000000.0f / 2.0f / M_PI<<std::endl;
               sync[i+tmpM] = 0x01;
               outRad[i+tmpM] = tmpTotalRadStep;
             }
@@ -185,7 +185,7 @@ namespace gr {
         tmpConjSum += d_tmpConjSamp[i] * std::conj(d_tmpConjSamp[i+64]);
       }
       float tmpRadStepLtf = atan2f((tmpConjSum/64.0f).imag(), (tmpConjSum/64.0f).real()) / 64.0f;
-      std::cout<<"stf cfo:"<<(tmpRadStepStf) * 20000000.0f / 2.0f / M_PI<<", ltf cfo:"<<(tmpRadStepLtf) * 20000000.0f / 2.0f / M_PI<<std::endl;
+      std::cout<<"ieee80211 sync, stf cfo:"<<(tmpRadStepStf) * 20000000.0f / 2.0f / M_PI<<", ltf cfo:"<<(tmpRadStepLtf) * 20000000.0f / 2.0f / M_PI<<std::endl;
       return tmpRadStepStf + tmpRadStepLtf;
     }
 

@@ -26,7 +26,8 @@
 #include "cloud80211phy.h"
 
 #define S_WAIT 0
-#define S_DEMOD 1
+#define S_FCHECK 1
+#define S_DEMOD 2
 
 namespace gr {
   namespace ieee80211 {
@@ -34,26 +35,39 @@ namespace gr {
     class demod_impl : public demod
     {
      private:
-      //block
+      // block
       int d_nProc;
       int d_sDemod;
-      //legacy signal part
+      // received info from tag
       std::vector<gr::tag_t> tags;
-      int d_nSigMcs;
-      int d_nSigLen;
+      int d_nSigLMcs;
+      int d_nSigLLen;
       gr_complex d_H[64];
-
-      gr_complex d_sig[64];
+      // check format
+      gr_complex d_sig1[64];
       gr_complex d_sig2[64];
-      sigL d_sigLegacy;
-      sigHt d_sigHt;
-      sigVhtA d_sigVhtA;
+      float d_sigLIntedLlr[96];
+      float d_sigLCodedLlr[96];
       float d_sigHtIntedLlr[96];
       float d_sigHtCodedLlr[96];
       float d_sigVhtAIntedLlr[96];
       float d_sigVhtACodedLlr[96];
       uint8_t d_sigHtBits[48];
       uint8_t d_sigVhtABits[48];
+      // fft
+      fftw_complex* d_fftLtfIn1;
+      fftw_complex* d_fftLtfIn2;
+      fftw_complex* d_fftLtfOut1;
+      fftw_complex* d_fftLtfOut2;
+      fftw_plan d_fftP;
+      // packet info
+      int d_format;
+      c8p_mod d_m;
+      c8p_sigHt d_sigHt;
+      c8p_sigVhtA d_sigVhtA;
+      int d_nSym;
+      int d_nSamp;
+      int d_nSampProcd;
 
      public:
       demod_impl();

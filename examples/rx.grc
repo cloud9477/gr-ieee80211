@@ -61,7 +61,7 @@ blocks:
     bus_structure: null
     coordinate: [96, 92.0]
     rotation: 0
-    state: true
+    state: enabled
 - name: analog_noise_source_x_0
   id: analog_noise_source_x
   parameters:

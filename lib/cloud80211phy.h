@@ -24,6 +24,10 @@
 #include <iostream>
 #include <gnuradio/io_signature.h>
 
+#define C8P_F_L 0
+#define C8P_F_HT 1
+#define C8P_F_VHT 2
+
 #define C8P_BW_20   0
 #define C8P_BW_40   1
 #define C8P_BW_80   2
@@ -40,21 +44,26 @@
 #define C8P_QAM_64QAM 4
 #define C8P_QAM_256QAM 5
 
-/* legacy signal field class, use mcs 0 to 7 to represent rates from 6 to 54*/
-class sigL
+class c8p_mod
 {
     public:
-        int mcs;
-        int len;
-        int nDBPS;      // data bit per sym
-        int nCBPS;      // coded bit per sym
-        int nBPSC;      // bit per sub carrier
-        int nSym;       // sym number
-        sigL();
-        ~sigL();
+        int mod;        // modulation
+        int cr;         // coding rate
+        int nBPSCS;
+        int nSD;
+        int nSP;
+        int nSS;
+        int nDBPS;
+        int nCBPS;
+        int nCBPSS;
+        bool shortGi;
+        // ht & vht
+        int nIntCol;
+        int nIntRow;
+        int nIntRot;
 };
 
-class sigHt
+class c8p_sigHt
 {
     public:
         int mcs;
@@ -67,11 +76,9 @@ class sigHt
         int coding;
         int shortGi;
         int nExtSs;
-        sigHt();
-        ~sigHt();
 };
 
-class sigVhtA
+class c8p_sigVhtA
 {
     public:
         int bw;
@@ -88,8 +95,6 @@ class sigVhtA
         int shortGi;
         int shortGiNsymDis;
         int ldpcExtra;
-        sigVhtA();
-        ~sigVhtA();
 };
 
 extern const gr_complex LTF_L_26_F_COMP[64];
@@ -98,10 +103,15 @@ extern const float LTF_L_26_F_FLOAT[64];
 void procDeintLegacyBpsk(uint8_t* inBits, uint8_t* outBits);
 void procDeintLegacyBpsk(float* inBits, float* outBits);
 void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits, int trellisLen);
+
 bool signalCheckLegacy(uint8_t* inBits, int* mcs, int* len, int* nDBPS);
-bool signalParserL(uint8_t* inBits, sigL* outSigL);
-bool signalParserHt(uint8_t* inBits, sigHt* outSigHt);
-bool signalParserVht(uint8_t* inBits, sigVhtA* outSigVht);
+bool signalCheckHt(uint8_t* inBits);
+bool signalCheckVht(uint8_t* inBits);
+
+void signalParserL(int mcs, int len, c8p_mod* outMod);
+void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt);
+void signalParserVht(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigVht);
+
 uint8_t genByteCrc8(uint8_t* inBits, int len);
 bool checkBitCrc8(uint8_t* inBits, int len, uint8_t* crcBits);
 

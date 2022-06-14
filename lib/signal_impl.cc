@@ -107,16 +107,19 @@ namespace gr {
           fftw_execute(d_fftP);
           d_fftP = fftw_plan_dft_1d(64, d_fftSigIn, d_fftSigOut, FFTW_FORWARD, FFTW_ESTIMATE);
           fftw_execute(d_fftP);
+          //std::cout<<"ieee80211 signal, csi: "<<std::endl;
           for(int i=0;i<64;i++)
           {
             if(i==0 || (i>=27 && i<=37))
             {
+              d_H[i] = gr_complex(0.0f, 0.0f);
             }
             else
             {
               d_H[i] = (gr_complex((float)d_fftLtfOut1[i][0], (float)d_fftLtfOut1[i][1]) + gr_complex((float)d_fftLtfOut2[i][0], (float)d_fftLtfOut2[i][1])) / LTF_L_26_F_FLOAT[i] / 2.0f;
               d_sig[i] = gr_complex((float)d_fftSigOut[i][0], (float)d_fftSigOut[i][1]) / d_H[i];
             }
+            //std::cout<<d_H[i].real()<<", "<<d_H[i].imag()<<std::endl;
           }
           gr_complex tmpPilotSum = std::conj(d_sig[7] - d_sig[21] + d_sig[43] + d_sig[57]);
           float tmpPilotSumAbs = std::abs(tmpPilotSum);
@@ -146,13 +149,10 @@ namespace gr {
 
             // add info into tag
             std::vector<gr_complex> csi;
-            csi.reserve(52);
+            csi.reserve(64);
             for(int i=0;i<64;i++)
             {
-              if((i>0 && i<27)|| (i > 37))
-              {
-                csi.push_back(d_H[i]);
-              }
+              csi.push_back(d_H[i]);
             }
             pmt::pmt_t dict = pmt::make_dict();
             dict = pmt::dict_add(dict, pmt::mp("mcs"), pmt::from_long(d_nSigMcs));

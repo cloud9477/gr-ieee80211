@@ -42,37 +42,6 @@ const float LTF_L_26_F_FLOAT[64] = {
 /***************************************************/
 /* signal field */
 /***************************************************/
-
-sigL::sigL()
-{
-	mcs = 0;
-	len = 0;
-}
-
-sigL::~sigL()
-{
-}
-
-sigHt::sigHt()
-{
-
-}
-
-sigHt::~sigHt()
-{
-
-}
-
-sigVhtA::sigVhtA()
-{
-
-}
-
-sigVhtA::~sigVhtA()
-{
-
-}
-
 bool signalCheckLegacy(uint8_t* inBits, int* mcs, int* len, int* nDBPS)
 {
 	uint8_t tmpSumP = 0;
@@ -149,21 +118,7 @@ bool signalCheckLegacy(uint8_t* inBits, int* mcs, int* len, int* nDBPS)
 	return true;
 }
 
-bool signalParserVht(uint8_t* inBits, sigVhtA* outSigVhtA)
-{
-	if((inBits[2] != 1) || (inBits[23] != 1) || (inBits[33] != 1))
-	{
-		return false;
-	}
-	if(!checkBitCrc8(inBits, 34, &inBits[34]))
-	{
-		return false;
-	}
-	std::cout<<"vht sig a crc check pass"<<std::endl;
-	return true;
-}
-
-bool signalParserHt(uint8_t* inBits, sigHt* outSigHt)
+bool signalCheckHt(uint8_t* inBits)
 {
 	if(inBits[26] != 1)
 	{
@@ -177,92 +132,95 @@ bool signalParserHt(uint8_t* inBits, sigHt* outSigHt)
 	return true;
 }
 
-bool signalParserL(uint8_t* inBits, sigL* outSigL)
+bool signalCheckVht(uint8_t* inBits)
 {
-	uint8_t tmpRate = 0;
-	uint8_t tmpSumP = 0;
-
-	if(inBits[4] != 0)
+	if((inBits[2] != 1) || (inBits[23] != 1) || (inBits[33] != 1))
 	{
 		return false;
 	}
-
-	for(int i=0;i<17;i++)
-	{
-		tmpSumP += inBits[i];
-	}
-	if((tmpSumP & 0x01) != inBits[17])
+	if(!checkBitCrc8(inBits, 34, &inBits[34]))
 	{
 		return false;
 	}
-
-	for(int i=0;i<4;i++)
-	{
-		tmpRate |= (inBits[i]<<i);
-	}
-	switch(tmpRate)
-	{
-		case 11:	// 0b1101
-			outSigL->mcs = 0;
-			outSigL->nDBPS = 24;
-			outSigL->nCBPS = 48;
-			outSigL->nBPSC = 1;
-			break;
-		case 15:	// 0b1111
-			outSigL->mcs = 1;
-			outSigL->nDBPS = 36;
-			outSigL->nCBPS = 48;
-			outSigL->nBPSC = 1;
-			break;
-		case 10:	// 0b0101
-			outSigL->mcs = 2;
-			outSigL->nDBPS = 48;
-			outSigL->nCBPS = 96;
-			outSigL->nBPSC = 2;
-			break;
-		case 14:	// 0b0111
-			outSigL->mcs = 3;
-			outSigL->nDBPS = 72;
-			outSigL->nCBPS = 96;
-			outSigL->nBPSC = 2;
-			break;
-		case 9:		// 0b1001
-			outSigL->mcs = 4;
-			outSigL->nDBPS = 96;
-			outSigL->nCBPS = 192;
-			outSigL->nBPSC = 4;
-			break;
-		case 13:	// 0b1011
-			outSigL->mcs = 5;
-			outSigL->nDBPS = 144;
-			outSigL->nCBPS = 192;
-			outSigL->nBPSC = 4;
-			break;
-		case 8:		// 0b0001
-			outSigL->mcs = 6;
-			outSigL->nDBPS = 192;
-			outSigL->nCBPS = 288;
-			outSigL->nBPSC = 6;
-			break;
-		case 12:	// 0b0011
-			outSigL->mcs = 7;
-			outSigL->nDBPS = 216;
-			outSigL->nCBPS = 288;
-			outSigL->nBPSC = 6;
-			break;
-		default:
-			return false;
-	}
-
-	outSigL->len = 0;
-	for(int i=0;i<12;i++)
-	{
-		outSigL->len |= (((int)inBits[i+5])<<i);
-	}
-	outSigL->nSym = (outSigL->len*8 + 16 + 6)/outSigL->nDBPS + (((outSigL->len*8 + 16 + 6)%outSigL->nDBPS) != 0);
+	std::cout<<"vht sig a crc check pass"<<std::endl;
 	return true;
 }
 
+void signalParserL(int mcs, int len, c8p_mod* outMod)
+{
+	switch(mcs)
+	{
+		case 0:	// 0b1101
+			outMod->mod = C8P_QAM_BPSK;
+			outMod->cr = C8P_CR_12;
+			outMod->nDBPS = 24;
+			outMod->nCBPS = 48;
+			outMod->nBPSCS = 1;
+			break;
+		case 1:	// 0b1111
+			outMod->mod = C8P_QAM_BPSK;
+			outMod->cr = C8P_CR_34;
+			outMod->nDBPS = 36;
+			outMod->nCBPS = 48;
+			outMod->nBPSCS = 1;
+			break;
+		case 2:	// 0b0101
+			outMod->mod = C8P_QAM_QPSK;
+			outMod->cr = C8P_CR_12;
+			outMod->nDBPS = 48;
+			outMod->nCBPS = 96;
+			outMod->nBPSCS = 2;
+			break;
+		case 3:	// 0b0111
+			outMod->mod = C8P_QAM_QPSK;
+			outMod->cr = C8P_CR_34;
+			outMod->nDBPS = 72;
+			outMod->nCBPS = 96;
+			outMod->nBPSCS = 2;
+			break;
+		case 4:		// 0b1001
+			outMod->mod = C8P_QAM_16QAM;
+			outMod->cr = C8P_CR_12;
+			outMod->nDBPS = 96;
+			outMod->nCBPS = 192;
+			outMod->nBPSCS = 4;
+			break;
+		case 5:	// 0b1011
+			outMod->mod = C8P_QAM_16QAM;
+			outMod->cr = C8P_CR_12;
+			outMod->nDBPS = 144;
+			outMod->nCBPS = 192;
+			outMod->nBPSCS = 4;
+			break;
+		case 6:		// 0b0001
+			outMod->mod = C8P_QAM_64QAM;
+			outMod->cr = C8P_CR_23;
+			outMod->nDBPS = 192;
+			outMod->nCBPS = 288;
+			outMod->nBPSCS = 6;
+			break;
+		case 7:	// 0b0011
+			outMod->mod = C8P_QAM_64QAM;
+			outMod->cr = C8P_CR_34;
+			outMod->nDBPS = 216;
+			outMod->nCBPS = 288;
+			outMod->nBPSCS = 6;
+			break;
+		default:
+			// error
+			break;
+	}
+}
+
+void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt)
+{
+
+}
+
+void signalParserVht(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigVht)
+{
+
+}
 /***************************************************/
 /* coding */
 /***************************************************/

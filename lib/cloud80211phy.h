@@ -49,14 +49,14 @@ class c8p_mod
     public:
         int mod;        // modulation
         int cr;         // coding rate
-        int nBPSCS;
-        int nSD;
-        int nSP;
-        int nSS;
-        int nDBPS;
-        int nCBPS;
-        int nCBPSS;
-        bool shortGi;
+        int nSD;        // data sub carrier
+        int nSP;        // pilot sub carrier
+        int nSS;        // spatial streams
+        int nBPSCS;     // bit per sub carrier
+        int nDBPS;      // data bit per sym
+        int nCBPS;      // coded bit per sym
+        int nCBPSS;     // coded bit per sym per ss
+        int shortGi;
         // ht & vht
         int nIntCol;
         int nIntRow;
@@ -110,7 +110,7 @@ bool signalCheckVht(uint8_t* inBits);
 
 void signalParserL(int mcs, int len, c8p_mod* outMod);
 void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt);
-void signalParserVht(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigVht);
+void signalParserVhtA(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigVht);
 
 uint8_t genByteCrc8(uint8_t* inBits, int len);
 bool checkBitCrc8(uint8_t* inBits, int len, uint8_t* crcBits);

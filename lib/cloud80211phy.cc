@@ -120,12 +120,19 @@ bool signalCheckLegacy(uint8_t* inBits, int* mcs, int* len, int* nDBPS)
 
 bool signalCheckHt(uint8_t* inBits)
 {
+	// correctness check
 	if(inBits[26] != 1)
 	{
 		return false;
 	}
 	if(!checkBitCrc8(inBits, 34, &inBits[34]))
 	{
+		return false;
+	}
+	// supporting check
+	if(inBits[7] + inBits[28] + inBits[29] + inBits[30] + inBits[32] + inBits[33])
+	{
+		// 40bw, stbc, ldpc and ESS are not supported
 		return false;
 	}
 	std::cout<<"ht sig crc check pass"<<std::endl;
@@ -214,12 +221,132 @@ void signalParserL(int mcs, int len, c8p_mod* outMod)
 
 void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt)
 {
-
+	// ht signal field
+	// 0-6 mcs
+	outSigHt->mcs = 0;
+	for(int i=0;i<7;i++)
+	{
+		outSigHt->mcs |= (((int)inBits[i])<<i);
+	}
+	// 7 bw
+	outSigHt->bw = inBits[7];
+	// 8-23 len
+	outSigHt->len = 0;
+	for(int i=0;i<16;i++)
+	{
+		outSigHt->len |= (((int)inBits[i+8])<<i);
+	}
+	// 24 smoothing
+	outSigHt->smooth = inBits[24];
+	// 25 not sounding
+	outSigHt->noSound = inBits[25];
+	// 26 reserved
+	// 27 aggregation
+	outSigHt->aggre = inBits[27];
+	// 28-29 stbc
+	outSigHt->stbc = 0;
+	for(int i=0;i<2;i++)
+	{
+		outSigHt->stbc |= (((int)inBits[i+28])<<i);
+	}
+	// 30 fec coding
+	outSigHt->coding = inBits[30];
+	// 31 short GI
+	outSigHt->shortGi = inBits[31];
+	// 32-33 ESS
+	outSigHt->nExtSs = 0;
+	for(int i=0;i<2;i++)
+	{
+		outSigHt->nExtSs |= (((int)inBits[i+32])<<i);
+	}
+	
+	// ht modulation related
+	switch(outSigHt->mcs % 8)
+	{
+		case 0:
+			outMod->mod = C8P_QAM_BPSK;
+			outMod->nBPSCS = 1;
+			outMod->cr = C8P_CR_12;
+			break;
+		case 1:
+			outMod->mod = C8P_QAM_QPSK;
+			outMod->nBPSCS = 2;
+			outMod->cr = C8P_CR_12;
+			break;
+		case 2:
+			outMod->mod = C8P_QAM_QPSK;
+			outMod->nBPSCS = 2;
+			outMod->cr = C8P_CR_34;
+			break;
+		case 3:
+			outMod->mod = C8P_QAM_16QAM;
+			outMod->nBPSCS = 4;
+			outMod->cr = C8P_CR_12;
+			break;
+		case 4:
+			outMod->mod = C8P_QAM_16QAM;
+			outMod->nBPSCS = 4;
+			outMod->cr = C8P_CR_34;
+			break;
+		case 5:
+			outMod->mod = C8P_QAM_64QAM;
+			outMod->nBPSCS = 6;
+			outMod->cr = C8P_CR_23;
+			break;
+		case 6:
+			outMod->mod = C8P_QAM_64QAM;
+			outMod->nBPSCS = 6;
+			outMod->cr = C8P_CR_34;
+			break;
+		case 7:
+			outMod->mod = C8P_QAM_64QAM;
+			outMod->nBPSCS = 6;
+			outMod->cr = C8P_CR_56;
+			break;
+		default:
+			break;
+	}
+	outMod->nSS = outSigHt->mcs / 8 + ((outSigHt->mcs % 8) != 0);
+	outMod->nSD = 52;
+	outMod->nSP = 4;
+	outMod->nCBPSS = outMod->nBPSCS * outMod->nSD;
+	outMod->nCBPS = outMod->nCBPSS * outMod->nSS;
+	switch(outMod->cr)
+	{
+		case C8P_CR_12:
+			outMod->nDBPS = outMod->nCBPS / 2;
+			break;
+		case C8P_CR_23:
+			(outMod->nDBPS = outMod->nCBPS * 2) / 3;
+			break;
+		case C8P_CR_34:
+			(outMod->nDBPS = outMod->nCBPS * 3) / 4;
+			break;
+		case C8P_CR_56:
+			(outMod->nDBPS = outMod->nCBPS * 5) / 6;
+			break;
+		default:
+			break;
+	}
+	outMod->nIntCol = 13;
+	outMod->nIntRow = outMod->nBPSCS * 4;
+	outMod->nIntRot = 11;
+	outMod->shortGi = outSigHt->shortGi;
 }
 
-void signalParserVht(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigVht)
+void signalParserVhtA(uint8_t* inBits, c8p_mod* outMod, c8p_sigVhtA* outSigVhtA)
 {
-
+	// vht signal field
+	// 0-1 bw
+	outSigVhtA->bw = 0;
+	for(int i=0;i<2;i++){outSigVhtA->bw |= (((int)inBits[i])<<i);}
+	// 2 reserved
+	// 3 stbc
+	outSigVhtA->stbc = inBits[3];
+	// 4-9 group ID, group ID is used to judge su or mu and filter the packet
+	outSigVhtA->groupId = 0;
+	for(int i=0;i<6;i++){outSigVhtA->groupId |= (((int)inBits[i+4])<<i);}
+	// 
 }
 /***************************************************/
 /* coding */

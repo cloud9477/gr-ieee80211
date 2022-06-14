@@ -38,10 +38,21 @@ namespace gr {
     {
       d_nProc = 0;
       d_sDemod = S_WAIT;
+
+      d_fftLtfIn1 = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
+      d_fftLtfIn2 = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
+      d_fftLtfOut1 = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
+      d_fftLtfOut2 = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
     }
 
     demod_impl::~demod_impl()
-    {}
+    {
+      fftw_free(d_fftLtfIn1);
+      fftw_free(d_fftLtfIn2);
+      fftw_free(d_fftLtfOut1);
+      fftw_free(d_fftLtfOut2);
+      fftw_destroy_plan(d_fftP);
+    }
 
     void
     demod_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
@@ -153,6 +164,7 @@ namespace gr {
           if(signalCheckHt(d_sigHtBits))
           {
             d_format = C8P_F_HT;
+            
           }
           else
           {
@@ -169,7 +181,6 @@ namespace gr {
           {
             procDeintLegacyBpsk(d_sigLIntedLlr, d_sigLCodedLlr);
             procDeintLegacyBpsk(&d_sigLIntedLlr[48], &d_sigLCodedLlr[48]);
-
             // legacy parser
             signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
             d_nSym = (d_nSigLLen*8 + 22)/d_m.nDBPS + (((d_nSigLLen*8 + 22)%d_m.nDBPS) != 0);

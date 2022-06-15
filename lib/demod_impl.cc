@@ -164,10 +164,10 @@ namespace gr {
           SV_Decode_Sig(d_sigVhtACodedLlr, d_sigVhtABits, 48);
           if(signalCheckVhtA(d_sigVhtABits))
           {
-            d_format = C8P_F_HT;
-            signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
+            d_format = C8P_F_VHT;
+            signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
             d_sDemod = DEMOD_S_NONL_CHANNEL;
-            std::cout<<"ieee80211 demod, ht packet"<<std::endl;
+            std::cout<<"ieee80211 demod, vht packet"<<std::endl;
             consume_each (160);
           }
           else
@@ -177,10 +177,10 @@ namespace gr {
             SV_Decode_Sig(d_sigHtCodedLlr, d_sigHtBits, 48);
             if(signalCheckHt(d_sigHtBits))
             {
-              d_format = C8P_F_VHT;
-              signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
+              d_format = C8P_F_HT;
+              signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
               d_sDemod = DEMOD_S_NONL_CHANNEL;
-              std::cout<<"ieee80211 demod, vht packet"<<std::endl;
+              std::cout<<"ieee80211 demod, ht packet"<<std::endl;
               consume_each (160);
             }
             else

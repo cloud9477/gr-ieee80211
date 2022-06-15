@@ -37,7 +37,7 @@ namespace gr {
               gr::io_signature::make(1, 1, sizeof(uint8_t)))
     {
       d_nProc = 0;
-      d_sDemod = S_WAIT;
+      d_sDemod = DEMOD_S_IDEL;
 
       d_fftLtfIn1 = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
       d_fftLtfIn2 = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
@@ -71,7 +71,7 @@ namespace gr {
 
       d_nProc = ninput_items[0];
       
-      if(d_sDemod == S_WAIT)
+      if(d_sDemod == DEMOD_S_IDEL)
       {
         // get tagged info, if legacy packet, go to demod directly
         get_tags_in_range(tags, 0, nitems_read(0) , nitems_read(0) + 1);
@@ -86,30 +86,32 @@ namespace gr {
           {
             std::vector<gr_complex> tmp_csi = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("csi"), pmt::PMT_NIL));
             std::copy(tmp_csi.begin(), tmp_csi.end(), d_H);
-            d_format = C8P_F_L;
             std::cout<<"ieee80211 demod, tagged mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<std::endl;
             if(d_nSigLMcs == 0)
             {
-              d_sDemod = S_FCHECK;
+              d_sDemod = DEMOD_S_FORMAT_CHECK;
+              d_nSym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
             }
             else
             {
-              d_sDemod = S_DEMOD;
+              d_format = C8P_F_L;
               signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
+              d_sDemod = DEMOD_S_DEMOD;
               d_nSym = (d_nSigLLen*8 + 22)/d_m.nDBPS + (((d_nSigLLen*8 + 22)%d_m.nDBPS) != 0);
-              d_nSamp = d_nSym * 80;
-              d_nSampProcd = 0;
             }
+            d_nSamp = d_nSym * 80;
+            d_nSampProcd = 0;
             consume_each(0);
             return 0;
           }
         }
       }
-      else if(d_sDemod == S_FCHECK)
+      else if(d_sDemod == DEMOD_S_FORMAT_CHECK)
       {
         if(d_nProc >= 160)
         {
-          std::cout<<"ieee80211 demod, legacy check with samples."<<std::endl;
+          std::cout<<"ieee80211 demod, format check."<<std::endl;
+          // demod of two symbols, each 80 samples
           for(int i=0;i<64;i++)
           {
             d_fftLtfIn1[i][0] = (double)inSig[i+8].real();
@@ -145,10 +147,8 @@ namespace gr {
             {
               tmpM1 = d_sig1[i] * tmpPilotSum1 / tmpPilotSumAbs1;
               tmpM2 = d_sig2[i] * tmpPilotSum2 / tmpPilotSumAbs2;
-              d_sigLIntedLlr[j] = tmpM1.real();
               d_sigHtIntedLlr[j] = tmpM1.imag();
               d_sigVhtAIntedLlr[j] = tmpM1.real();
-              d_sigLIntedLlr[j + 48] = tmpM2.real();
               d_sigHtIntedLlr[j + 48] = tmpM2.imag();
               d_sigVhtAIntedLlr[j + 48] = tmpM2.imag();
               j++;
@@ -158,37 +158,40 @@ namespace gr {
               }
             }
           }
-          procDeintLegacyBpsk(d_sigHtIntedLlr, d_sigHtCodedLlr);
-          procDeintLegacyBpsk(&d_sigHtIntedLlr[48], &d_sigHtCodedLlr[48]);
-          SV_Decode_Sig(d_sigHtCodedLlr, d_sigHtBits, 48);
-          if(signalCheckHt(d_sigHtBits))
+          // first check if vht
+          procDeintLegacyBpsk(d_sigVhtAIntedLlr, d_sigVhtACodedLlr);
+          procDeintLegacyBpsk(&d_sigVhtAIntedLlr[48], &d_sigVhtACodedLlr[48]);
+          SV_Decode_Sig(d_sigVhtACodedLlr, d_sigVhtABits, 48);
+          if(signalCheckVhtA(d_sigVhtABits))
           {
             d_format = C8P_F_HT;
-            
+            signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
+            d_sDemod = DEMOD_S_NONL_CHANNEL;
+            std::cout<<"ieee80211 demod, ht packet"<<std::endl;
+            consume_each (160);
           }
           else
           {
-            procDeintLegacyBpsk(d_sigVhtAIntedLlr, d_sigVhtACodedLlr);
-            procDeintLegacyBpsk(&d_sigVhtAIntedLlr[48], &d_sigVhtACodedLlr[48]);
-            SV_Decode_Sig(d_sigVhtACodedLlr, d_sigVhtABits, 48);
-            if(signalCheckVht(d_sigVhtABits))
+            procDeintLegacyBpsk(d_sigHtIntedLlr, d_sigHtCodedLlr);
+            procDeintLegacyBpsk(&d_sigHtIntedLlr[48], &d_sigHtCodedLlr[48]);
+            SV_Decode_Sig(d_sigHtCodedLlr, d_sigHtBits, 48);
+            if(signalCheckHt(d_sigHtBits))
             {
               d_format = C8P_F_VHT;
+              signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
+              d_sDemod = DEMOD_S_NONL_CHANNEL;
+              std::cout<<"ieee80211 demod, vht packet"<<std::endl;
+              consume_each (160);
+            }
+            else
+            {
+              d_format = C8P_F_L;
+              signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
+              d_sDemod = DEMOD_S_DEMOD;
+              std::cout<<"ieee80211 demod, legacy packet"<<std::endl;
+              consume_each (0);
             }
           }
-
-          if(d_format == C8P_F_L)
-          {
-            procDeintLegacyBpsk(d_sigLIntedLlr, d_sigLCodedLlr);
-            procDeintLegacyBpsk(&d_sigLIntedLlr[48], &d_sigLCodedLlr[48]);
-            // legacy parser
-            signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
-            d_nSym = (d_nSigLLen*8 + 22)/d_m.nDBPS + (((d_nSigLLen*8 + 22)%d_m.nDBPS) != 0);
-            d_nSamp = d_nSym * 80;
-            d_nSampProcd = 0;
-          }
-          d_sDemod = S_DEMOD;
-          consume_each (160);
           return 0;
         }
         else
@@ -198,7 +201,7 @@ namespace gr {
           return 0;
         }
       }
-      else if(d_sDemod = S_DEMOD)
+      else if(d_sDemod = DEMOD_S_DEMOD)
       {
         consume_each (d_nProc);
         return 0;

@@ -25,9 +25,11 @@
 #include <fftw3.h>
 #include "cloud80211phy.h"
 
-#define S_WAIT 0
-#define S_FCHECK 1
-#define S_DEMOD 2
+#define DEMOD_S_IDEL 0
+#define DEMOD_S_FORMAT_CHECK 1
+#define DEMOD_S_NONL_CHANNEL 2
+#define DEMOD_S_VHT_SIGB 3
+#define DEMOD_S_DEMOD 4
 
 namespace gr {
   namespace ieee80211 {
@@ -46,8 +48,6 @@ namespace gr {
       // check format
       gr_complex d_sig1[64];
       gr_complex d_sig2[64];
-      float d_sigLIntedLlr[96];
-      float d_sigLCodedLlr[96];
       float d_sigHtIntedLlr[96];
       float d_sigHtCodedLlr[96];
       float d_sigVhtAIntedLlr[96];
@@ -68,6 +68,8 @@ namespace gr {
       int d_nSym;
       int d_nSamp;
       int d_nSampProcd;
+      // demod, convert qam to llr and deinterleave
+      float d_symIntedLlr[1664];   // coded per symbol for 20MHz 4x4
 
      public:
       demod_impl();

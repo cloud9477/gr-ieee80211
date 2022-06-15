@@ -47,7 +47,9 @@
 class c8p_mod
 {
     public:
+        int sumu;       // 0 for su or 1 for mu
         int mod;        // modulation
+        int len;        // packet len for legacy, ht, apep-len for vht
         int cr;         // coding rate
         int nSD;        // data sub carrier
         int nSP;        // pilot sub carrier
@@ -61,6 +63,7 @@ class c8p_mod
         int nIntCol;
         int nIntRow;
         int nIntRot;
+        int nLTF;       // number of LTF in non-legacy part
 };
 
 class c8p_sigHt
@@ -103,14 +106,18 @@ extern const float LTF_L_26_F_FLOAT[64];
 void procDeintLegacyBpsk(uint8_t* inBits, uint8_t* outBits);
 void procDeintLegacyBpsk(float* inBits, float* outBits);
 void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits, int trellisLen);
+void procSymQamToLlr(float* inQam, float* outLlr, c8p_mod* outMod);
+void procSymDeintL(float* in, float* out, c8p_mod* outMod);
+void procSymDeintNL(float* in, float* out, c8p_mod* outMod);
 
 bool signalCheckLegacy(uint8_t* inBits, int* mcs, int* len, int* nDBPS);
 bool signalCheckHt(uint8_t* inBits);
-bool signalCheckVht(uint8_t* inBits);
+bool signalCheckVhtA(uint8_t* inBits);
 
 void signalParserL(int mcs, int len, c8p_mod* outMod);
 void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt);
-void signalParserVhtA(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigVht);
+void signalParserVhtA(uint8_t* inBits, c8p_mod* outMod, c8p_sigVhtA* outSigVhtA);
+void modParserVht(int mcs, c8p_mod* outMod);
 
 uint8_t genByteCrc8(uint8_t* inBits, int len);
 bool checkBitCrc8(uint8_t* inBits, int len, uint8_t* crcBits);

@@ -135,11 +135,10 @@ bool signalCheckHt(uint8_t* inBits)
 		// 40bw, stbc, ldpc and ESS are not supported
 		return false;
 	}
-	std::cout<<"ht sig crc check pass"<<std::endl;
 	return true;
 }
 
-bool signalCheckVht(uint8_t* inBits)
+bool signalCheckVhtA(uint8_t* inBits)
 {
 	if((inBits[2] != 1) || (inBits[23] != 1) || (inBits[33] != 1))
 	{
@@ -149,7 +148,6 @@ bool signalCheckVht(uint8_t* inBits)
 	{
 		return false;
 	}
-	std::cout<<"vht sig a crc check pass"<<std::endl;
 	return true;
 }
 
@@ -217,6 +215,14 @@ void signalParserL(int mcs, int len, c8p_mod* outMod)
 			// error
 			break;
 	}
+	outMod->len = len;
+	outMod->nCBPSS = outMod->nCBPS;
+	outMod->nSD = 48;
+	outMod->nSP = 4;
+	outMod->nSS = 1;		// only 1 ss
+	outMod->sumu = 0;		// su
+	outMod->shortGi = 0;	// no short gi
+	outMod->nLTF = 0;
 }
 
 void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt)
@@ -306,6 +312,7 @@ void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt)
 		default:
 			break;
 	}
+	outMod->len = outSigHt->len;
 	outMod->nSS = outSigHt->mcs / 8 + ((outSigHt->mcs % 8) != 0);
 	outMod->nSD = 52;
 	outMod->nSP = 4;
@@ -332,6 +339,22 @@ void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt)
 	outMod->nIntRow = outMod->nBPSCS * 4;
 	outMod->nIntRot = 11;
 	outMod->shortGi = outSigHt->shortGi;
+	switch(outMod->nSS)
+	{
+		case 1:
+			outMod->nLTF = 1;
+			break;
+		case 2:
+			outMod->nLTF = 2;
+			break;
+		case 3:
+		case 4:
+			outMod->nLTF = 4;
+			break;
+		default:
+			break;
+		
+	}
 }
 
 void signalParserVhtA(uint8_t* inBits, c8p_mod* outMod, c8p_sigVhtA* outSigVhtA)
@@ -343,11 +366,178 @@ void signalParserVhtA(uint8_t* inBits, c8p_mod* outMod, c8p_sigVhtA* outSigVhtA)
 	// 2 reserved
 	// 3 stbc
 	outSigVhtA->stbc = inBits[3];
-	// 4-9 group ID, group ID is used to judge su or mu and filter the packet
+	// 4-9 group ID, group ID is used to judge su or mu and filter the packet, only 0 and 63 used for su
 	outSigVhtA->groupId = 0;
 	for(int i=0;i<6;i++){outSigVhtA->groupId |= (((int)inBits[i+4])<<i);}
-	// 
+	if(outSigVhtA->groupId == 0 || outSigVhtA->groupId == 63)	// su
+	{
+		// 10-12 nSTS
+		outSigVhtA->su_nSTS = 0;
+		for(int i=0;i<3;i++){outSigVhtA->su_nSTS |= (((int)inBits[i+10])<<i);}
+		// 13-21 partial AID
+		outSigVhtA->su_partialAID = 0;
+		for(int i=0;i<9;i++){outSigVhtA->su_partialAID |= (((int)inBits[i+13])<<i);}
+		// 26 coding
+		outSigVhtA->su_coding = inBits[26];
+		// 28-31 mcs
+		outSigVhtA->su_mcs = 0;
+		for(int i=0;i<4;i++){outSigVhtA->su_mcs |= (((int)inBits[i+28])<<i);}
+		// 32 beamforming
+		outSigVhtA->su_beamformed = inBits[32];
+	}
+	else
+	{
+		// 10-12 nSTS 0
+		outSigVhtA->mu_nSTS[0] = 0;
+		for(int i=0;i<3;i++){outSigVhtA->mu_nSTS[0] |= (((int)inBits[i+10])<<i);}
+		// 13-15 nSTS 1
+		outSigVhtA->mu_nSTS[1] = 0;
+		for(int i=0;i<3;i++){outSigVhtA->mu_nSTS[1] |= (((int)inBits[i+13])<<i);}
+		// 16-18 nSTS 2
+		outSigVhtA->mu_nSTS[2] = 0;
+		for(int i=0;i<3;i++){outSigVhtA->mu_nSTS[2] |= (((int)inBits[i+16])<<i);}
+		// 19-21 nSTS 3
+		outSigVhtA->mu_nSTS[3] = 0;
+		for(int i=0;i<3;i++){outSigVhtA->mu_nSTS[3] |= (((int)inBits[i+19])<<i);}
+		// 26 coding 0
+		outSigVhtA->mu_coding[0] = inBits[26];
+		// 28 coding 1
+		outSigVhtA->mu_coding[1] = inBits[28];
+		// 29 coding 2
+		outSigVhtA->mu_coding[2] = inBits[29];
+		// 30 coding 3
+		outSigVhtA->mu_coding[3] = inBits[30];
+	}
+	
+	// 22 txop ps not allowed
+	outSigVhtA->txoppsNot = inBits[22];
+	// 24 short gi
+	outSigVhtA->shortGi = inBits[24];
+	// 25 short gi nSYM disambiguantion
+	outSigVhtA->shortGiNsymDis = inBits[25];
+	// 27 ldpc extra
+	outSigVhtA->ldpcExtra = inBits[27];
+
+	// modualtion ralated
+	if((outSigVhtA->groupId == 0) || (outSigVhtA->groupId == 63))
+	{
+		outMod->sumu = 0;	// su
+		outMod->nSS = outSigVhtA->su_nSTS;
+		outMod->shortGi = outSigVhtA->shortGi;
+		modParserVht(outSigVhtA->su_mcs, outMod);
+		// still need the packet len in sig b
+	}
+	else
+	{
+		outMod->sumu = 1;	// mu
+		// needs the position in this group, currently set 0
+		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		outMod->nSS = outSigVhtA->mu_nSTS[0];
+		outMod->shortGi = outSigVhtA->shortGi;
+		// still need the packet len and mcs in sig b
+	}
+
 }
+
+void modParserVht(int mcs, c8p_mod* outMod)
+{
+	switch(mcs)
+	{
+		case 0:
+			outMod->mod = C8P_QAM_BPSK;
+			outMod->nBPSCS = 1;
+			outMod->cr = C8P_CR_12;
+			break;
+		case 1:
+			outMod->mod = C8P_QAM_QPSK;
+			outMod->nBPSCS = 2;
+			outMod->cr = C8P_CR_12;
+			break;
+		case 2:
+			outMod->mod = C8P_QAM_QPSK;
+			outMod->nBPSCS = 2;
+			outMod->cr = C8P_CR_34;
+			break;
+		case 3:
+			outMod->mod = C8P_QAM_16QAM;
+			outMod->nBPSCS = 4;
+			outMod->cr = C8P_CR_12;
+			break;
+		case 4:
+			outMod->mod = C8P_QAM_16QAM;
+			outMod->nBPSCS = 4;
+			outMod->cr = C8P_CR_34;
+			break;
+		case 5:
+			outMod->mod = C8P_QAM_64QAM;
+			outMod->nBPSCS = 6;
+			outMod->cr = C8P_CR_23;
+			break;
+		case 6:
+			outMod->mod = C8P_QAM_64QAM;
+			outMod->nBPSCS = 6;
+			outMod->cr = C8P_CR_34;
+			break;
+		case 7:
+			outMod->mod = C8P_QAM_64QAM;
+			outMod->nBPSCS = 6;
+			outMod->cr = C8P_CR_56;
+			break;
+		case 8:
+			outMod->mod = C8P_QAM_256QAM;
+			outMod->nBPSCS = 8;
+			outMod->cr = C8P_CR_34;
+			break;
+		case 9:
+			outMod->mod = C8P_QAM_256QAM;
+			outMod->nBPSCS = 8;
+			outMod->cr = C8P_CR_56;
+			break;
+		default:
+			break;
+	}
+	outMod->nSD = 52;
+	outMod->nSP = 4;
+	outMod->nCBPSS = outMod->nBPSCS * outMod->nSD;
+	outMod->nCBPS = outMod->nCBPSS * outMod->nSS;
+	switch(outMod->cr)
+	{
+		case C8P_CR_12:
+			outMod->nDBPS = outMod->nCBPS / 2;
+			break;
+		case C8P_CR_23:
+			(outMod->nDBPS = outMod->nCBPS * 2) / 3;
+			break;
+		case C8P_CR_34:
+			(outMod->nDBPS = outMod->nCBPS * 3) / 4;
+			break;
+		case C8P_CR_56:
+			(outMod->nDBPS = outMod->nCBPS * 5) / 6;
+			break;
+		default:
+			break;
+	}
+	outMod->nIntCol = 13;
+	outMod->nIntRow = outMod->nBPSCS * 4;
+	outMod->nIntRot = 11;
+	switch(outMod->nSS)
+	{
+		case 1:
+			outMod->nLTF = 1;
+			break;
+		case 2:
+			outMod->nLTF = 2;
+			break;
+		case 3:
+		case 4:
+			outMod->nLTF = 4;
+			break;
+		default:
+			break;
+		
+	}
+}
+
 /***************************************************/
 /* coding */
 /***************************************************/
@@ -584,10 +774,20 @@ void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits, int trellisLen)
 	free(state_sequence);
 }
 
+void procSymQamToLlr(float* inQam, float* outLlr, c8p_mod* outMod)
+{
 
+}
 
+void procSymDeintL(float* in, float* out, c8p_mod* outMod)
+{
 
+}
 
+void procSymDeintNL(float* in, float* out, c8p_mod* outMod)
+{
+
+}
 
 
 

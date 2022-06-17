@@ -174,6 +174,8 @@ namespace gr {
             d_format = C8P_F_VHT;
             signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
             // compute symbol number, decide short gi and ampdu
+            // mSTBC = 1, stbc not used. nES = 1
+            d_nSym = (d_m.len*8 + 16 + 6) / d_m.nDBPS + (((d_m.len*8 + 16 + 6) % d_m.nDBPS) != 0);
             if(d_sigVhtA.shortGi){d_nSymSamp = 72;}
             d_ampdu = 1;
             d_sDemod = DEMOD_S_NONL_CHANNEL;

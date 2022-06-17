@@ -1,3 +1,23 @@
+/*
+ *
+ *     GNU Radio IEEE 802.11a/g/n/ac 20M bw and upto 2x2
+ *     PHY utilization functions and parameters
+ *     Copyright (C) June 1, 2022  Zelin Yun
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU Affero General Public License as published
+ *     by the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU Affero General Public License for more details.
+ *
+ *     You should have received a copy of the GNU Affero General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "cloud80211phy.h"
 
 /***************************************************/
@@ -32,6 +52,24 @@ const float LTF_L_26_F_FLOAT[64] = {
     0.0f, 0.0f, 0.0f, 0.0f, 
     0.0f, 0.0f, 0.0f, 0.0f, 
     0.0f, 0.0f, 1.0f, 1.0f, 
+    -1.0f, -1.0f, 1.0f, 1.0f, 
+    -1.0f, 1.0f, -1.0f, 1.0f, 
+    1.0f, 1.0f, 1.0f, 1.0f, 
+    1.0f, -1.0f, -1.0f, 1.0f, 
+    1.0f, -1.0f, 1.0f, -1.0f, 
+    1.0f, 1.0f, 1.0f, 1.0f};
+
+const float LTF_NL_28_F_FLOAT[64] = {
+    0.0f, 1.0f, -1.0f, -1.0f, 
+    1.0f, 1.0f, -1.0f, 1.0f, 
+    -1.0f, 1.0f, -1.0f, -1.0f, 
+    -1.0f, -1.0f, -1.0f, 1.0f, 
+    1.0f, -1.0f, -1.0f, 1.0f, 
+    -1.0f, 1.0f, -1.0f, 1.0f, 
+    1.0f, 1.0f, 1.0f, -1.0f, 
+    -1.0f, 0.0f, 0.0f, 0.0f, 
+    0.0f, 0.0f, 0.0f, 0.0f, 
+    1.0f, 1.0f, 1.0f, 1.0f, 
     -1.0f, -1.0f, 1.0f, 1.0f, 
     -1.0f, 1.0f, -1.0f, 1.0f, 
     1.0f, 1.0f, 1.0f, 1.0f, 
@@ -130,9 +168,9 @@ bool signalCheckHt(uint8_t* inBits)
 		return false;
 	}
 	// supporting check
-	if(inBits[7] + inBits[28] + inBits[29] + inBits[30] + inBits[32] + inBits[33])
+	if(inBits[5] + inBits[6] + inBits[7] + inBits[28] + inBits[29] + inBits[30] + inBits[32] + inBits[33])
 	{
-		// 40bw, stbc, ldpc and ESS are not supported
+		// mcs > 31 (bit 5 & 6), 40bw (bit 7), stbc, ldpc and ESS are not supported
 		return false;
 	}
 	return true;
@@ -140,12 +178,19 @@ bool signalCheckHt(uint8_t* inBits)
 
 bool signalCheckVhtA(uint8_t* inBits)
 {
+	// correctness check
 	if((inBits[2] != 1) || (inBits[23] != 1) || (inBits[33] != 1))
 	{
 		return false;
 	}
 	if(!checkBitCrc8(inBits, 34, &inBits[34]))
 	{
+		return false;
+	}
+	// support check
+	if(inBits[0] + inBits[1])
+	{
+		// 40, 80, 160 bw (bit 0&1) are not supported
 		return false;
 	}
 	return true;
@@ -221,7 +266,6 @@ void signalParserL(int mcs, int len, c8p_mod* outMod)
 	outMod->nSP = 4;
 	outMod->nSS = 1;		// only 1 ss
 	outMod->sumu = 0;		// su
-	outMod->shortGi = 0;	// no short gi
 	outMod->nLTF = 0;
 }
 
@@ -338,7 +382,6 @@ void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt)
 	outMod->nIntCol = 13;
 	outMod->nIntRow = outMod->nBPSCS * 4;
 	outMod->nIntRot = 11;
-	outMod->shortGi = outSigHt->shortGi;
 	switch(outMod->nSS)
 	{
 		case 1:
@@ -422,8 +465,7 @@ void signalParserVhtA(uint8_t* inBits, c8p_mod* outMod, c8p_sigVhtA* outSigVhtA)
 	if((outSigVhtA->groupId == 0) || (outSigVhtA->groupId == 63))
 	{
 		outMod->sumu = 0;	// su
-		outMod->nSS = outSigVhtA->su_nSTS;
-		outMod->shortGi = outSigVhtA->shortGi;
+		outMod->nSS = outSigVhtA->su_nSTS + 1;
 		modParserVht(outSigVhtA->su_mcs, outMod);
 		// still need the packet len in sig b
 	}
@@ -433,10 +475,18 @@ void signalParserVhtA(uint8_t* inBits, c8p_mod* outMod, c8p_sigVhtA* outSigVhtA)
 		// needs the position in this group, currently set 0
 		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		outMod->nSS = outSigVhtA->mu_nSTS[0];
-		outMod->shortGi = outSigVhtA->shortGi;
 		// still need the packet len and mcs in sig b
 	}
+}
 
+void signalParserVhtB(uint8_t* inBits, c8p_mod* outMod)
+{
+	int tmpLen = 0;
+	int tmpMcs = 0;
+	for(int i=0;i<16;i++){tmpLen |= (((int)inBits[i])<<i);}
+	for(int i=0;i<4;i++){tmpMcs |= (((int)inBits[i+16])<<i);}
+	outMod->len = tmpLen * 4;
+	modParserVht(tmpMcs, outMod);
 }
 
 void modParserVht(int mcs, c8p_mod* outMod)
@@ -615,6 +665,11 @@ bool checkBitCrc8(uint8_t* inBits, int len, uint8_t* crcBits)
 	}
 	return false;
 }
+
+const int mapDeintVhtSigB20[52] = {
+	0, 13, 26, 39, 1, 14, 27, 40, 2, 15, 28, 41, 3, 16, 29, 42, 4, 17,
+	30, 43, 5, 18, 31, 44, 6,19, 32, 45, 7, 20, 33, 46, 8, 21, 34, 47,
+	9, 22, 35, 48, 10, 23, 36, 49, 11, 24, 37, 50, 12, 25, 38, 51};
 
 const int mapDeintLegacyBpsk[48] = {
     0, 16, 32, 1, 17, 33, 2, 18, 34, 3, 19, 35, 4, 20, 36, 5, 21, 37, 6, 22, 38, 7, 23, 39, 8, 24, 

@@ -1,7 +1,7 @@
 /*
  *
- *     GNU Radio IEEE 802.11a/g/n/ac 2x2
- *     Legacy Signal Field Information
+ *     GNU Radio IEEE 802.11a/g/n/ac 20M bw and upto 2x2
+ *     PHY utilization functions and parameters
  *     Copyright (C) June 1, 2022  Zelin Yun
  *
  *     This program is free software: you can redistribute it and/or modify
@@ -23,6 +23,8 @@
 
 #include <iostream>
 #include <gnuradio/io_signature.h>
+
+#define C8P_MAX_LTF  4 // nSTS * nLTF for non legacy channel
 
 #define C8P_F_L 0
 #define C8P_F_HT 1
@@ -58,7 +60,6 @@ class c8p_mod
         int nDBPS;      // data bit per sym
         int nCBPS;      // coded bit per sym
         int nCBPSS;     // coded bit per sym per ss
-        int shortGi;
         // ht & vht
         int nIntCol;
         int nIntRow;
@@ -102,7 +103,9 @@ class c8p_sigVhtA
 
 extern const gr_complex LTF_L_26_F_COMP[64];
 extern const float LTF_L_26_F_FLOAT[64];
+extern const float LTF_NL_28_F_FLOAT[64];
 
+extern const int mapDeintVhtSigB20[52];
 void procDeintLegacyBpsk(uint8_t* inBits, uint8_t* outBits);
 void procDeintLegacyBpsk(float* inBits, float* outBits);
 void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits, int trellisLen);
@@ -117,6 +120,7 @@ bool signalCheckVhtA(uint8_t* inBits);
 void signalParserL(int mcs, int len, c8p_mod* outMod);
 void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt);
 void signalParserVhtA(uint8_t* inBits, c8p_mod* outMod, c8p_sigVhtA* outSigVhtA);
+void signalParserVhtB(uint8_t* inBits, c8p_mod* outMod);
 void modParserVht(int mcs, c8p_mod* outMod);
 
 uint8_t genByteCrc8(uint8_t* inBits, int len);

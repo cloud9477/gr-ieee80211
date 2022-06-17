@@ -52,8 +52,11 @@ namespace gr {
       float d_sigHtCodedLlr[96];
       float d_sigVhtAIntedLlr[96];
       float d_sigVhtACodedLlr[96];
+      float d_sigVhtB20IntedLlr[52];
+      float d_sigVhtB20CodedLlr[52];
       uint8_t d_sigHtBits[48];
       uint8_t d_sigVhtABits[48];
+      uint8_t d_sigVhtB20Bits[26];
       // fft
       fftw_complex* d_fftLtfIn1;
       fftw_complex* d_fftLtfIn2;
@@ -66,8 +69,21 @@ namespace gr {
       c8p_sigHt d_sigHt;
       c8p_sigVhtA d_sigVhtA;
       int d_nSym;
+      int d_nSymProcd;
+      int d_nSymSamp;
       int d_nSamp;
       int d_nSampProcd;
+      int d_ampdu;
+      // non-legacy channel
+      /*      P_LTF 4x4
+      | 1 -1  1  1 |
+      | 1  1 -1  1 |
+      | 1  1  1 -1 |
+      |-1  1  1  1 |
+      for 2x2 in the array
+      | 0  1 |
+      | 2  3 |      */
+      gr_complex d_H_NL[64][C8P_MAX_LTF];
       // demod, convert qam to llr and deinterleave
       float d_symIntedLlr[1664];   // coded per symbol for 20MHz 4x4
 

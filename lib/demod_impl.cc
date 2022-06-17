@@ -90,7 +90,8 @@ namespace gr {
             if(d_nSigLMcs == 0)
             {
               d_sDemod = DEMOD_S_FORMAT_CHECK;
-              d_nSym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
+              d_nSym = ((d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0))*80;
+              d_nSamp = d_nSym * 80;
             }
             else
             {
@@ -98,9 +99,12 @@ namespace gr {
               signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
               d_sDemod = DEMOD_S_DEMOD;
               d_nSym = (d_nSigLLen*8 + 22)/d_m.nDBPS + (((d_nSigLLen*8 + 22)%d_m.nDBPS) != 0);
+              d_nSamp = d_nSym * 80;
             }
-            d_nSamp = d_nSym * 80;
             d_nSampProcd = 0;
+            d_nSymProcd = 0;
+            d_nSymSamp = 80;
+            d_ampdu = 0;
             consume_each(0);
             return 0;
           }
@@ -164,8 +168,14 @@ namespace gr {
           SV_Decode_Sig(d_sigVhtACodedLlr, d_sigVhtABits, 48);
           if(signalCheckVhtA(d_sigVhtABits))
           {
+            std::cout<<"ieee80211 demod, sig a bits:";
+            for(int i =0;i<48;i++){std::cout<<(int)d_sigVhtABits[i]<<" ";}
+            std::cout<<std::endl;
             d_format = C8P_F_VHT;
             signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
+            // compute symbol number, decide short gi and ampdu
+            if(d_sigVhtA.shortGi){d_nSymSamp = 72;}
+            d_ampdu = 1;
             d_sDemod = DEMOD_S_NONL_CHANNEL;
             std::cout<<"ieee80211 demod, vht packet"<<std::endl;
             consume_each (160);
@@ -179,6 +189,9 @@ namespace gr {
             {
               d_format = C8P_F_HT;
               signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
+              d_nSym = ((d_m.len*8 + 22)/d_m.nDBPS + (((d_m.len*8 + 22)%d_m.nDBPS) != 0));
+              if(d_sigHt.shortGi){d_nSymSamp = 72;}
+              if(d_sigHt.aggre){d_ampdu = 1;}
               d_sDemod = DEMOD_S_NONL_CHANNEL;
               std::cout<<"ieee80211 demod, ht packet"<<std::endl;
               consume_each (160);
@@ -201,8 +214,120 @@ namespace gr {
           return 0;
         }
       }
+      else if(d_sDemod == DEMOD_S_NONL_CHANNEL)
+      {
+        std::cout<<"ieee80211 demod, re estimate channel for non legacy"<<std::endl;
+        std::cout<<d_m.nSS<<" "<<d_nProc<<std::endl;
+        if(d_m.nSS == 1)
+        {
+          if(d_nProc >= 160)
+          {
+            for(int i=0;i<64;i++)
+            {
+              d_fftLtfIn1[i][0] = (double)inSig[i+8+80].real();
+              d_fftLtfIn1[i][1] = (double)inSig[i+8+80].imag();
+            }
+            d_fftP = fftw_plan_dft_1d(64, d_fftLtfIn1, d_fftLtfOut1, FFTW_FORWARD, FFTW_ESTIMATE);
+            fftw_execute(d_fftP);
+            for(int i=0;i<64;i++)
+            {
+              if(i==0 || (i>=29 && i<=35))
+              {
+                d_H[i] = gr_complex(0.0f, 0.0f);
+              }
+              else
+              {
+                d_H_NL[i][0] = gr_complex((float)d_fftLtfOut1[i][0], (float)d_fftLtfOut1[i][1]) / LTF_NL_28_F_FLOAT[i];
+              }
+            }
+            d_sDemod = DEMOD_S_DEMOD;
+            if(d_format == C8P_F_VHT)
+            {
+              d_sDemod = DEMOD_S_VHT_SIGB;
+            }
+            consume_each(160);
+            return 0;
+          }
+        }
+        else if(d_m.nSS == 2)
+        {
+          if(d_nProc >= 240)
+          {
+            // to be added
+            d_sDemod = DEMOD_S_DEMOD;
+            consume_each(240);
+            return 0;
+          }
+        }
+        else
+        {
+          // not suppored nSS
+          d_sDemod = DEMOD_S_IDEL;
+        }
+        consume_each(0);
+        return 0;
+      }
+      else if(d_sDemod == DEMOD_S_VHT_SIGB)
+      {
+        if(d_nProc >= 80)
+        {
+          for(int i=0;i<64;i++)
+          {
+            d_fftLtfIn1[i][0] = (double)inSig[i+8].real();
+            d_fftLtfIn1[i][1] = (double)inSig[i+8].imag();
+          }
+          d_fftP = fftw_plan_dft_1d(64, d_fftLtfIn1, d_fftLtfOut1, FFTW_FORWARD, FFTW_ESTIMATE);
+          fftw_execute(d_fftP);
+          for(int i=0;i<64;i++)
+          {
+            if(i==0 || (i>=29 && i<=35))
+            {
+              d_sig1[i] = gr_complex(0.0f, 0.0f);
+            }
+            else
+            {
+              d_sig1[i] = gr_complex((float)d_fftLtfOut1[i][0], (float)d_fftLtfOut1[i][1]) / d_H_NL[i][0];
+            }
+          }
+          gr_complex tmpPilotSum = std::conj(d_sig1[7] - d_sig1[21] + d_sig1[43] + d_sig1[57]);
+          float tmpPilotSumAbs = std::abs(tmpPilotSum);
+          int j=26;
+          for(int i=0;i<64;i++)
+          {
+            if(i==0 || (i>=29 && i<=35) || i==7 || i==21 || i==43 || i==57)
+            {
+            }
+            else
+            {
+              d_sig1[i] = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
+              d_sigVhtB20IntedLlr[j] = d_sig1[i].real();
+              j++;
+              if(j >= 52){j = 0;}
+            }
+          }
+          // deint
+          for(int i=0;i<52;i++)
+          {
+            d_sigVhtACodedLlr[mapDeintVhtSigB20[i]] = d_sigVhtB20IntedLlr[i];
+          }
+          SV_Decode_Sig(d_sigVhtACodedLlr, d_sigVhtB20Bits, 26);
+          std::cout<<"ieee80211 demod, vht sig b bits:";
+          for(int i=0;i<26;i++)
+          {
+            std::cout<<(int)d_sigVhtB20Bits[i]<<", ";
+          }
+          std::cout<<std::endl;
+          signalParserVhtB(d_sigVhtB20Bits, &d_m);
+          std::cout<<"ieee80211 demod, vht apep len: "<<d_m.len<<", vht DBPS: "<<d_m.nDBPS<<std::endl;
+          d_sDemod = DEMOD_S_DEMOD;
+          consume_each(80);
+          return 0;
+        }
+      }
       else if(d_sDemod = DEMOD_S_DEMOD)
       {
+        d_sDemod = DEMOD_S_IDEL;
+        std::cout<<"------------------------------------------------------------------------"<<std::endl;
         consume_each (d_nProc);
         return 0;
       }

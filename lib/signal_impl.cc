@@ -161,9 +161,9 @@ namespace gr {
             pmt::pmt_t pairs = pmt::dict_items(dict);
             for (int i = 0; i < pmt::length(pairs); i++) {
                 pmt::pmt_t pair = pmt::nth(i, pairs);
-                add_item_tag(0,
-                              nitems_written(0),
-                              pmt::car(pair),
+                add_item_tag(0,                   // output port index
+                              nitems_written(0),  // output sample index
+                              pmt::car(pair),     
                               pmt::cdr(pair),
                               alias_pmt());
             }

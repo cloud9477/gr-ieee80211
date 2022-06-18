@@ -34,7 +34,7 @@ namespace gr {
     demod_impl::demod_impl()
       : gr::block("demod",
               gr::io_signature::make(1, 1, sizeof(gr_complex)),
-              gr::io_signature::make(1, 1, sizeof(uint8_t)))
+              gr::io_signature::make(1, 1, sizeof(float)))
     {
       d_nProc = 0;
       d_sDemod = DEMOD_S_IDEL;
@@ -98,7 +98,7 @@ namespace gr {
               d_format = C8P_F_L;
               signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
               d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
-              d_sDemod = DEMOD_S_DEMOD;
+              d_sDemod = DEMOD_S_TAG;
               d_nSym = (d_nSigLLen*8 + 22)/d_m.nDBPS + (((d_nSigLLen*8 + 22)%d_m.nDBPS) != 0);
               d_nSamp = d_nSym * 80;
             }
@@ -175,14 +175,9 @@ namespace gr {
             std::cout<<std::endl;
             d_format = C8P_F_VHT;
             signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
-            // compute symbol number, decide short gi and ampdu
-            // mSTBC = 1, stbc not used. nES = 1
-            d_nSym = (d_m.len*8 + 16 + 6) / d_m.nDBPS + (((d_m.len*8 + 16 + 6) % d_m.nDBPS) != 0);
-            d_nCoded = d_nSym * d_m.nCBPS;
-            if(d_sigVhtA.shortGi){d_nSymSamp = 72;}
-            d_ampdu = 1;
             d_sDemod = DEMOD_S_NONL_CHANNEL;
             std::cout<<"ieee80211 demod, vht packet"<<std::endl;
+            d_nSampProcd += 160;
             consume_each (160);
           }
           else
@@ -194,12 +189,14 @@ namespace gr {
             {
               d_format = C8P_F_HT;
               signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
+              // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!compute if symbol number corresponds to packet len
               d_nSym = ((d_m.len*8 + 22)/d_m.nDBPS + (((d_m.len*8 + 22)%d_m.nDBPS) != 0));
               d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
               if(d_sigHt.shortGi){d_nSymSamp = 72;}
               if(d_sigHt.aggre){d_ampdu = 1;}
               d_sDemod = DEMOD_S_NONL_CHANNEL;
               std::cout<<"ieee80211 demod, ht packet"<<std::endl;
+              d_nSampProcd += 160;
               consume_each (160);
             }
             else
@@ -210,7 +207,7 @@ namespace gr {
               d_format = C8P_F_L;
               signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
               d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
-              d_sDemod = DEMOD_S_DEMOD;
+              d_sDemod = DEMOD_S_TAG;
               std::cout<<"ieee80211 demod, legacy packet"<<std::endl;
               consume_each (0);
             }
@@ -250,12 +247,13 @@ namespace gr {
                 d_H_NL[i][0] = gr_complex((float)d_fftLtfOut1[i][0], (float)d_fftLtfOut1[i][1]) / LTF_NL_28_F_FLOAT[i];
               }
             }
-            d_sDemod = DEMOD_S_DEMOD;
+            d_sDemod = DEMOD_S_TAG;
             if(d_format == C8P_F_VHT)
             {
               d_sDemod = DEMOD_S_VHT_SIGB;
             }
             consume_each(160);
+            d_nSampProcd += 160;
             return 0;
           }
         }
@@ -264,7 +262,8 @@ namespace gr {
           if(d_nProc >= 240)
           {
             // to be added
-            d_sDemod = DEMOD_S_DEMOD;
+            d_sDemod = DEMOD_S_TAG;
+            d_nSampProcd += 240;
             consume_each(240);
             return 0;
           }
@@ -328,16 +327,46 @@ namespace gr {
           }
           std::cout<<std::endl;
           signalParserVhtB(d_sigVhtB20Bits, &d_m);
+          // compute symbol number, decide short gi and ampdu
+          // mSTBC = 1, stbc not used. nES = 1
+          // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!compute if symbol number corresponds to packet len
+          d_nSym = (d_m.len*8 + 16 + 6) / d_m.nDBPS + (((d_m.len*8 + 16 + 6) % d_m.nDBPS) != 0);
+          d_nCoded = d_nSym * d_m.nCBPS;
+          if(d_sigVhtA.shortGi){d_nSymSamp = 72;}
+          d_ampdu = 1;
           std::cout<<"ieee80211 demod, vht apep len: "<<d_m.len<<", vht DBPS: "<<d_m.nDBPS<<std::endl;
-          d_sDemod = DEMOD_S_DEMOD;
+          d_sDemod = DEMOD_S_TAG;
           consume_each(80);
           return 0;
         }
       }
-      else if(d_sDemod = DEMOD_S_DEMOD)
+      else if(d_sDemod == DEMOD_S_TAG)
+      {
+        d_sDemod = DEMOD_S_DEMOD;
+        std::cout<<"ieee80211 demod, add tag"<<std::endl;
+        // decoder needs: coded len, coding rate, ampdu
+        pmt::pmt_t dict = pmt::make_dict();
+        dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_nCoded));
+        dict = pmt::dict_add(dict, pmt::mp("cr"), pmt::from_long(d_m.cr));
+        dict = pmt::dict_add(dict, pmt::mp("ampdu"), pmt::from_long(d_ampdu));
+        pmt::pmt_t pairs = pmt::dict_items(dict);
+        for (int i = 0; i < pmt::length(pairs); i++) {
+            pmt::pmt_t pair = pmt::nth(i, pairs);
+            add_item_tag(0,                   // output port index
+                          nitems_written(0),  // output sample index
+                          pmt::car(pair),
+                          pmt::cdr(pair),
+                          alias_pmt());
+        }
+        consume_each(0);
+        return 0;
+      }
+      else if(d_sDemod == DEMOD_S_DEMOD)
       {
         if(d_nProc >= d_nSymSamp)
         {
+          //std::cout<<"ieee80211 demod, demod round"<<std::endl;
+          d_nSymProcdTmp = 0;
           for(int p=0;p<(d_nProc/d_nSymSamp);p++)
           {
             for(int i=0;i<64;i++)
@@ -349,6 +378,7 @@ namespace gr {
             fftw_execute(d_fftP);
             if(d_format == C8P_F_L)
             {
+              //std::cout<<"ieee80211 demod, demod legacy"<<std::endl;
               for(int i=0;i<64;i++)
               {
                 if(i==0 || (i>=27 && i<=37))
@@ -357,7 +387,7 @@ namespace gr {
                 }
                 else
                 {
-                  d_sig1[i] = gr_complex((float)d_fftLtfOut1[i][0], (float)d_fftLtfOut1[i][1]) / d_H_NL[i][0];
+                  d_sig1[i] = gr_complex((float)d_fftLtfOut1[i][0], (float)d_fftLtfOut1[i][1]) / d_H[0];
                 }
               }
               gr_complex tmpPilotSum = std::conj(d_sig1[7] - d_sig1[21] + d_sig1[43] + d_sig1[57]);
@@ -378,6 +408,7 @@ namespace gr {
             }
             else
             {
+              //std::cout<<"ieee80211 demod, demod non-legacy"<<std::endl;
               for(int i=0;i<64;i++)
               {
                 if(i==0 || (i>=29 && i<=35))
@@ -405,13 +436,23 @@ namespace gr {
                 }
               }
             }
-            
-
-
+            std::cout<<"ieee80211 demod, qma to llr deint:"<<d_nSymProcd<<" "<<d_nSym<<std::endl;
+            // qam to inted 
+            // procSymQamToLlr(d_qam, d_llr, &d_m);
+            // procSymDeintNL(d_llr, &outLlrs[p*d_m.nCBPS], &d_m);
+            memset(&outLlrs[p*d_m.nCBPS], 0, d_m.nCBPS * sizeof(float));
+            d_nSymProcdTmp += 1;
+            d_nSymProcd += 1;
+            if(d_nSymProcd == d_nSym)
+            {
+              d_sDemod = DEMOD_S_IDEL;
+              std::cout<<"------------------------------------------------------------------------"<<std::endl;
+              break;
+            }
           }
+          consume_each (d_nSymProcdTmp * d_nSymSamp);
+          return (d_nSymProcdTmp * d_m.nCBPS);
         }
-        d_sDemod = DEMOD_S_IDEL;
-        std::cout<<"------------------------------------------------------------------------"<<std::endl;
         consume_each (0);
         return 0;
       }

@@ -29,7 +29,9 @@
 #define DEMOD_S_FORMAT_CHECK 1
 #define DEMOD_S_NONL_CHANNEL 2
 #define DEMOD_S_VHT_SIGB 3
-#define DEMOD_S_DEMOD 4
+#define DEMOD_S_TAG 4
+#define DEMOD_S_DEMOD 5
+#define DEMOD_S_REMAIN 6
 
 namespace gr {
   namespace ieee80211 {
@@ -70,14 +72,13 @@ namespace gr {
       c8p_sigVhtA d_sigVhtA;
       int d_nSym;
       int d_nSymProcd;
+      int d_nSymProcdTmp;
       int d_nSymSamp;
       int d_nSamp;
       int d_nSampProcd;
       int d_ampdu;
-      int d_nUnCoded;
+      int d_nCoded;
       int d_nCodedProcd;
-      gr_complex d_qam[52];
-      float d_llr[832];     // this ver support upto 2x2
       // non-legacy channel
       /*      P_LTF 4x4
       | 1 -1  1  1 |
@@ -88,8 +89,8 @@ namespace gr {
       | 0  1 |
       | 2  3 |      */
       gr_complex d_H_NL[64][C8P_MAX_LTF];
-      // demod, convert qam to llr and deinterleave
-      float d_symIntedLlr[1664];   // coded per symbol for 20MHz 4x4
+      gr_complex d_qam[52];
+      float d_llr[832];     // this ver support upto 2x2
 
      public:
       demod_impl();

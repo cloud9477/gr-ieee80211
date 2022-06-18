@@ -21,6 +21,7 @@
 #ifndef INCLUDED_CLOUD80211PHY_H
 #define INCLUDED_CLOUD80211PHY_H
 
+#include <cstring>
 #include <iostream>
 #include <gnuradio/io_signature.h>
 
@@ -109,9 +110,9 @@ extern const int mapDeintVhtSigB20[52];
 void procDeintLegacyBpsk(uint8_t* inBits, uint8_t* outBits);
 void procDeintLegacyBpsk(float* inBits, float* outBits);
 void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits, int trellisLen);
-void procSymQamToLlr(float* inQam, float* outLlr, c8p_mod* outMod);
-void procSymDeintL(float* in, float* out, c8p_mod* outMod);
-void procSymDeintNL(float* in, float* out, c8p_mod* outMod);
+void procSymQamToLlr(gr_complex* inQam, float* outLlr, c8p_mod* mod);
+void procSymDeintL(float* in, float* out, c8p_mod* mod);
+void procSymDeintNL(float* in, float* out, c8p_mod* mod);
 int nCodedToUncoded(int nCoded, c8p_mod* mod);
 int nUncodedToCoded(int nUncoded, c8p_mod* mod);
 

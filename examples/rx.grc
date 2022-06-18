@@ -308,7 +308,7 @@ blocks:
     bus_structure_sink: '[[0,],]'
     comment: ''
     num_inputs: '1'
-    type: byte
+    type: float
     vlen: '1'
   states:
     bus_sink: false

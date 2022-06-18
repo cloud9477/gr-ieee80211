@@ -14,9 +14,9 @@ inputs:
 #  optional: ...
 
 outputs:
-- label: outBit
+- label: outLlr
   domain: stream
-  dtype: byte
+  dtype: float
 #  vlen: ...
 #  optional: ...
 

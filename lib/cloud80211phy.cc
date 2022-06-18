@@ -829,19 +829,98 @@ void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits, int trellisLen)
 	free(state_sequence);
 }
 
-void procSymQamToLlr(float* inQam, float* outLlr, c8p_mod* outMod)
+void procSymQamToLlr(gr_complex* inQam, float* outLlr, c8p_mod* mod)
 {
+	if(mod->mod == C8P_QAM_BPSK)
+	{
+		for(int i=0;i<mod->nSD;i++)
+		{
+			outLlr[i] = inQam[i].real();
+		}
+	}
+	else if(mod->mod == C8P_QAM_QPSK)
+	{
+		for(int i=0;i<mod->nSD;i++)
+		{
+			inQam[i] *= 1.4142135623730951f;
+			outLlr[i*2] = inQam[i].real();
+			outLlr[i*2+1] = inQam[i].imag();
+		}
+	}
+	else if(mod->mod == C8P_QAM_16QAM)
+	{
+		for(int i=0;i<mod->nSD;i++)
+		{
+			inQam[i] *= 3.1622776601683795f;
+			outLlr[i*4] = inQam[i].real();
+			outLlr[i*4+1] = 2.0f - std::abs(inQam[i].real());
+			outLlr[i*4+2] = inQam[i].imag();
+			outLlr[i*4+3] = 2.0f - std::abs(inQam[i].imag());
+		}
+	}
+	else if(mod->mod == C8P_QAM_16QAM)
+	{
+		for(int i=0;i<mod->nSD;i++)
+		{
+			inQam[i] *= 6.48074069840786f;
+			outLlr[i*6] = inQam[i].real();
+			outLlr[i*6+1] = 4.0f - std::abs(inQam[i].real());
+			outLlr[i*6+2] = 2 - std::abs(4.0f - std::abs(inQam[i].real()));
+			outLlr[i*6+3] = inQam[i].imag();
+			outLlr[i*6+4] = 4.0f - std::abs(inQam[i].imag());
+			outLlr[i*6+5] = 2 - std::abs(4.0f - std::abs(inQam[i].imag()));
+		}
+	}
+	else if(mod->mod == C8P_QAM_256QAM)
+	{
+		for(int i=0;i<mod->nSD;i++)
+		{
+			inQam[i] *= 13.038404810405298f;
+			outLlr[i*8] = inQam[i].real();
+			outLlr[i*8+1] = 8.0f - std::abs(inQam[i].real());
+			outLlr[i*8+2] = 4 - std::abs(8.0f - std::abs(inQam[i].real()));
+			outLlr[i*8+3] = 2 - std::abs(4 - std::abs(8.0f - std::abs(inQam[i].real())));
+			outLlr[i*8+4] = inQam[i].imag();
+			outLlr[i*8+5] = 8.0f - std::abs(inQam[i].imag());
+			outLlr[i*8+6] = 4 - std::abs(8.0f - std::abs(inQam[i].imag()));
+			outLlr[i*8+7] = 2 - std::abs(4 - std::abs(8.0f - std::abs(inQam[i].imag())));
 
+		}
+	}
 }
 
-void procSymDeintL(float* in, float* out, c8p_mod* outMod)
+void procSymDeintL(float* in, float* out, c8p_mod* mod)
 {
-
+	// this version follows standard
+	int s = std::max(mod->nBPSCS/2, 1);
+	int i, k;
+	for(int j=0;j<mod->nCBPS;j++)
+	{
+		i = s * (j/s) + (j + (16*j)/mod->nCBPS) % s;
+		k = 16 * i - (mod->nCBPS - 1) * ((16 * i) / mod->nCBPS);
+		out[k] = in[j];
+	}
 }
 
-void procSymDeintNL(float* in, float* out, c8p_mod* outMod)
+void procSymDeintNL(float* in, float* out, c8p_mod* mod)
 {
-
+	// this version follows standard
+	int s = std::max(mod->nBPSCS/2, 1);
+	int i, j, k;
+	if(mod->nSS == 1)
+	{
+		for(int r=0; r<mod->nCBPSS; r++)
+		{
+			j = r;
+			i = s * (j/s) + (j + (mod->nIntCol * j)/mod->nCBPSS) % s;
+			k = mod->nIntCol*i - (mod->nCBPSS - 1) * (i/mod->nIntRow);
+			out[k] = in[r];
+		}
+	}
+	else
+	{
+		// to be added
+	}
 }
 
 int nCodedToUncoded(int nCoded, c8p_mod* mod)

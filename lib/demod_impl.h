@@ -74,6 +74,10 @@ namespace gr {
       int d_nSamp;
       int d_nSampProcd;
       int d_ampdu;
+      int d_nUnCoded;
+      int d_nCodedProcd;
+      gr_complex d_qam[52];
+      float d_llr[832];     // this ver support upto 2x2
       // non-legacy channel
       /*      P_LTF 4x4
       | 1 -1  1  1 |

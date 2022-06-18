@@ -112,6 +112,8 @@ void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits, int trellisLen);
 void procSymQamToLlr(float* inQam, float* outLlr, c8p_mod* outMod);
 void procSymDeintL(float* in, float* out, c8p_mod* outMod);
 void procSymDeintNL(float* in, float* out, c8p_mod* outMod);
+int nCodedToUncoded(int nCoded, c8p_mod* mod);
+int nUncodedToCoded(int nUncoded, c8p_mod* mod);
 
 bool signalCheckLegacy(uint8_t* inBits, int* mcs, int* len, int* nDBPS);
 bool signalCheckHt(uint8_t* inBits);

@@ -97,6 +97,7 @@ namespace gr {
             {
               d_format = C8P_F_L;
               signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
+              d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
               d_sDemod = DEMOD_S_DEMOD;
               d_nSym = (d_nSigLLen*8 + 22)/d_m.nDBPS + (((d_nSigLLen*8 + 22)%d_m.nDBPS) != 0);
               d_nSamp = d_nSym * 80;
@@ -105,6 +106,7 @@ namespace gr {
             d_nSymProcd = 0;
             d_nSymSamp = 80;
             d_ampdu = 0;
+            d_nCodedProcd = 0;
             consume_each(0);
             return 0;
           }
@@ -176,6 +178,7 @@ namespace gr {
             // compute symbol number, decide short gi and ampdu
             // mSTBC = 1, stbc not used. nES = 1
             d_nSym = (d_m.len*8 + 16 + 6) / d_m.nDBPS + (((d_m.len*8 + 16 + 6) % d_m.nDBPS) != 0);
+            d_nCoded = d_nSym * d_m.nCBPS;
             if(d_sigVhtA.shortGi){d_nSymSamp = 72;}
             d_ampdu = 1;
             d_sDemod = DEMOD_S_NONL_CHANNEL;
@@ -192,6 +195,7 @@ namespace gr {
               d_format = C8P_F_HT;
               signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
               d_nSym = ((d_m.len*8 + 22)/d_m.nDBPS + (((d_m.len*8 + 22)%d_m.nDBPS) != 0));
+              d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
               if(d_sigHt.shortGi){d_nSymSamp = 72;}
               if(d_sigHt.aggre){d_ampdu = 1;}
               d_sDemod = DEMOD_S_NONL_CHANNEL;
@@ -200,8 +204,12 @@ namespace gr {
             }
             else
             {
+              /*
+                info passed to decode: coded bit len, coding rate, if ampdu
+              */
               d_format = C8P_F_L;
               signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
+              d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
               d_sDemod = DEMOD_S_DEMOD;
               std::cout<<"ieee80211 demod, legacy packet"<<std::endl;
               consume_each (0);
@@ -328,9 +336,83 @@ namespace gr {
       }
       else if(d_sDemod = DEMOD_S_DEMOD)
       {
+        if(d_nProc >= d_nSymSamp)
+        {
+          for(int p=0;p<(d_nProc/d_nSymSamp);p++)
+          {
+            for(int i=0;i<64;i++)
+            {
+              d_fftLtfIn1[i][0] = (double)inSig[i+8+p*d_nSymSamp].real();
+              d_fftLtfIn1[i][1] = (double)inSig[i+8+p*d_nSymSamp].imag();
+            }
+            d_fftP = fftw_plan_dft_1d(64, d_fftLtfIn1, d_fftLtfOut1, FFTW_FORWARD, FFTW_ESTIMATE);
+            fftw_execute(d_fftP);
+            if(d_format == C8P_F_L)
+            {
+              for(int i=0;i<64;i++)
+              {
+                if(i==0 || (i>=27 && i<=37))
+                {
+                  d_sig1[i] = gr_complex(0.0f, 0.0f);
+                }
+                else
+                {
+                  d_sig1[i] = gr_complex((float)d_fftLtfOut1[i][0], (float)d_fftLtfOut1[i][1]) / d_H_NL[i][0];
+                }
+              }
+              gr_complex tmpPilotSum = std::conj(d_sig1[7] - d_sig1[21] + d_sig1[43] + d_sig1[57]);
+              float tmpPilotSumAbs = std::abs(tmpPilotSum);
+              int j=24;
+              for(int i=0;i<64;i++)
+              {
+                if(i==0 || (i>=27 && i<=37) || i==7 || i==21 || i==43 || i==57)
+                {
+                }
+                else
+                {
+                  d_qam[j] = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
+                  j++;
+                  if(j >= 48){j = 0;}
+                }
+              }
+            }
+            else
+            {
+              for(int i=0;i<64;i++)
+              {
+                if(i==0 || (i>=29 && i<=35))
+                {
+                  d_sig1[i] = gr_complex(0.0f, 0.0f);
+                }
+                else
+                {
+                  d_sig1[i] = gr_complex((float)d_fftLtfOut1[i][0], (float)d_fftLtfOut1[i][1]) / d_H_NL[i][0];
+                }
+              }
+              gr_complex tmpPilotSum = std::conj(d_sig1[7] - d_sig1[21] + d_sig1[43] + d_sig1[57]);
+              float tmpPilotSumAbs = std::abs(tmpPilotSum);
+              int j=26;
+              for(int i=0;i<64;i++)
+              {
+                if(i==0 || (i>=29 && i<=35) || i==7 || i==21 || i==43 || i==57)
+                {
+                }
+                else
+                {
+                  d_qam[j] = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
+                  j++;
+                  if(j >= 52){j = 0;}
+                }
+              }
+            }
+            
+
+
+          }
+        }
         d_sDemod = DEMOD_S_IDEL;
         std::cout<<"------------------------------------------------------------------------"<<std::endl;
-        consume_each (d_nProc);
+        consume_each (0);
         return 0;
       }
 

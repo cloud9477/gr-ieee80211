@@ -844,8 +844,39 @@ void procSymDeintNL(float* in, float* out, c8p_mod* outMod)
 
 }
 
+int nCodedToUncoded(int nCoded, c8p_mod* mod)
+{
+	switch(mod->cr)
+	{
+		case C8P_CR_12:
+			return (nCoded/2);
+		case C8P_CR_23:
+			return (nCoded * 2 / 3);
+		case C8P_CR_34:
+			return (nCoded * 3 / 4);
+		case C8P_CR_56:
+			return (nCoded * 5 / 6);
+		default:
+			return 0;
+	}
+}
 
-
+int nUncodedToCoded(int nUncoded, c8p_mod* mod)
+{
+	switch(mod->cr)
+	{
+		case C8P_CR_12:
+			return (nUncoded * 2);
+		case C8P_CR_23:
+			return (nUncoded * 3 / 2);
+		case C8P_CR_34:
+			return (nUncoded * 4 / 3);
+		case C8P_CR_56:
+			return (nUncoded * 6 / 5);
+		default:
+			return 0;
+	}
+}
 
 
 

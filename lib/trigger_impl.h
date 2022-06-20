@@ -23,6 +23,8 @@
 
 #include <ieee80211/trigger.h>
 
+#define dout d_debug&&std::cout
+
 namespace gr {
   namespace ieee80211 {
 
@@ -30,8 +32,8 @@ namespace gr {
     {
       private:
       // for block
-      int d_nBuf;
       int d_nProc;
+      bool d_debug;
       // for processing
       int d_nPlateau;
       int d_fPlateau;

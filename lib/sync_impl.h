@@ -26,6 +26,8 @@
 #define SYNC_MAX_BUF_LEN 240
 #define SYNC_MAX_RES_LEN SYNC_MAX_BUF_LEN - 128 - 1
 
+#define dout d_debug&&std::cout
+
 namespace gr {
   namespace ieee80211 {
 
@@ -33,8 +35,8 @@ namespace gr {
     {
      private:
       // for block
-      int d_nBuf;
       int d_nProc;
+      bool d_debug;
       // for processing
       gr_complex d_conjMultiAvg;
       float d_stfCfo;

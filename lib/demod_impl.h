@@ -31,7 +31,7 @@
 #define DEMOD_S_VHT_SIGB 3
 #define DEMOD_S_TAG 4
 #define DEMOD_S_DEMOD 5
-#define DEMOD_S_REMAIN 6
+#define DEMOD_S_CLEAN 6
 
 namespace gr {
   namespace ieee80211 {

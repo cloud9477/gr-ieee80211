@@ -33,6 +33,8 @@
 #define F_HT 1
 #define F_VHT 2
 
+#define dout d_debug&&std::cout
+
 namespace gr {
   namespace ieee80211 {
 
@@ -42,12 +44,14 @@ namespace gr {
       // for block
       int d_nProc;
       int d_sSignal;
+      bool d_debug;
       // signal soft viterbi ver
       gr_complex d_H[64];
       gr_complex d_sig[64];
       float d_sigLegacyIntedLlr[48];
       float d_sigLegacyCodedLlr[48];
       uint8_t d_sigLegacyBits[24];
+      int d_nSigPktSeq;
       int d_nSigMcs;
       int d_nSigLen;
       int d_nSigDBPS;

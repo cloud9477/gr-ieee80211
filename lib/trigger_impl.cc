@@ -34,9 +34,9 @@ namespace gr {
     trigger_impl::trigger_impl()
       : gr::block("trigger",
               gr::io_signature::make(1, 1, sizeof(float)),
-              gr::io_signature::make(1, 1, sizeof(unsigned char)))
+              gr::io_signature::make(1, 1, sizeof(unsigned char))),
+              d_debug(0)
     {
-      d_nBuf = 0;
       d_nProc = 0;
       d_nPlateau = 0;
       d_fPlateau = 0;
@@ -55,7 +55,7 @@ namespace gr {
       gr_vector_int::size_type ninputs = ninput_items_required.size();
       for(int i=0; i < ninputs; i++)
       {
-	      ninput_items_required[i] = noutput_items + d_nBuf;
+	      ninput_items_required[i] = noutput_items;
       }
     }
 
@@ -66,19 +66,17 @@ namespace gr {
                        gr_vector_void_star &output_items)
     {
       const float* inAc = static_cast<const float*>(input_items[0]);
-      char* outTrigger = static_cast<char*>(output_items[0]);
+      uint8_t* outTrigger = static_cast<uint8_t*>(output_items[0]);
 
-      if(noutput_items < d_nBuf)
+      d_nProc = noutput_items;
+
+      for(int i=0;i<d_nProc;i++)
       {
-        consume_each (0);
-        return 0;
-      }
-
-      d_nProc = noutput_items - d_nBuf;
-      for(int i=0;i<d_nProc;i++){
         sampCount++;
-        // outTrigger[i] = 0;
-        if(inAc[i] > 0.3f){
+        outTrigger[i] = 0;
+        /*  */
+        if(inAc[i] > 0.3f)
+        {
           d_nPlateau++;
           if(inAc[i] > d_conjAc)
           {
@@ -95,8 +93,6 @@ namespace gr {
         }
         else
         {
-          //     // d_radStep = atan2f(d_conjMulti.imag(), d_conjMulti.real()) / 16.0f;
-          //     // float tmpCfo = d_radStep * 20000000.0f / 2.0f / M_PI;
           d_nPlateau = 0;
           d_fPlateauEnd = 0;
           d_conjAc = 0.0f;
@@ -108,7 +104,7 @@ namespace gr {
           {
             d_fPlateau = 0;
             outTrigger[i] |= 0x01;
-            std::cout<<"ieee80211 trigger, trigger at "<<sampCount<<std::endl;
+            dout<<"ieee80211 trigger, trigger at "<<sampCount<<std::endl;
           }
         }
       }

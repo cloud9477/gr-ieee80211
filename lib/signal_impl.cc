@@ -34,11 +34,15 @@ namespace gr {
     signal_impl::signal_impl()
       : gr::block("signal",
               gr::io_signature::makev(3, 3, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex), sizeof(float)}),
-              gr::io_signature::make(1, 1, sizeof(gr_complex)))
+              gr::io_signature::make(1, 1, sizeof(gr_complex))),
+              d_debug(0)
     {
       d_nProc = 0;
+      d_nSigPktSeq = 0;
 
       d_sSignal = S_TRIGGER;
+
+      set_tag_propagation_policy(block::TPP_DONT);
       
       d_fftLtfIn1 = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
       d_fftLtfIn2 = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
@@ -73,7 +77,7 @@ namespace gr {
       const gr_complex* inSig = static_cast<const gr_complex*>(input_items[1]);
       const float* inCfoRad = static_cast<const float*>(input_items[2]);
       gr_complex* outSig = static_cast<gr_complex*>(output_items[0]);
-
+      /* output of this block is limited, do not use noutput, it can be larger than ninput */
       d_nProc = std::min(std::min(ninput_items[0], ninput_items[1]), ninput_items[2]);
 
       if(d_sSignal == S_TRIGGER)
@@ -107,7 +111,6 @@ namespace gr {
           fftw_execute(d_fftP);
           d_fftP = fftw_plan_dft_1d(64, d_fftSigIn, d_fftSigOut, FFTW_FORWARD, FFTW_ESTIMATE);
           fftw_execute(d_fftP);
-          //std::cout<<"ieee80211 signal, csi: "<<std::endl;
           for(int i=0;i<64;i++)
           {
             if(i==0 || (i>=27 && i<=37))
@@ -119,7 +122,6 @@ namespace gr {
               d_H[i] = (gr_complex((float)d_fftLtfOut1[i][0], (float)d_fftLtfOut1[i][1]) + gr_complex((float)d_fftLtfOut2[i][0], (float)d_fftLtfOut2[i][1])) / LTF_L_26_F_FLOAT[i] / 2.0f;
               d_sig[i] = gr_complex((float)d_fftSigOut[i][0], (float)d_fftSigOut[i][1]) / d_H[i];
             }
-            //std::cout<<d_H[i].real()<<", "<<d_H[i].imag()<<std::endl;
           }
           gr_complex tmpPilotSum = std::conj(d_sig[7] - d_sig[21] + d_sig[43] + d_sig[57]);
           float tmpPilotSumAbs = std::abs(tmpPilotSum);
@@ -145,9 +147,11 @@ namespace gr {
             d_nSymbol = (d_nSigLen*8 + 16 + 6)/d_nSigDBPS + (((d_nSigLen*8 + 16 + 6)%d_nSigDBPS) != 0);
             d_nSample = d_nSymbol * 80;
             d_nSampleCopied = 0;
-            std::cout<<"ieee80211 signal, mcs: "<<d_nSigMcs<<", len:"<<d_nSigLen<<", nSym:"<<d_nSymbol<<std::endl;
+            dout<<"ieee80211 signal, mcs: "<<d_nSigMcs<<", len:"<<d_nSigLen<<", nSym:"<<d_nSymbol<<", nSample:"<<d_nSample<<std::endl;
 
             // add info into tag
+            d_nSigPktSeq++;
+            if(d_nSigPktSeq >= 1000000000){d_nSigPktSeq = 0;}
             std::vector<gr_complex> csi;
             csi.reserve(64);
             for(int i=0;i<64;i++)
@@ -155,6 +159,7 @@ namespace gr {
               csi.push_back(d_H[i]);
             }
             pmt::pmt_t dict = pmt::make_dict();
+            dict = pmt::dict_add(dict, pmt::mp("seq"), pmt::from_long(d_nSigPktSeq));
             dict = pmt::dict_add(dict, pmt::mp("mcs"), pmt::from_long(d_nSigMcs));
             dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_nSigLen));
             dict = pmt::dict_add(dict, pmt::mp("csi"), pmt::init_c32vector(csi.size(), csi));
@@ -167,7 +172,6 @@ namespace gr {
                               pmt::cdr(pair),
                               alias_pmt());
             }
-            
             d_sSignal = S_COPY;
             consume_each(224);
           }
@@ -187,7 +191,7 @@ namespace gr {
       {
         if(d_nProc >= (d_nSample - d_nSampleCopied))
         {
-          std::cout<<"ieee80211 signal, copy "<<(d_nSample - d_nSampleCopied)<<" samples"<<std::endl;
+          //dout<<"ieee80211 signal, copy "<<(d_nSample - d_nSampleCopied)<<" samples"<<std::endl;
           for(int i=0;i<(d_nSample - d_nSampleCopied);i++)
           {
             outSig[i] = inSig[i];
@@ -198,7 +202,7 @@ namespace gr {
         }
         else
         {
-          std::cout<<"ieee80211 signal, copy "<<d_nProc<<" samples"<<std::endl;
+          //dout<<"ieee80211 signal, copy "<<d_nProc<<" samples"<<std::endl;
           for(int i=0;i<d_nProc;i++)
           {
             outSig[i] = inSig[i];

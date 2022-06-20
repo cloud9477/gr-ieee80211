@@ -38,9 +38,9 @@ namespace gr {
     sync_impl::sync_impl()
       : gr::block("sync",
               gr::io_signature::makev(3, 3, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex), sizeof(gr_complex)}),
-              gr::io_signature::makev(2, 2, std::vector<int>{sizeof(uint8_t), sizeof(float)}))
+              gr::io_signature::makev(2, 2, std::vector<int>{sizeof(uint8_t), sizeof(float)})),
+              d_debug(0)
     {
-      d_nBuf = 0;
       d_nProc = 0;
     }
 
@@ -57,7 +57,7 @@ namespace gr {
       gr_vector_int::size_type ninputs = ninput_items_required.size();
       for(int i=0; i < ninputs; i++)
       {
-	      ninput_items_required[i] = noutput_items + d_nBuf;
+	      ninput_items_required[i] = noutput_items;
       }
     }
 
@@ -74,12 +74,7 @@ namespace gr {
       uint8_t* sync = static_cast<uint8_t*>(output_items[0]);
       float* outRad = static_cast<float*>(output_items[1]);
 
-      if(noutput_items < d_nBuf)
-      {
-        consume_each (0);
-        return 0;
-      }
-      d_nProc = noutput_items - d_nBuf;
+      d_nProc = noutput_items;
 
       for(int i=0;i<d_nProc;i++)
       {
@@ -115,9 +110,9 @@ namespace gr {
               }
               tmpM = (tmpL+tmpR)/2;
               // sync index is LTF starting index + 16
-              std::cout<<"ieee80211 sync, ac max value: "<<*tmpMaxAcP<<", max index: "<<(tmpMaxIndex)<<", L: "<<tmpL<<", R: "<<tmpR<<", mid: "<<tmpM<<std::endl;
+              dout<<"ieee80211 sync, ac max value: "<<*tmpMaxAcP<<", max index: "<<(tmpMaxIndex)<<", L: "<<tmpL<<", R: "<<tmpR<<", mid: "<<tmpM<<std::endl;
               float tmpTotalRadStep = ltf_cfo(&inSig[i+tmpMaxIndex], d_conjMultiAvg);
-              std::cout<<"ieee80211 sync, total cfo:"<<(tmpTotalRadStep) * 20000000.0f / 2.0f / M_PI<<std::endl;
+              dout<<"ieee80211 sync, total cfo:"<<(tmpTotalRadStep) * 20000000.0f / 2.0f / M_PI<<std::endl;
               sync[i+tmpM] = 0x01;
               outRad[i+tmpM] = tmpTotalRadStep;
             }
@@ -185,7 +180,7 @@ namespace gr {
         tmpConjSum += d_tmpConjSamp[i] * std::conj(d_tmpConjSamp[i+64]);
       }
       float tmpRadStepLtf = atan2f((tmpConjSum/64.0f).imag(), (tmpConjSum/64.0f).real()) / 64.0f;
-      std::cout<<"ieee80211 sync, stf cfo:"<<(tmpRadStepStf) * 20000000.0f / 2.0f / M_PI<<", ltf cfo:"<<(tmpRadStepLtf) * 20000000.0f / 2.0f / M_PI<<std::endl;
+      dout<<"ieee80211 sync, stf cfo:"<<(tmpRadStepStf) * 20000000.0f / 2.0f / M_PI<<", ltf cfo:"<<(tmpRadStepLtf) * 20000000.0f / 2.0f / M_PI<<std::endl;
       return tmpRadStepStf + tmpRadStepLtf;
     }
 

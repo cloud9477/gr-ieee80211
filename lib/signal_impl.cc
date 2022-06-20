@@ -65,7 +65,11 @@ namespace gr {
 
     void
     signal_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
-    {}
+    {
+      ninput_items_required[0] = noutput_items;
+      ninput_items_required[1] = noutput_items;
+      ninput_items_required[2] = noutput_items;
+    }
 
     int
     signal_impl::general_work (int noutput_items,
@@ -79,18 +83,22 @@ namespace gr {
       gr_complex* outSig = static_cast<gr_complex*>(output_items[0]);
       /* output of this block is limited, do not use noutput, it can be larger than ninput */
       d_nProc = std::min(std::min(ninput_items[0], ninput_items[1]), ninput_items[2]);
+      d_nGen = std::min(noutput_items, d_nProc);
 
       if(d_sSignal == S_TRIGGER)
       {
-        for(int i=0;i<d_nProc;i++)
+        int i;
+        for(i=0;i<d_nGen;i++)
         {
           if(sync[i])
           {
             d_sSignal = S_DEMOD;
-            consume_each(i+1);
-            return 0;
+            break;
           }
         }
+        memset(outSig, 0, sizeof(gr_complex) * i);  // maybe not needed to set, not used anyway
+        consume_each(i);
+        return i;
       }
       else if(d_sSignal == S_DEMOD)
       {
@@ -173,49 +181,71 @@ namespace gr {
                               alias_pmt());
             }
             d_sSignal = S_COPY;
+            memset(outSig, 0, sizeof(gr_complex) * 224);  // maybe not needed to set, not used anyway
             consume_each(224);
+            return 224;
           }
           else
           {
             d_sSignal = S_TRIGGER;
+            memset(outSig, 0, sizeof(gr_complex) * 80);  // maybe not needed to set, not used anyway
             consume_each(80);
+            return 80;
           }
         }
         else
         {
           consume_each(0);
+          return 0;
         }
-        return 0;
       }
       else if(d_sSignal == S_COPY)
       {
-        if(d_nProc >= (d_nSample - d_nSampleCopied))
+        // if(d_nProc >= (d_nSample - d_nSampleCopied))
+        // {
+        //   //dout<<"ieee80211 signal, copy "<<(d_nSample - d_nSampleCopied)<<" samples"<<std::endl;
+        //   for(int i=0;i<(d_nSample - d_nSampleCopied);i++)
+        //   {
+        //     outSig[i] = inSig[i];
+        //   }
+        //   d_sSignal = S_TRIGGER;
+        //   consume_each(d_nSample - d_nSampleCopied);
+        //   return (d_nSample - d_nSampleCopied);
+        // }
+        // else
+        // {
+        //   //dout<<"ieee80211 signal, copy "<<d_nProc<<" samples"<<std::endl;
+        //   for(int i=0;i<d_nProc;i++)
+        //   {
+        //     outSig[i] = inSig[i];
+        //   }
+        //   d_nSampleCopied += d_nProc;
+        //   consume_each(d_nProc);
+        //   return (d_nProc);
+        // }
+        int i=0;
+        while(i<d_nGen)
         {
-          //dout<<"ieee80211 signal, copy "<<(d_nSample - d_nSampleCopied)<<" samples"<<std::endl;
-          for(int i=0;i<(d_nSample - d_nSampleCopied);i++)
+          // add cfo compensate later
+          outSig[i] = inSig[i];
+          i++;
+          d_nSampleCopied++;
+          if(d_nSampleCopied == d_nSample)
           {
-            outSig[i] = inSig[i];
+            d_sSignal = S_TRIGGER;
+            break;
           }
-          d_sSignal = S_TRIGGER;
-          consume_each(d_nSample - d_nSampleCopied);
-          return (d_nSample - d_nSampleCopied);
         }
-        else
-        {
-          //dout<<"ieee80211 signal, copy "<<d_nProc<<" samples"<<std::endl;
-          for(int i=0;i<d_nProc;i++)
-          {
-            outSig[i] = inSig[i];
-          }
-          d_nSampleCopied += d_nProc;
-          consume_each(d_nProc);
-          return (d_nProc);
-        }
+        dout<<"ieee80211 signal, copy "<<i<<" samples"<<std::endl;
+        consume_each(i);
+        return i;
       }
 
       // if no process and no state changing
+      dout<<"ieee80211 signal, state error, go back to idle"<<std::endl;
+      d_sSignal = S_TRIGGER;
       consume_each(d_nProc);
-      return 0;
+      return d_nProc;
     }
 
   } /* namespace ieee80211 */

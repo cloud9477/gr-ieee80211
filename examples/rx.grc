@@ -185,7 +185,7 @@ blocks:
     bus_structure: null
     coordinate: [984, 20.0]
     rotation: 0
-    state: true
+    state: disabled
 - name: blocks_file_sink_1
   id: blocks_file_sink
   parameters:
@@ -193,17 +193,17 @@ blocks:
     alias: ''
     append: 'False'
     comment: ''
-    file: /home/cloud/sdr/ltftrigger.bin
-    type: float
+    file: /home/cloud/sdr/atftrigger.bin
+    type: complex
     unbuffered: 'False'
     vlen: '1'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1392, 252.0]
+    coordinate: [1496, 300.0]
     rotation: 0
-    state: true
+    state: disabled
 - name: blocks_file_sink_2
   id: blocks_file_sink
   parameters:
@@ -219,9 +219,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1384, 12.0]
+    coordinate: [1448, 12.0]
     rotation: 0
-    state: true
+    state: disabled
 - name: blocks_file_source_0
   id: blocks_file_source
   parameters:
@@ -234,7 +234,7 @@ blocks:
     maxoutbuf: '0'
     minoutbuf: '0'
     offset: '0'
-    repeat: 'True'
+    repeat: 'False'
     type: complex
     vlen: '1'
   states:
@@ -314,9 +314,45 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1688, 240.0]
+    coordinate: [1808, 312.0]
     rotation: 0
     state: enabled
+- name: blocks_null_sink_1
+  id: blocks_null_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    bus_structure_sink: '[[0,],]'
+    comment: ''
+    num_inputs: '1'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1648, 48.0]
+    rotation: 0
+    state: disabled
+- name: blocks_tag_debug_0
+  id: blocks_tag_debug
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    display: 'True'
+    filter: '"seq"'
+    name: ''
+    num_inputs: '1'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1656, 228.0]
+    rotation: 0
+    state: disabled
 - name: ieee80211_demod_0
   id: ieee80211_demod
   parameters:
@@ -329,7 +365,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1656, 152.0]
+    coordinate: [1720, 136.0]
     rotation: 0
     state: enabled
 - name: ieee80211_signal_0
@@ -397,10 +433,13 @@ connections:
 - [blocks_moving_average_xx_1, '0', blocks_divide_xx_0, '1']
 - [blocks_multiply_conjugate_cc_0, '0', blocks_moving_average_xx_0, '0']
 - [ieee80211_demod_0, '0', blocks_null_sink_0, '0']
-- [ieee80211_signal_0, '0', ieee80211_demod_0, '0']
+- [ieee80211_signal_0, '0', blocks_file_sink_1, '0']
+- [ieee80211_signal_0, '0', blocks_null_sink_1, '0']
+- [ieee80211_signal_0, '0', blocks_tag_debug_0, '0']
+- [ieee80211_signal_0, '0', ieee80211_demod_0, '1']
 - [ieee80211_sync_0, '0', blocks_file_sink_2, '0']
+- [ieee80211_sync_0, '0', ieee80211_demod_0, '0']
 - [ieee80211_sync_0, '0', ieee80211_signal_0, '0']
-- [ieee80211_sync_0, '1', blocks_file_sink_1, '0']
 - [ieee80211_sync_0, '1', ieee80211_signal_0, '2']
 - [ieee80211_trigger_0, '0', ieee80211_sync_0, '0']
 

@@ -7,11 +7,14 @@ templates:
   make: ieee80211.demod()
 
 inputs:
+- label: sync
+  domain: stream
+  dtype: byte
+#  vlen: ...
+#  optional: ...
 - label: inSig
   domain: stream
   dtype: complex
-#  vlen: ...
-#  optional: ...
 
 outputs:
 - label: outLlr

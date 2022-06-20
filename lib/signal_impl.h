@@ -43,6 +43,7 @@ namespace gr {
      private:
       // for block
       int d_nProc;
+      int d_nGen;
       int d_sSignal;
       bool d_debug;
       // signal soft viterbi ver

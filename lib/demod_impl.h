@@ -25,13 +25,13 @@
 #include <fftw3.h>
 #include "cloud80211phy.h"
 
-#define DEMOD_S_IDEL 0
-#define DEMOD_S_FORMAT_CHECK 1
-#define DEMOD_S_NONL_CHANNEL 2
-#define DEMOD_S_VHT_SIGB 3
-#define DEMOD_S_TAG 4
-#define DEMOD_S_DEMOD 5
-#define DEMOD_S_CLEAN 6
+#define DEMOD_S_SYNC 10
+#define DEMOD_S_IDELL 11
+#define DEMOD_S_TAGPARSERR 12
+#define DEMOD_S_FORMAT_CHECKK 13
+#define DEMOD_S_NONL_CHANNELL 14
+#define DEMOD_S_VHT_SIGBB 15
+#define DEMOD_S_TAGGENERATEE 16
 
 namespace gr {
   namespace ieee80211 {
@@ -41,6 +41,7 @@ namespace gr {
      private:
       // block
       int d_nProc;
+      int d_nGen;
       int d_sDemod;
       // received info from tag
       std::vector<gr::tag_t> tags;
@@ -64,7 +65,8 @@ namespace gr {
       fftw_complex* d_fftLtfIn2;
       fftw_complex* d_fftLtfOut1;
       fftw_complex* d_fftLtfOut2;
-      fftw_plan d_fftP;
+      fftw_plan d_fftP1;
+      fftw_plan d_fftP2;
       // packet info
       int d_format;
       c8p_mod d_m;

@@ -25,6 +25,8 @@
 #include <fftw3.h>
 #include "cloud80211phy.h"
 
+#define dout d_debug&&std::cout
+
 #define DEMOD_S_SYNC 10
 #define DEMOD_S_IDELL 11
 #define DEMOD_S_TAGPARSERR 12
@@ -41,6 +43,7 @@ namespace gr {
     {
      private:
       // block
+      bool d_debug;
       int d_nProc;
       int d_nGen;
       int d_sDemod;

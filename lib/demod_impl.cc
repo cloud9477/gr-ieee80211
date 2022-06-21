@@ -39,6 +39,8 @@ namespace gr {
     {
       d_nProc = 0;
       d_sDemod = DEMOD_S_SYNC;
+      // for test
+      // d_sDemod = DEMOD_S_TEST0;
 
       set_tag_propagation_policy(block::TPP_DONT);
 
@@ -77,9 +79,57 @@ namespace gr {
       const uint8_t* sync = static_cast<const uint8_t*>(input_items[0]);
       const gr_complex* inSig = static_cast<const gr_complex*>(input_items[1]);
       float* outLlrs = static_cast<float*>(output_items[0]);
-      d_nProc = ninput_items[0];
-      d_nGen = std::min(noutput_items, d_nProc);
+      d_nProc = std::min(ninput_items[0], ninput_items[1]);
+      d_nGen = noutput_items;
       /**************************************************************************************************************************************************/
+      // if(d_sDemod == DEMOD_S_TEST0)
+      // {
+      //   int i;
+      //   for(i=0;i<d_nGen;i++)
+      //   {
+      //     if(sync[i])
+      //     {
+      //       d_sDemod = DEMOD_S_TEST1;
+      //       break;
+      //     }
+      //   }
+      //   consume_each(i);
+      //   return 0;
+      // }
+      // else if(d_sDemod == DEMOD_S_TEST1)
+      // {
+      //   if(d_nProc >= 704)
+      //   {
+      //     d_sDemod = DEMOD_S_TEST2;
+      //     d_testCount = 30;
+      //     consume_each(704);
+      //     return 0;
+      //   }
+      //   else
+      //   {
+      //     consume_each(0);
+      //     return 0;
+      //   }
+      // }
+      // else if(d_sDemod == DEMOD_S_TEST2)
+      // {
+      //   int o1 = 0;
+      //   int o2 = 0;
+      //   while((o1 + 80) < d_nProc && (o2 + 52) < d_nGen && d_testCount > 0)
+      //   {
+      //     o1 += 80;
+      //     o2 += 52;
+      //     d_testCount--;
+      //   }
+      //   if(d_testCount <= 0)
+      //   {
+      //     d_sDemod = DEMOD_S_TEST0;
+      //   }
+      //   memset(outLlrs, 0, o2*sizeof(float));
+      //   consume_each(o1);
+      //   return o2;
+      // }
+
       if(d_sDemod == DEMOD_S_SYNC)
       {
         int i;
@@ -87,21 +137,23 @@ namespace gr {
         {
           if(sync[i])
           {
-            //d_sDemod = DEMOD_S_IDELL;
+            d_sDemod = DEMOD_S_IDELL;
             break;
           }
         }
         consume_each(i);
-        //memset(outLlrs, 0, sizeof(float) * i);
-        //return i;
         return 0;
       }
       else if(d_sDemod == DEMOD_S_IDELL)
       {
-        if(d_nGen >= 80)
+        if(d_nProc >= 704)
         {
+          // set 0 to return
+          int ifGoOn = 1;
+          //-------------- get tag ---------------
           get_tags_in_range(tags, 1, nitems_read(1) , nitems_read(1) + 1);
-          if (tags.size()) {
+          if (tags.size())
+          {
             pmt::pmt_t d_meta = pmt::make_dict();
             for (auto tag : tags){
               d_meta = pmt::dict_add(d_meta, tag.key, tag.value);
@@ -114,160 +166,136 @@ namespace gr {
               std::vector<gr_complex> tmp_csi = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("csi"), pmt::PMT_NIL));
               std::copy(tmp_csi.begin(), tmp_csi.end(), d_H);
               dout<<"ieee80211 demod, tagged seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<", ninput:"<<d_nProc<<std::endl;
-              d_sDemod = DEMOD_S_TAGPARSERR;
+            }else{ifGoOn = 0;}
+          }else{ifGoOn = 0;}
+          //-------------- parser tag ---------------
+          if(ifGoOn)
+          {
+            if(d_nSigLMcs == 0)
+            {
+              d_format = C8P_F_NL;
+              d_sDemod = DEMOD_S_FORMAT_CHECKK;
+              d_nSym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
+            }
+            else
+            {
+              d_format = C8P_F_L;
+              signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
+              d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
+              d_sDemod = DEMOD_S_TAGGENERATEE;
+              d_nSym = (d_nSigLLen*8 + 22)/d_m.nDBPS + (((d_nSigLLen*8 + 22)%d_m.nDBPS) != 0);
+            }
+            d_nSamp = d_nSym * 80;
+            dout<<"ieee80211 demod, compute total sample:"<<d_nSamp<<", legacy nsym:"<<d_nSym<<std::endl;
+            d_nSampProcd = 0;
+            d_nSymProcd = 0;
+            d_nSymSamp = 80;
+            d_ampdu = 0;
+            d_nCodedProcd = 0;
+            //-------------- check format, two symbols total 160 samples, p=0
+            if(d_format == C8P_F_NL)
+            {
+              dout<<"ieee80211 demod, format check."<<std::endl;
+              for(int i=0;i<64;i++)
+              {
+                d_fftLtfIn1[i][0] = (double)inSig[i+8].real();
+                d_fftLtfIn1[i][1] = (double)inSig[i+8].imag();
+                d_fftLtfIn2[i][0] = (double)inSig[i+8+80].real();
+                d_fftLtfIn2[i][1] = (double)inSig[i+8+80].imag();
+              }
+              d_fftP1 = fftw_plan_dft_1d(64, d_fftLtfIn1, d_fftLtfOut1, FFTW_FORWARD, FFTW_ESTIMATE);
+              fftw_execute(d_fftP1);
+              d_fftP2 = fftw_plan_dft_1d(64, d_fftLtfIn2, d_fftLtfOut2, FFTW_FORWARD, FFTW_ESTIMATE);
+              fftw_execute(d_fftP2);
+              for(int i=0;i<64;i++)
+              {
+                if(i==0 || (i>=27 && i<=37))
+                {
+                }
+                else
+                {
+                  d_sig1[i] = gr_complex((float)d_fftLtfOut1[i][0], (float)d_fftLtfOut1[i][1]) / d_H[i];
+                  d_sig2[i] = gr_complex((float)d_fftLtfOut2[i][0], (float)d_fftLtfOut2[i][1]) / d_H[i];
+                }
+              }
+              gr_complex tmpPilotSum1 = std::conj(d_sig1[7] - d_sig1[21] + d_sig1[43] + d_sig1[57]);
+              gr_complex tmpPilotSum2 = std::conj(d_sig2[7] - d_sig2[21] + d_sig2[43] + d_sig2[57]);
+              float tmpPilotSumAbs1 = std::abs(tmpPilotSum1);
+              float tmpPilotSumAbs2 = std::abs(tmpPilotSum2);
+              int j=24;
+              gr_complex tmpM1, tmpM2;
+              for(int i=0;i<64;i++)
+              {
+                if(i==0 || (i>=27 && i<=37) || i==7 || i==21 || i==43 || i==57){}
+                else
+                {
+                  tmpM1 = d_sig1[i] * tmpPilotSum1 / tmpPilotSumAbs1;
+                  tmpM2 = d_sig2[i] * tmpPilotSum2 / tmpPilotSumAbs2;
+                  d_sigHtIntedLlr[j] = tmpM1.imag();
+                  d_sigVhtAIntedLlr[j] = tmpM1.real();
+                  d_sigHtIntedLlr[j + 48] = tmpM2.imag();
+                  d_sigVhtAIntedLlr[j + 48] = tmpM2.imag();
+                  j++;
+                  if(j == 48)
+                  {
+                    j = 0;
+                  }
+                }
+              }
+              // format check first check vht
+              procDeintLegacyBpsk(d_sigVhtAIntedLlr, d_sigVhtACodedLlr);
+              procDeintLegacyBpsk(&d_sigVhtAIntedLlr[48], &d_sigVhtACodedLlr[48]);
+              SV_Decode_Sig(d_sigVhtACodedLlr, d_sigVhtABits, 48);
+              if(signalCheckVhtA(d_sigVhtABits))
+              {
+                dout<<"ieee80211 demod, sig a bits:";
+                for(int i =0;i<48;i++){dout<<(int)d_sigVhtABits[i]<<" ";}
+                dout<<std::endl;
+                d_format = C8P_F_VHT;
+                signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
+              }
+              else
+              {
+                // format check then check ht
+                procDeintLegacyBpsk(d_sigHtIntedLlr, d_sigHtCodedLlr);
+                procDeintLegacyBpsk(&d_sigHtIntedLlr[48], &d_sigHtCodedLlr[48]);
+                SV_Decode_Sig(d_sigHtCodedLlr, d_sigHtBits, 48);
+                if(signalCheckHt(d_sigHtBits))
+                {
+                  d_format = C8P_F_HT;
+                  signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
+                  if(d_sigHt.shortGi){d_nSymSamp = 72;}
+                  if(d_sigHt.aggre){d_ampdu = 1;}
+                  int tmpNSym = ((d_m.len*8 + 22)/d_m.nDBPS + (((d_m.len*8 + 22)%d_m.nDBPS) != 0));
+                  if((d_nSym * 80) >= (tmpNSym * d_nSymSamp + 240 + d_m.nLTF * 80))
+                  {
+                    d_nSym = tmpNSym;
+                    d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
+                    dout<<"ieee80211 demod, ht packet"<<std::endl;
+                    d_nSampProcd += 160;
+                  }
+                  else
+                  {
+                    ifGoOn = 0;
+                  }
+                }
+                else
+                {
+                  d_format = C8P_F_L;
+                  signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
+                  d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
+                }
+                dout<<"ieee80211 demod, ht packet but len error return sync"<<std::endl;
+                d_sDemod = DEMOD_S_SYNC;
+                consume_each (0);
+                return 0;
+              }
+              // format is legacy
+              
+              d_sDemod = DEMOD_S_TAGGENERATEE;
+              dout<<"ieee80211 demod, legacy packet"<<std::endl;
               consume_each(0);
               return 0;
-            }
-            dout<<"ieee80211 demod, tag content error"<<std::endl;
-          }
-          //!!!!!!!!!!!!!!!!!!!!!!
-          d_sDemod = DEMOD_S_SYNC;
-          consume_each(80);
-          memset(outLlrs, 0, sizeof(float) * 80);
-          return 80;
-        }
-        else
-        {
-          consume_each(0);
-          return 0;
-        }
-      }
-      else if(d_sDemod == DEMOD_S_TAGPARSERR)
-      {
-        if(d_nGen >= 224)
-        {
-          if(d_nSigLMcs == 0)
-          {
-            d_sDemod = DEMOD_S_FORMAT_CHECKK;
-            d_nSym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
-          }
-          else
-          {
-            d_format = C8P_F_L;
-            signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
-            d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
-            d_sDemod = DEMOD_S_TAGGENERATEE;
-            d_nSym = (d_nSigLLen*8 + 22)/d_m.nDBPS + (((d_nSigLLen*8 + 22)%d_m.nDBPS) != 0);
-          }
-          d_nSamp = d_nSym * 80;
-          dout<<"ieee80211 demod, compute total sample:"<<d_nSamp<<", legacy nsym:"<<d_nSym<<std::endl;
-          d_nSampProcd = 0;
-          d_nSymProcd = 0;
-          d_nSymSamp = 80;
-          d_ampdu = 0;
-          d_nCodedProcd = 0;
-          memset(outLlrs, 0, sizeof(float) * 224);
-          consume_each(224);
-          return 224;  
-        }
-        consume_each(0);
-        return 0;
-      }
-      else if(d_sDemod == DEMOD_S_FORMAT_CHECKK)
-      {
-        if(d_nGen >= 160)
-        {
-          // demod of two symbols, each 80 samples
-          dout<<"ieee80211 demod, format check."<<std::endl;
-          for(int i=0;i<64;i++)
-          {
-            d_fftLtfIn1[i][0] = (double)inSig[i+8].real();
-            d_fftLtfIn1[i][1] = (double)inSig[i+8].imag();
-            d_fftLtfIn2[i][0] = (double)inSig[i+8+80].real();
-            d_fftLtfIn2[i][1] = (double)inSig[i+8+80].imag();
-          }
-          d_fftP1 = fftw_plan_dft_1d(64, d_fftLtfIn1, d_fftLtfOut1, FFTW_FORWARD, FFTW_ESTIMATE);
-          fftw_execute(d_fftP1);
-          d_fftP2 = fftw_plan_dft_1d(64, d_fftLtfIn2, d_fftLtfOut2, FFTW_FORWARD, FFTW_ESTIMATE);
-          fftw_execute(d_fftP2);
-          for(int i=0;i<64;i++)
-          {
-            if(i==0 || (i>=27 && i<=37))
-            {
-            }
-            else
-            {
-              d_sig1[i] = gr_complex((float)d_fftLtfOut1[i][0], (float)d_fftLtfOut1[i][1]) / d_H[i];
-              d_sig2[i] = gr_complex((float)d_fftLtfOut2[i][0], (float)d_fftLtfOut2[i][1]) / d_H[i];
-            }
-          }
-          gr_complex tmpPilotSum1 = std::conj(d_sig1[7] - d_sig1[21] + d_sig1[43] + d_sig1[57]);
-          gr_complex tmpPilotSum2 = std::conj(d_sig2[7] - d_sig2[21] + d_sig2[43] + d_sig2[57]);
-          float tmpPilotSumAbs1 = std::abs(tmpPilotSum1);
-          float tmpPilotSumAbs2 = std::abs(tmpPilotSum2);
-          int j=24;
-          gr_complex tmpM1, tmpM2;
-          for(int i=0;i<64;i++)
-          {
-            if(i==0 || (i>=27 && i<=37) || i==7 || i==21 || i==43 || i==57){}
-            else
-            {
-              tmpM1 = d_sig1[i] * tmpPilotSum1 / tmpPilotSumAbs1;
-              tmpM2 = d_sig2[i] * tmpPilotSum2 / tmpPilotSumAbs2;
-              d_sigHtIntedLlr[j] = tmpM1.imag();
-              d_sigVhtAIntedLlr[j] = tmpM1.real();
-              d_sigHtIntedLlr[j + 48] = tmpM2.imag();
-              d_sigVhtAIntedLlr[j + 48] = tmpM2.imag();
-              j++;
-              if(j == 48)
-              {
-                j = 0;
-              }
-            }
-          }
-          // format check first check vht
-          procDeintLegacyBpsk(d_sigVhtAIntedLlr, d_sigVhtACodedLlr);
-          procDeintLegacyBpsk(&d_sigVhtAIntedLlr[48], &d_sigVhtACodedLlr[48]);
-          SV_Decode_Sig(d_sigVhtACodedLlr, d_sigVhtABits, 48);
-          if(signalCheckVhtA(d_sigVhtABits))
-          {
-            dout<<"ieee80211 demod, sig a bits:";
-            for(int i =0;i<48;i++){dout<<(int)d_sigVhtABits[i]<<" ";}
-            dout<<std::endl;
-            d_format = C8P_F_VHT;
-            signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
-            d_sDemod = DEMOD_S_NONL_CHANNELL;
-            dout<<"ieee80211 demod, vht packet a part"<<std::endl;
-            d_nSampProcd += 160;
-            memset(outLlrs, 0, sizeof(float) * 160);
-            consume_each (160);
-            return 160;
-          }
-          // format check then check ht
-          procDeintLegacyBpsk(d_sigHtIntedLlr, d_sigHtCodedLlr);
-          procDeintLegacyBpsk(&d_sigHtIntedLlr[48], &d_sigHtCodedLlr[48]);
-          SV_Decode_Sig(d_sigHtCodedLlr, d_sigHtBits, 48);
-          if(signalCheckHt(d_sigHtBits))
-          {
-            d_format = C8P_F_HT;
-            signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
-            if(d_sigHt.shortGi){d_nSymSamp = 72;}
-            if(d_sigHt.aggre){d_ampdu = 1;}
-            int tmpNSym = ((d_m.len*8 + 22)/d_m.nDBPS + (((d_m.len*8 + 22)%d_m.nDBPS) != 0));
-            if((d_nSym * 80) >= (tmpNSym * d_nSymSamp + 240 + d_m.nLTF * 80))
-            {
-              d_nSym = tmpNSym;
-              d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
-              d_sDemod = DEMOD_S_NONL_CHANNELL;
-              dout<<"ieee80211 demod, ht packet"<<std::endl;
-              d_nSampProcd += 160;
-              memset(outLlrs, 0, sizeof(float) * 160);
-              consume_each (160);
-              return 160;
-            }
-            dout<<"ieee80211 demod, ht packet but len error return sync"<<std::endl;
-            d_sDemod = DEMOD_S_SYNC;
-            consume_each (0);
-            return 0;
-          }
-          // format is legacy
-          d_format = C8P_F_L;
-          signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
-          d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
-          d_sDemod = DEMOD_S_TAGGENERATEE;
-          dout<<"ieee80211 demod, legacy packet"<<std::endl;
-          consume_each(0);
-          return 0;
         }
         consume_each(0);
         return 0;

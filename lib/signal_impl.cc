@@ -66,9 +66,14 @@ namespace gr {
     void
     signal_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
     {
-      ninput_items_required[0] = noutput_items;
-      ninput_items_required[1] = noutput_items;
-      ninput_items_required[2] = noutput_items;
+      // ninput_items_required[0] = noutput_items;
+      // ninput_items_required[1] = noutput_items;
+      // ninput_items_required[2] = noutput_items;
+      gr_vector_int::size_type ninputs = ninput_items_required.size();
+      for(int i=0; i < ninputs; i++)
+      {
+	      ninput_items_required[i] = noutput_items + 160;
+      }
     }
 
     int

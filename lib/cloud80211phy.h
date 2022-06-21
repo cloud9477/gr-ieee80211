@@ -30,6 +30,7 @@
 #define C8P_F_L 0
 #define C8P_F_HT 1
 #define C8P_F_VHT 2
+#define C8P_F_NL 3
 
 #define C8P_BW_20   0
 #define C8P_BW_40   1

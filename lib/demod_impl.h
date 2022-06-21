@@ -32,6 +32,7 @@
 #define DEMOD_S_NONL_CHANNELL 14
 #define DEMOD_S_VHT_SIGBB 15
 #define DEMOD_S_TAGGENERATEE 16
+#define DEMOD_S_DEMODD 17
 
 namespace gr {
   namespace ieee80211 {

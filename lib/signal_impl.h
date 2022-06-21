@@ -22,7 +22,8 @@
 #define INCLUDED_IEEE80211_SIGNAL_IMPL_H
 
 #include <ieee80211/signal.h>
-#include <fftw3.h>
+#include <gnuradio/fft/fft.h>
+#include <volk/volk.h>
 #include "cloud80211phy.h"
 
 #define S_TRIGGER 0
@@ -60,13 +61,10 @@ namespace gr {
       int d_nSample;
       int d_nSampleCopied;
       // fft
-      fftw_complex* d_fftLtfIn1;
-      fftw_complex* d_fftLtfIn2;
-      fftw_complex* d_fftLtfOut1;
-      fftw_complex* d_fftLtfOut2;
-      fftw_complex* d_fftSigIn;
-      fftw_complex* d_fftSigOut;
-      fftw_plan d_fftP;
+      fft::fft_complex_fwd d_ofdm_fft;
+      gr_complex d_fftLtfOut1[64];
+      gr_complex d_fftLtfOut2[64];
+      gr_complex d_fftSigOut[64];
 
      public:
       signal_impl();

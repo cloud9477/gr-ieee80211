@@ -35,7 +35,8 @@ namespace gr {
       : gr::block("signal",
               gr::io_signature::makev(3, 3, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex), sizeof(float)}),
               gr::io_signature::make(1, 1, sizeof(gr_complex))),
-              d_debug(0)
+              d_debug(0),
+              d_ofdm_fft(64,1)
     {
       d_nProc = 0;
       d_nSigPktSeq = 0;
@@ -43,24 +44,10 @@ namespace gr {
       d_sSignal = S_TRIGGER;
 
       set_tag_propagation_policy(block::TPP_DONT);
-      
-      d_fftLtfIn1 = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
-      d_fftLtfIn2 = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
-      d_fftLtfOut1 = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
-      d_fftLtfOut2 = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
-      d_fftSigIn = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
-      d_fftSigOut = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 64);
     }
 
     signal_impl::~signal_impl()
     {
-      fftw_free(d_fftLtfIn1);
-      fftw_free(d_fftLtfIn2);
-      fftw_free(d_fftLtfOut1);
-      fftw_free(d_fftLtfOut2);
-      fftw_free(d_fftSigIn);
-      fftw_free(d_fftSigOut);
-      fftw_destroy_plan(d_fftP);
     }
 
     void
@@ -109,21 +96,16 @@ namespace gr {
       {
         if(d_nProc > 240)
         {
-          for(int i=0;i<64;i++)
-          {
-            d_fftLtfIn1[i][0] = (double)inSig[i+8].real();
-            d_fftLtfIn1[i][1] = (double)inSig[i+8].imag();
-            d_fftLtfIn2[i][0] = (double)inSig[i+8+64].real();
-            d_fftLtfIn2[i][1] = (double)inSig[i+8+64].imag();
-            d_fftSigIn[i][0] = (double)inSig[i+8+64+80].real();
-            d_fftSigIn[i][1] = (double)inSig[i+8+64+80].imag();
-          }
-          d_fftP = fftw_plan_dft_1d(64, d_fftLtfIn1, d_fftLtfOut1, FFTW_FORWARD, FFTW_ESTIMATE);
-          fftw_execute(d_fftP);
-          d_fftP = fftw_plan_dft_1d(64, d_fftLtfIn2, d_fftLtfOut2, FFTW_FORWARD, FFTW_ESTIMATE);
-          fftw_execute(d_fftP);
-          d_fftP = fftw_plan_dft_1d(64, d_fftSigIn, d_fftSigOut, FFTW_FORWARD, FFTW_ESTIMATE);
-          fftw_execute(d_fftP);
+          memcpy(d_ofdm_fft.get_inbuf(), &inSig[8], sizeof(gr_complex)*64);
+          d_ofdm_fft.execute();
+          memcpy(d_fftLtfOut1, d_ofdm_fft.get_outbuf(), sizeof(gr_complex)*64);
+          memcpy(d_ofdm_fft.get_inbuf(), &inSig[8+64], sizeof(gr_complex)*64);
+          d_ofdm_fft.execute();
+          memcpy(d_fftLtfOut2, d_ofdm_fft.get_outbuf(), sizeof(gr_complex)*64);
+          memcpy(d_ofdm_fft.get_inbuf(), &inSig[8+64+80], sizeof(gr_complex)*64);
+          d_ofdm_fft.execute();
+          memcpy(d_fftSigOut, d_ofdm_fft.get_outbuf(), sizeof(gr_complex)*64);
+
           for(int i=0;i<64;i++)
           {
             if(i==0 || (i>=27 && i<=37))
@@ -132,8 +114,8 @@ namespace gr {
             }
             else
             {
-              d_H[i] = (gr_complex((float)d_fftLtfOut1[i][0], (float)d_fftLtfOut1[i][1]) + gr_complex((float)d_fftLtfOut2[i][0], (float)d_fftLtfOut2[i][1])) / LTF_L_26_F_FLOAT[i] / 2.0f;
-              d_sig[i] = gr_complex((float)d_fftSigOut[i][0], (float)d_fftSigOut[i][1]) / d_H[i];
+              d_H[i] = (d_fftLtfOut1[i] + d_fftLtfOut2[i]) / LTF_L_26_F_FLOAT[i] / 2.0f;
+              d_sig[i] = d_fftSigOut[i] / d_H[i];
             }
           }
           gr_complex tmpPilotSum = std::conj(d_sig[7] - d_sig[21] + d_sig[43] + d_sig[57]);

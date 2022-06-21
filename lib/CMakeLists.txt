@@ -26,7 +26,7 @@ if(NOT ieee80211_sources)
 endif(NOT ieee80211_sources)
 
 add_library(gnuradio-ieee80211 SHARED ${ieee80211_sources})
-target_link_libraries(gnuradio-ieee80211 gnuradio::gnuradio-runtime)
+target_link_libraries(gnuradio-ieee80211 gnuradio::gnuradio-runtime gnuradio::gnuradio-fft)
 target_include_directories(gnuradio-ieee80211
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
     PUBLIC $<INSTALL_INTERFACE:include>

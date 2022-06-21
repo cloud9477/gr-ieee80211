@@ -22,7 +22,7 @@
 #define INCLUDED_IEEE80211_DEMOD_IMPL_H
 
 #include <ieee80211/demod.h>
-#include <fftw3.h>
+#include <gnuradio/fft/fft.h>
 #include "cloud80211phy.h"
 
 #define dout d_debug&&std::cout
@@ -70,12 +70,9 @@ namespace gr {
       uint8_t d_sigVhtABits[48];
       uint8_t d_sigVhtB20Bits[26];
       // fft
-      fftw_complex* d_fftLtfIn1;
-      fftw_complex* d_fftLtfIn2;
-      fftw_complex* d_fftLtfOut1;
-      fftw_complex* d_fftLtfOut2;
-      fftw_plan d_fftP1;
-      fftw_plan d_fftP2;
+      fft::fft_complex_fwd d_ofdm_fft;
+      gr_complex d_fftLtfOut1[64];
+      gr_complex d_fftLtfOut2[64];
       // packet info
       int d_format;
       c8p_mod d_m;

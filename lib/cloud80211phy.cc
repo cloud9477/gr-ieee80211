@@ -691,12 +691,18 @@ void procDeintLegacyBpsk(float* inBits, float* outBits)
     }
 }
 
+const int SV_PUNC_12[2] = {1, 1};
+const int SV_PUNC_23[4] = {1, 1, 1, 0};
+const int SV_PUNC_34[6] = {1, 1, 1, 0, 0, 1};
+const int SV_PUNC_56[10] = {1, 1, 1, 0, 0, 1, 1, 0, 0, 1};
+
+
 // viterbi, next state of each state with S1 = 0 and 1
 const int SV_STATE_NEXT[64][2] =
 {
- {0, 32}, {0, 32}, {1, 33}, {1, 33}, {2, 34}, {2, 34}, {3, 35}, {3, 35},
- {4, 36}, {4, 36}, {5, 37}, {5, 37}, {6, 38}, {6, 38}, {7, 39}, {7, 39},
- {8, 40}, {8, 40}, {9, 41}, {9, 41}, {10, 42}, {10, 42}, {11, 43}, {11, 43},
+ { 0, 32}, { 0, 32}, { 1, 33}, { 1, 33}, { 2, 34}, { 2, 34}, { 3, 35}, { 3, 35},
+ { 4, 36}, { 4, 36}, { 5, 37}, { 5, 37}, { 6, 38}, { 6, 38}, { 7, 39}, { 7, 39},
+ { 8, 40}, { 8, 40}, { 9, 41}, { 9, 41}, {10, 42}, {10, 42}, {11, 43}, {11, 43},
  {12, 44}, {12, 44}, {13, 45}, {13, 45}, {14, 46}, {14, 46}, {15, 47}, {15, 47},
  {16, 48}, {16, 48}, {17, 49}, {17, 49}, {18, 50}, {18, 50}, {19, 51}, {19, 51},
  {20, 52}, {20, 52}, {21, 53}, {21, 53}, {22, 54}, {22, 54}, {23, 55}, {23, 55},
@@ -711,10 +717,10 @@ const int SV_STATE_OUTPUT[64][2] =
  {3, 0}, {0, 3}, {1, 2}, {2, 1}, {3, 0}, {0, 3}, {1, 2}, {2, 1},
  {3, 0}, {0, 3}, {1, 2}, {2, 1}, {3, 0}, {0, 3}, {1, 2}, {2, 1},
  {0, 3}, {3, 0}, {2, 1}, {1, 2}, {0, 3}, {3, 0}, {2, 1}, {1, 2},
- {1, 2}, {2, 1}, {3, 0}, {0, 3}, {1, 2}, {2, 1}, {3, 0}, {0, 3}, 
- {2, 1}, {1, 2}, {0, 3}, {3, 0}, {2, 1}, {1, 2}, {0, 3}, {3, 0}, 
- {2, 1}, {1, 2}, {0, 3}, {3, 0}, {2, 1}, {1, 2}, {0, 3}, {3, 0}, 
- {1, 2}, {2, 1}, {3, 0}, {0, 3}, {1, 2}, {2, 1}, {3, 0}, {0, 3}, 
+ {1, 2}, {2, 1}, {3, 0}, {0, 3}, {1, 2}, {2, 1}, {3, 0}, {0, 3},
+ {2, 1}, {1, 2}, {0, 3}, {3, 0}, {2, 1}, {1, 2}, {0, 3}, {3, 0},
+ {2, 1}, {1, 2}, {0, 3}, {3, 0}, {2, 1}, {1, 2}, {0, 3}, {3, 0},
+ {1, 2}, {2, 1}, {3, 0}, {0, 3}, {1, 2}, {2, 1}, {3, 0}, {0, 3},
 };
 
 // viterbi, soft decoding
@@ -728,8 +734,8 @@ void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits, int trellisLen)
 	float *tmp, *pre_accum_err_metric, *cur_accum_err_metric;
 	int *state_history[64];			/* state history table */
 	int *state_sequence; 					/* state sequence list */
-	int op0, op1, next0, next1, tmp_index;
-	float acc_tmp0, acc_tmp1, t0, t1, tmp_val;
+	int op0, op1, next0, next1;
+	float acc_tmp0, acc_tmp1, t0, t1;
 	float tbl_t[4];
 
 	/* allocate memory for state tables */
@@ -753,7 +759,7 @@ void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits, int trellisLen)
     pre_accum_err_metric = &accum_err_metric0[0];
 
 	/* start viterbi decoding */
-	for (t = 0; t < trellisLen; t++)
+	for (t=0; t<trellisLen; t++)
 	{
 		t0 = *llrv++;
 		t1 = *llrv++;

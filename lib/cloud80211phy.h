@@ -107,6 +107,13 @@ extern const gr_complex LTF_L_26_F_COMP[64];
 extern const float LTF_L_26_F_FLOAT[64];
 extern const float LTF_NL_28_F_FLOAT[64];
 
+extern const int SV_PUNC_12[2];
+extern const int SV_PUNC_23[4];
+extern const int SV_PUNC_34[6];
+extern const int SV_PUNC_56[10];
+extern const int SV_STATE_NEXT[64][2];
+extern const int SV_STATE_OUTPUT[64][2];
+
 extern const int mapDeintVhtSigB20[52];
 void procDeintLegacyBpsk(uint8_t* inBits, uint8_t* outBits);
 void procDeintLegacyBpsk(float* inBits, float* outBits);

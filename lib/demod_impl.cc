@@ -35,7 +35,7 @@ namespace gr {
       : gr::block("demod",
               gr::io_signature::makev(2, 2, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex)}),
               gr::io_signature::make(1, 1, sizeof(float))),
-              d_debug(1),
+              d_debug(0),
               d_ofdm_fft(64,1)
     {
       d_nProc = 0;
@@ -121,6 +121,7 @@ namespace gr {
               d_format = C8P_F_L;
               signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
               d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
+              d_nTrellis = (d_m.len*8 + 22) * 2;
               d_nSym = (d_nSigLLen*8 + 22)/d_m.nDBPS + (((d_nSigLLen*8 + 22)%d_m.nDBPS) != 0);
             }
             dout<<"ieee80211 demod, compute total legacy nsym:"<<d_nSym<<std::endl;
@@ -137,7 +138,6 @@ namespace gr {
               memcpy(d_ofdm_fft.get_inbuf(), &inSig[8+80+224], sizeof(gr_complex)*64);
               d_ofdm_fft.execute();
               memcpy(d_fftLtfOut2, d_ofdm_fft.get_outbuf(), sizeof(gr_complex)*64);
-
               for(int i=0;i<64;i++)
               {
                 if(i==0 || (i>=27 && i<=37))
@@ -203,6 +203,7 @@ namespace gr {
                   {
                     d_nSym = tmpNSym;
                     d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
+                    d_nTrellis = (d_m.len * 8 + 22) * 2;
                     dout<<"ieee80211 demod, ht packet"<<std::endl;
                   }
                   else
@@ -217,6 +218,7 @@ namespace gr {
                   dout<<"ieee80211 demod, legacy packet"<<std::endl;
                   signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
                   d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
+                  d_nTrellis = (d_m.len * 8 + 22) * 2;
                 }
               }
             }
@@ -302,6 +304,7 @@ namespace gr {
             {
               d_nSym = tmpNSym;
               d_nCoded = d_nSym * d_m.nCBPS;
+              d_nTrellis = d_nSym * d_m.nDBPS;
               dout<<"ieee80211 demod, vht apep len: "<<d_m.len<<", vht DBPS: "<<d_m.nDBPS<<std::endl;
             }
             else
@@ -321,6 +324,7 @@ namespace gr {
             dict = pmt::dict_add(dict, pmt::mp("total"), pmt::from_long(d_nSym * d_m.nCBPS));
             dict = pmt::dict_add(dict, pmt::mp("cr"), pmt::from_long(d_m.cr));
             dict = pmt::dict_add(dict, pmt::mp("ampdu"), pmt::from_long(d_ampdu));
+            dict = pmt::dict_add(dict, pmt::mp("trellis"), pmt::from_long(d_nTrellis));
             pmt::pmt_t pairs = pmt::dict_items(dict);
             for (int i = 0; i < pmt::length(pairs); i++) {
                 pmt::pmt_t pair = pmt::nth(i, pairs);

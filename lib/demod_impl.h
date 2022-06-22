@@ -83,6 +83,7 @@ namespace gr {
       int d_ampdu;
       int d_nCoded;
       int d_nCodedProcd;
+      int d_nTrellis;
       // non-legacy channel
       /*      P_LTF 4x4
       | 1 -1  1  1 |

@@ -22,12 +22,16 @@
 #define INCLUDED_IEEE80211_DECODE_IMPL_H
 
 #include <ieee80211/decode.h>
+#include "cloud80211phy.h"
+
 
 #define dout d_debug&&std::cout
 
 #define DECODE_S_IDLE 0
 #define DECODE_S_DECODE 1
 #define DECODE_S_CLEAN 2
+
+#define DECODE_V_MAX 16000
 
 namespace gr {
   namespace ieee80211 {
@@ -48,7 +52,23 @@ namespace gr {
       int t_cr;
       int t_nCoded;
       int t_nTotal;
+      int t_nProcd;
       // viterbi
+      float v_accum_err0[64];
+	    float v_accum_err1[64];
+      float *v_ae_pTmp, *v_ae_pPre, *v_ae_pCur;
+      int v_state_his[64][DECODE_V_MAX+1];
+      int v_state_seq[DECODE_V_MAX+1];
+      int v_op0, v_op1, v_next0, v_next1;
+      float v_acc_tmp0, v_acc_tmp1, v_t0, v_t1;
+      float v_tab_t[4];
+      int v_t;
+      int v_trellis;
+      const int *v_cr_punc;
+      int v_cr_p, v_cr_len;
+      uint8_t v_dataBits[DECODE_V_MAX];
+      // debug
+      int d_pktSeq;
 
 
     public:
@@ -64,7 +84,7 @@ namespace gr {
            gr_vector_void_star &output_items);
 
       void vstb_init();
-      void vstb_update();
+      int vstb_update(const float* llr, int len);
       void vstb_end();
 
     };

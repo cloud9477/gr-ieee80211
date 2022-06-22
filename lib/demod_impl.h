@@ -36,10 +36,6 @@
 #define DEMOD_S_TAGGENERATEE 16
 #define DEMOD_S_DEMODD 17
 
-#define DEMOD_S_TEST0 0
-#define DEMOD_S_TEST1 1
-#define DEMOD_S_TEST2 2
-
 namespace gr {
   namespace ieee80211 {
 

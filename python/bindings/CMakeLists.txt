@@ -32,7 +32,8 @@ list(APPEND ieee80211_python_files
     trigger_python.cc
     sync_python.cc
     signal_python.cc
-    demod_python.cc python_bindings.cc)
+    demod_python.cc
+    decode_python.cc python_bindings.cc)
 
 GR_PYBIND_MAKE_OOT(ieee80211
    ../..

@@ -1,0 +1,25 @@
+id: ieee80211_decode
+label: decode
+category: '[ieee80211]'
+
+templates:
+  imports: import ieee80211
+  make: ieee80211.decode()
+
+inputs:
+- label: inLlr
+  domain: stream
+  dtype: float
+#  vlen: ...
+#  optional: ...
+
+# outputs:
+#- label: ...
+#  domain: ...
+#  dtype: ...
+#  vlen: ...
+#  optional: ...
+
+#  'file_format' specifies the version of the GRC yml format used in the file
+#  and should usually not be changed.
+file_format: 1

@@ -14,5 +14,6 @@ install(FILES
     trigger.h
     sync.h
     signal.h
-    demod.h DESTINATION include/ieee80211
+    demod.h
+    decode.h DESTINATION include/ieee80211
 )

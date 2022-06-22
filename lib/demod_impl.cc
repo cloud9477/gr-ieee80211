@@ -315,7 +315,10 @@ namespace gr {
             dout<<"ieee80211 demod, add tag for decoder, symProc: "<<d_nSymProcd<<", sym: "<<d_nSym<<std::endl;
             // decoder needs: coded len, coding rate, ampdu
             pmt::pmt_t dict = pmt::make_dict();
-            dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_nCoded));
+            dict = pmt::dict_add(dict, pmt::mp("format"), pmt::from_long(d_format));
+            dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_m.len));
+            dict = pmt::dict_add(dict, pmt::mp("coded"), pmt::from_long(d_nCoded));
+            dict = pmt::dict_add(dict, pmt::mp("total"), pmt::from_long(d_nSym * d_m.nCBPS));
             dict = pmt::dict_add(dict, pmt::mp("cr"), pmt::from_long(d_m.cr));
             dict = pmt::dict_add(dict, pmt::mp("ampdu"), pmt::from_long(d_ampdu));
             pmt::pmt_t pairs = pmt::dict_items(dict);

@@ -35,7 +35,7 @@ namespace gr {
       : gr::block("signal",
               gr::io_signature::makev(3, 3, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex), sizeof(float)}),
               gr::io_signature::make(1, 1, sizeof(gr_complex))),
-              d_debug(1),
+              d_debug(0),
               d_ofdm_fft(64,1)
     {
       d_nProc = 0;

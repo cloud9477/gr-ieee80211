@@ -234,7 +234,7 @@ blocks:
     maxoutbuf: '0'
     minoutbuf: '0'
     offset: '0'
-    repeat: 'True'
+    repeat: 'False'
     type: complex
     vlen: '1'
   states:
@@ -243,7 +243,7 @@ blocks:
     bus_structure: null
     coordinate: [8, 180.0]
     rotation: 0
-    state: true
+    state: enabled
 - name: blocks_moving_average_xx_0
   id: blocks_moving_average_xx
   parameters:

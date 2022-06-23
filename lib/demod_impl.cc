@@ -35,7 +35,7 @@ namespace gr {
       : gr::block("demod",
               gr::io_signature::makev(2, 2, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex)}),
               gr::io_signature::make(1, 1, sizeof(float))),
-              d_debug(1),
+              d_debug(0),
               d_ofdm_fft(64,1)
     {
       d_nProc = 0;

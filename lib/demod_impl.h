@@ -76,14 +76,13 @@ namespace gr {
       c8p_sigVhtA d_sigVhtA;
       int d_nSym;
       int d_nSymProcd;
-      int d_nSymProcdTmp;
       int d_nSymSamp;
-      int d_nSamp;
-      int d_nSampProcd;
       int d_ampdu;
       int d_nCoded;
-      int d_nCodedProcd;
       int d_nTrellis;
+      // pilot
+      int d_pilotP;
+      float d_pilot[4];
       // non-legacy channel
       /*      P_LTF 4x4
       | 1 -1  1  1 |

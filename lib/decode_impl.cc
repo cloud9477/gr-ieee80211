@@ -94,7 +94,7 @@ namespace gr {
         {
           d_sDecode = DECODE_S_CLEAN;
           vstb_end();
-          if(d_pktSeq == 1)
+          //if(d_pktSeq == 1)
           {
             for(int i=0;i<40;i++)
             {

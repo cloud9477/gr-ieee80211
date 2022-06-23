@@ -123,6 +123,9 @@ namespace gr {
               d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
               d_nTrellis = (d_m.len*8 + 22) * 2;
               d_nSym = (d_nSigLLen*8 + 22)/d_m.nDBPS + (((d_nSigLLen*8 + 22)%d_m.nDBPS) != 0);
+              // config pilot
+              memcpy(d_pilot, PILOT_L, sizeof(float)*4);
+              d_pilotP = 1;
             }
             dout<<"ieee80211 demod, compute total legacy nsym:"<<d_nSym<<std::endl;
             d_nSymProcd = 0;
@@ -185,6 +188,9 @@ namespace gr {
                 dout<<std::endl;
                 d_format = C8P_F_VHT;
                 signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
+                // config pilot
+                memcpy(d_pilot, PILOT_VHT, sizeof(float)*4);
+                d_pilotP = 4;
               }
               else
               {
@@ -199,6 +205,9 @@ namespace gr {
                   if(d_sigHt.shortGi){d_nSymSamp = 72;}
                   if(d_sigHt.aggre){d_ampdu = 1;}
                   int tmpNSym = ((d_m.len*8 + 22)/d_m.nDBPS + (((d_m.len*8 + 22)%d_m.nDBPS) != 0));
+                  // config pilot
+                  memcpy(d_pilot, PILOT_HT_2_1, sizeof(float)*4);
+                  d_pilotP = 3;
                   if((d_nSym * 80) >= (tmpNSym * d_nSymSamp + 240 + d_m.nLTF * 80))
                   {
                     d_nSym = tmpNSym;
@@ -219,6 +228,8 @@ namespace gr {
                   signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
                   d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
                   d_nTrellis = (d_m.len * 8 + 22) * 2;
+                  memcpy(d_pilot, PILOT_L, sizeof(float)*4);
+                  d_pilotP = 1;
                 }
               }
             }
@@ -403,7 +414,13 @@ namespace gr {
                 d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i][0];
               }
             }
-            gr_complex tmpPilotSum = std::conj(d_sig1[7] - d_sig1[21] + d_sig1[43] + d_sig1[57]);
+            gr_complex tmpPilotSum = std::conj(d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP] - d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP] + d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP] + d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]);
+            float tmpPilot0 = d_pilot[0];
+            d_pilot[0] = d_pilot[1];
+            d_pilot[1] = d_pilot[2];
+            d_pilot[2] = d_pilot[3];
+            d_pilot[3] = tmpPilot0;
+            d_pilotP = (d_pilotP + 1) % 127;
             float tmpPilotSumAbs = std::abs(tmpPilotSum);
             int j=26;
             for(int i=0;i<64;i++)
@@ -429,6 +446,11 @@ namespace gr {
           {
             procSymDeintNL(d_llr, &outLlrs[o2], &d_m);
           }
+          // for(int i=0;i<d_m.nCBPS;i++)
+          // {
+          //   dout<<d_llr[i]<<", ";
+          // }
+          // dout<<std::endl;
           d_nSymProcd += 1;
           o1 += d_nSymSamp;
           o2 += d_m.nCBPS;

@@ -114,6 +114,12 @@ extern const int SV_PUNC_56[10];
 extern const int SV_STATE_NEXT[64][2];
 extern const int SV_STATE_OUTPUT[64][2];
 
+extern const float PILOT_P[127];
+extern const float PILOT_L[4];
+extern const float PILOT_HT_2_1[4];
+extern const float PILOT_HT_2_2[4];
+extern const float PILOT_VHT[4];
+
 extern const int mapDeintVhtSigB20[52];
 void procDeintLegacyBpsk(uint8_t* inBits, uint8_t* outBits);
 void procDeintLegacyBpsk(float* inBits, float* outBits);

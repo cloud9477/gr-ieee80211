@@ -59,7 +59,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [96, 92.0]
+    coordinate: [24, 84.0]
     rotation: 0
     state: enabled
 - name: analog_noise_source_x_0
@@ -147,7 +147,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [376, 248.0]
+    coordinate: [360, 56.0]
     rotation: 0
     state: true
 - name: blocks_divide_xx_0
@@ -234,14 +234,14 @@ blocks:
     maxoutbuf: '0'
     minoutbuf: '0'
     offset: '0'
-    repeat: 'False'
+    repeat: 'True'
     type: complex
     vlen: '1'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [8, 204.0]
+    coordinate: [8, 180.0]
     rotation: 0
     state: true
 - name: blocks_moving_average_xx_0
@@ -346,9 +346,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1904, 168.0]
+    coordinate: [1832, 152.0]
     rotation: 0
-    state: true
+    state: enabled
 - name: ieee80211_demod_0
   id: ieee80211_demod
   parameters:
@@ -361,7 +361,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1720, 136.0]
+    coordinate: [1688, 136.0]
     rotation: 0
     state: enabled
 - name: ieee80211_signal_0
@@ -391,7 +391,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1296, 120.0]
+    coordinate: [1304, 120.0]
     rotation: 0
     state: true
 - name: ieee80211_trigger_0
@@ -416,12 +416,12 @@ connections:
 - [blocks_add_xx_0, '0', blocks_complex_to_mag_squared_0, '0']
 - [blocks_add_xx_0, '0', blocks_delay_0, '0']
 - [blocks_add_xx_0, '0', blocks_file_sink_0, '0']
-- [blocks_add_xx_0, '0', blocks_multiply_conjugate_cc_0, '0']
+- [blocks_add_xx_0, '0', blocks_multiply_conjugate_cc_0, '1']
 - [blocks_add_xx_0, '0', ieee80211_signal_0, '1']
 - [blocks_add_xx_0, '0', ieee80211_sync_0, '1']
 - [blocks_complex_to_mag_0, '0', blocks_divide_xx_0, '0']
 - [blocks_complex_to_mag_squared_0, '0', blocks_moving_average_xx_1, '0']
-- [blocks_delay_0, '0', blocks_multiply_conjugate_cc_0, '1']
+- [blocks_delay_0, '0', blocks_multiply_conjugate_cc_0, '0']
 - [blocks_divide_xx_0, '0', ieee80211_trigger_0, '0']
 - [blocks_file_source_0, '0', blocks_add_xx_0, '1']
 - [blocks_moving_average_xx_0, '0', blocks_complex_to_mag_0, '0']

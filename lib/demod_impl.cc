@@ -35,7 +35,7 @@ namespace gr {
       : gr::block("demod",
               gr::io_signature::makev(2, 2, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex)}),
               gr::io_signature::make(1, 1, sizeof(float))),
-              d_debug(0),
+              d_debug(1),
               d_ofdm_fft(64,1)
     {
       d_nProc = 0;
@@ -77,14 +77,14 @@ namespace gr {
         {
           if(sync[i])
           {
-            d_sDemod = DEMOD_S_IDELL;
+            d_sDemod = DEMOD_S_CHECK;
             break;
           }
         }
         consume_each(i);
         return 0;
       }
-      else if(d_sDemod == DEMOD_S_IDELL)
+      else if(d_sDemod == DEMOD_S_CHECK)
       {
         if(d_nProc >= 624)
         {
@@ -127,14 +127,14 @@ namespace gr {
               memcpy(d_pilot, PILOT_L, sizeof(float)*4);
               d_pilotP = 1;
             }
-            dout<<"ieee80211 demod, compute total legacy nsym:"<<d_nSym<<std::endl;
+            //dout<<"ieee80211 demod, compute total legacy nsym:"<<d_nSym<<std::endl;
             d_nSymProcd = 0;
             d_nSymSamp = 80;
             d_ampdu = 0;
             //-------------- check format, two symbols total 160 samples, p=224
             if(d_format == C8P_F_NL)
             {
-              dout<<"ieee80211 demod, format check."<<std::endl;
+              //dout<<"ieee80211 demod, format check."<<std::endl;
               memcpy(d_ofdm_fft.get_inbuf(), &inSig[8+224], sizeof(gr_complex)*64);
               d_ofdm_fft.execute();
               memcpy(d_fftLtfOut1, d_ofdm_fft.get_outbuf(), sizeof(gr_complex)*64);
@@ -183,9 +183,9 @@ namespace gr {
               if(signalCheckVhtA(d_sigVhtABits))
               {
                 dout<<"ieee80211 demod, vht packet"<<std::endl;
-                dout<<"ieee80211 demod, sig a bits:";
-                for(int i =0;i<48;i++){dout<<(int)d_sigVhtABits[i]<<" ";}
-                dout<<std::endl;
+                //dout<<"ieee80211 demod, sig a bits:";
+                // for(int i =0;i<48;i++){dout<<(int)d_sigVhtABits[i]<<" ";}
+                // dout<<std::endl;
                 d_format = C8P_F_VHT;
                 signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
                 // config pilot
@@ -237,7 +237,7 @@ namespace gr {
           //-------------- re-estimate channel for non-legacy, p=160+224=384
           if(ifGoOn && (d_format != C8P_F_L))
           {
-            dout<<"ieee80211 demod, re estimate channel for non legacy, ss:"<<d_m.nSS<<std::endl;
+            //dout<<"ieee80211 demod, re estimate channel for non legacy, ss:"<<d_m.nSS<<std::endl;
             if(d_m.nSS == 1)
             {
               memcpy(d_ofdm_fft.get_inbuf(), &inSig[8+80+384], sizeof(gr_complex)*64);
@@ -301,12 +301,12 @@ namespace gr {
               d_sigVhtACodedLlr[mapDeintVhtSigB20[i]] = d_sigVhtB20IntedLlr[i];
             }
             SV_Decode_Sig(d_sigVhtACodedLlr, d_sigVhtB20Bits, 26);
-            dout<<"ieee80211 demod, vht sig b bits:";
-            for(int i=0;i<26;i++)
-            {
-              dout<<(int)d_sigVhtB20Bits[i]<<", ";
-            }
-            dout<<std::endl;
+            // dout<<"ieee80211 demod, vht sig b bits:";
+            // for(int i=0;i<26;i++)
+            // {
+            //   dout<<(int)d_sigVhtB20Bits[i]<<", ";
+            // }
+            // dout<<std::endl;
             signalParserVhtB(d_sigVhtB20Bits, &d_m);
             if(d_sigVhtA.shortGi){d_nSymSamp = 72;} // mSTBC = 1, stbc not used. nES = 1
             d_ampdu = 1;
@@ -326,8 +326,9 @@ namespace gr {
           //-------------- generate tag for decoder
           if(ifGoOn)
           {
-            dout<<"ieee80211 demod, add tag for decoder, symProc: "<<d_nSymProcd<<", sym: "<<d_nSym<<std::endl;
+            //dout<<"ieee80211 demod, add tag for decoder, symProc: "<<d_nSymProcd<<", sym: "<<d_nSym<<std::endl;
             // decoder needs: coded len, coding rate, ampdu
+            dout<<"ieee80211 demod, tag f:"<<d_format<<", ampdu:"<<d_ampdu<<", len:"<<d_m.len<<", total:"<<d_nSym * d_m.nCBPS<<", tr:"<<d_nTrellis<<std::endl;
             pmt::pmt_t dict = pmt::make_dict();
             dict = pmt::dict_add(dict, pmt::mp("format"), pmt::from_long(d_format));
             dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_m.len));
@@ -345,7 +346,7 @@ namespace gr {
                               pmt::cdr(pair),
                               alias_pmt());
             }
-            d_sDemod = DEMOD_S_DEMODD;
+            d_sDemod = DEMOD_S_DEMOD;
             consume_each(624);
             return 0;
           }
@@ -363,7 +364,7 @@ namespace gr {
         }
       }
 
-      else if(d_sDemod == DEMOD_S_DEMODD)
+      else if(d_sDemod == DEMOD_S_DEMOD)
       {
         int o1 = 0;
         int o2 = 0;
@@ -446,17 +447,12 @@ namespace gr {
           {
             procSymDeintNL(d_llr, &outLlrs[o2], &d_m);
           }
-          // for(int i=0;i<d_m.nCBPS;i++)
-          // {
-          //   dout<<d_llr[i]<<", ";
-          // }
-          // dout<<std::endl;
           d_nSymProcd += 1;
           o1 += d_nSymSamp;
           o2 += d_m.nCBPS;
           if(d_nSymProcd == d_nSym)
           {
-            dout<<"ieee80211 demod, qma to llr deint:"<<d_nSymProcd<<" "<<d_nSym<<std::endl;
+            //dout<<"ieee80211 demod, qma to llr deint:"<<d_nSymProcd<<" "<<d_nSym<<std::endl;
             dout<<"----------------------------------------------------------------------------------------------------"<<std::endl;
             d_sDemod = DEMOD_S_SYNC;
             break;

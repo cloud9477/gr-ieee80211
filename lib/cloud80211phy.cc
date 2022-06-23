@@ -168,6 +168,10 @@ bool signalCheckLegacy(uint8_t* inBits, int* mcs, int* len, int* nDBPS)
 	{
 		*len |= (((int)inBits[i+5])<<i);
 	}
+	if(*len > 1600)
+	{
+		return false;		// usually MTU 1500
+	}
 	return true;
 }
 
@@ -879,7 +883,7 @@ void procSymQamToLlr(gr_complex* inQam, float* outLlr, c8p_mod* mod)
 			outLlr[i*4+3] = 2.0f - std::abs(inQam[i].imag());
 		}
 	}
-	else if(mod->mod == C8P_QAM_16QAM)
+	else if(mod->mod == C8P_QAM_64QAM)
 	{
 		for(int i=0;i<mod->nSD;i++)
 		{

@@ -23,6 +23,9 @@
 
 #include <ieee80211/sync.h>
 
+#define SYNC_S_IDLE 0
+#define SYNC_S_SYNC 1
+
 #define SYNC_MAX_BUF_LEN 240
 #define SYNC_MAX_RES_LEN SYNC_MAX_BUF_LEN - 128 - 1
 
@@ -37,6 +40,7 @@ namespace gr {
       // for block
       int d_nProc;
       bool d_debug;
+      int d_sSync;
       // for processing
       gr_complex d_conjMultiAvg;
       float d_stfCfo;
@@ -55,7 +59,7 @@ namespace gr {
            gr_vector_const_void_star &input_items,
            gr_vector_void_star &output_items);
       void ltf_autoCorrelation(const gr_complex* sig);
-      float ltf_cfo(const gr_complex* sig, gr_complex stfConjAvg);    // STF CFO with LTF residual CFO
+      float ltf_cfo(const gr_complex* sig);    // STF CFO with LTF residual CFO
     };
 
   } // namespace ieee80211

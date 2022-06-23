@@ -35,12 +35,11 @@ namespace gr {
       : gr::block("signal",
               gr::io_signature::makev(3, 3, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex), sizeof(float)}),
               gr::io_signature::make(1, 1, sizeof(gr_complex))),
-              d_debug(0),
+              d_debug(1),
               d_ofdm_fft(64,1)
     {
       d_nProc = 0;
       d_nSigPktSeq = 0;
-
       d_sSignal = S_TRIGGER;
 
       set_tag_propagation_policy(block::TPP_DONT);
@@ -53,14 +52,9 @@ namespace gr {
     void
     signal_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
     {
-      // ninput_items_required[0] = noutput_items;
-      // ninput_items_required[1] = noutput_items;
-      // ninput_items_required[2] = noutput_items;
-      gr_vector_int::size_type ninputs = ninput_items_required.size();
-      for(int i=0; i < ninputs; i++)
-      {
-	      ninput_items_required[i] = noutput_items + 160;
-      }
+      ninput_items_required[0] = noutput_items + 160;
+      ninput_items_required[1] = noutput_items + 160;
+      ninput_items_required[2] = noutput_items + 160;
     }
 
     int
@@ -73,7 +67,7 @@ namespace gr {
       const gr_complex* inSig = static_cast<const gr_complex*>(input_items[1]);
       const float* inCfoRad = static_cast<const float*>(input_items[2]);
       gr_complex* outSig = static_cast<gr_complex*>(output_items[0]);
-      /* output of this block is limited, do not use noutput, it can be larger than ninput */
+      // input and output not sync
       d_nProc = std::min(std::min(ninput_items[0], ninput_items[1]), ninput_items[2]);
       d_nGen = std::min(noutput_items, d_nProc);
 
@@ -85,6 +79,7 @@ namespace gr {
           if(sync[i])
           {
             d_sSignal = S_DEMOD;
+            d_cfoRad = inCfoRad[i];
             break;
           }
         }
@@ -121,6 +116,7 @@ namespace gr {
           gr_complex tmpPilotSum = std::conj(d_sig[7] - d_sig[21] + d_sig[43] + d_sig[57]);
           float tmpPilotSumAbs = std::abs(tmpPilotSum);
           int j=24;
+          dout<<"ieee80211 signal, signal field qam: ";
           for(int i=0;i<64;i++)
           {
             if(i==0 || (i>=27 && i<=37) || i==7 || i==21 || i==43 || i==57)
@@ -129,11 +125,13 @@ namespace gr {
             else
             {
               d_sig[i] = d_sig[i] * tmpPilotSum / tmpPilotSumAbs;
+              dout<<d_sig[i].real()<<" ";
               d_sigLegacyIntedLlr[j] = d_sig[i].real();
               j++;
               if(j >= 48){j = 0;}
             }
           }
+          dout<<std::endl;
           /* soft ver */
           procDeintLegacyBpsk(d_sigLegacyIntedLlr, d_sigLegacyCodedLlr);
           SV_Decode_Sig(d_sigLegacyCodedLlr, d_sigLegacyBits, 24);
@@ -143,7 +141,6 @@ namespace gr {
             d_nSample = d_nSymbol * 80;
             d_nSampleCopied = 0;
             dout<<"ieee80211 signal, mcs: "<<d_nSigMcs<<", len:"<<d_nSigLen<<", nSym:"<<d_nSymbol<<", nSample:"<<d_nSample<<std::endl;
-
             // add info into tag
             d_nSigPktSeq++;
             if(d_nSigPktSeq >= 1000000000){d_nSigPktSeq = 0;}
@@ -188,28 +185,6 @@ namespace gr {
       }
       else if(d_sSignal == S_COPY)
       {
-        // if(d_nProc >= (d_nSample - d_nSampleCopied))
-        // {
-        //   //dout<<"ieee80211 signal, copy "<<(d_nSample - d_nSampleCopied)<<" samples"<<std::endl;
-        //   for(int i=0;i<(d_nSample - d_nSampleCopied);i++)
-        //   {
-        //     outSig[i] = inSig[i];
-        //   }
-        //   d_sSignal = S_TRIGGER;
-        //   consume_each(d_nSample - d_nSampleCopied);
-        //   return (d_nSample - d_nSampleCopied);
-        // }
-        // else
-        // {
-        //   //dout<<"ieee80211 signal, copy "<<d_nProc<<" samples"<<std::endl;
-        //   for(int i=0;i<d_nProc;i++)
-        //   {
-        //     outSig[i] = inSig[i];
-        //   }
-        //   d_nSampleCopied += d_nProc;
-        //   consume_each(d_nProc);
-        //   return (d_nProc);
-        // }
         int i=0;
         while(i<d_nGen)
         {
@@ -217,18 +192,42 @@ namespace gr {
           outSig[i] = inSig[i];
           i++;
           d_nSampleCopied++;
-          if(d_nSampleCopied == d_nSample)
+          if(d_nSampleCopied >= d_nSample)
           {
             d_sSignal = S_TRIGGER;
             break;
           }
         }
-        dout<<"ieee80211 signal, copy "<<i<<" samples"<<std::endl;
         consume_each(i);
         return i;
+
+        float tmpRadStep;
+        if(d_nGen < (d_nSample - d_nSampleCopied))
+        {
+          for(int i=0;i<d_nGen;i++)
+          {
+            tmpRadStep = d_nSampleCopied * d_cfoRad;
+            outSig[i] = inSig[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
+            d_nSampleCopied++;
+          }
+          consume_each(d_nGen);
+          return d_nGen;
+        }
+        else
+        {
+          int tmpNumGen = d_nSample - d_nSampleCopied;
+          for(int i=0;i<tmpNumGen;i++)
+          {
+            tmpRadStep = d_nSampleCopied * d_cfoRad;
+            outSig[i] = inSig[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
+            d_nSampleCopied++;
+          }
+          d_sSignal = S_TRIGGER;
+          consume_each(tmpNumGen);
+          return tmpNumGen;
+        }
       }
 
-      // if no process and no state changing
       dout<<"ieee80211 signal, state error, go back to idle"<<std::endl;
       d_sSignal = S_TRIGGER;
       consume_each(d_nProc);

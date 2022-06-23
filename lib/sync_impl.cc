@@ -42,6 +42,7 @@ namespace gr {
               d_debug(0)
     {
       d_nProc = 0;
+      d_sSync = SYNC_S_IDLE;
     }
 
     /*
@@ -74,69 +75,76 @@ namespace gr {
 
       d_nProc = noutput_items;
 
-      for(int i=0;i<d_nProc;i++)
+      if(d_sSync == SYNC_S_IDLE)
       {
-        if(trigger[i] & 0x01)
+        int i=0;
+        for(i=0;i<d_nProc;i++)
         {
-          if((i+SYNC_MAX_BUF_LEN)<d_nProc)
+          sync[i] = 0x00;
+          if(trigger[i] & 0x01)
           {
-            // proc and return
-            ltf_autoCorrelation(&inSig[i]);
-            // memcpy(&outRad[i], d_tmpAc, sizeof(float) * SYNC_MAX_RES_LEN);
-            // get max, if max high enough then find L R shoulder
-            float* tmpMaxAcP = std::max_element(d_tmpAc, d_tmpAc + SYNC_MAX_RES_LEN);
-            if(*tmpMaxAcP > 0.5)  // some miss trigger not higher than 0.5
-            {
-              float tmpMaxAc = *tmpMaxAcP * 0.8;
-              int tmpMaxIndex = std::distance(d_tmpAc, tmpMaxAcP);
-              int tmpL, tmpR, tmpM;
-              for(int j=tmpMaxIndex; j>=0; j--)
-              {
-                if(d_tmpAc[j] < tmpMaxAc)
-                {
-                  tmpL = j;
-                  break;
-                }
-              }
-              for(int j=tmpMaxIndex; j<SYNC_MAX_RES_LEN; j++)
-              {
-                if(d_tmpAc[j] < tmpMaxAc)
-                {
-                  tmpR = j;
-                  break;
-                }
-              }
-              tmpM = (tmpL+tmpR)/2;
-              // sync index is LTF starting index + 16
-              dout<<"ieee80211 sync, ac max value: "<<*tmpMaxAcP<<", max index: "<<(tmpMaxIndex)<<", L: "<<tmpL<<", R: "<<tmpR<<", mid: "<<tmpM<<std::endl;
-              float tmpTotalRadStep = ltf_cfo(&inSig[i+tmpMaxIndex], d_conjMultiAvg);
-              dout<<"ieee80211 sync, total cfo:"<<(tmpTotalRadStep) * 20000000.0f / 2.0f / M_PI<<std::endl;
-              sync[i+tmpM] = 0x01;
-              outRad[i+tmpM] = tmpTotalRadStep;
-            }
-            consume_each (i+80);  //80 is the same with trigger gap
-            return (i+80);
+            d_sSync = SYNC_S_SYNC;
+            break;
           }
-          else
-          {
-            // return to wait for samples
-            consume_each (i);
-            return i;
-          }
-        }
-        else
-        {
-          if(trigger[i] & 0x02)
+          else if(trigger[i] & 0x02)
           {
             d_conjMultiAvg = inConj[i];
           }
-          // sync[i] = 0x00;
-          // outRad[i] = 0.0f;
+        }
+        consume_each (i);
+        return i;
+      }
+      else
+      {
+        if(d_nProc >= SYNC_MAX_BUF_LEN)
+        {
+          ltf_autoCorrelation(inSig);
+          float* tmpMaxAcP = std::max_element(d_tmpAc, d_tmpAc + SYNC_MAX_RES_LEN);
+          memset(sync, 0, SYNC_MAX_RES_LEN);
+          if(*tmpMaxAcP > 0.5)  // some miss trigger not higher than 0.5
+          {
+            float tmpMaxAc = *tmpMaxAcP * 0.8;
+            int tmpMaxIndex = std::distance(d_tmpAc, tmpMaxAcP);
+            int tmpL=tmpMaxIndex;
+            int tmpR=tmpMaxIndex;
+            for(int j=tmpMaxIndex; j>=0; j--)
+            {
+              if(d_tmpAc[j] < tmpMaxAc)
+              {
+                tmpL = j;
+                break;
+              }
+            }
+            for(int j=tmpMaxIndex; j<SYNC_MAX_RES_LEN; j++)
+            {
+              if(d_tmpAc[j] < tmpMaxAc)
+              {
+                tmpR = j;
+                break;
+              }
+            }
+            int tmpM = (tmpL+tmpR)/2;
+            // sync index is LTF starting index + 16
+            dout<<"ieee80211 sync, ac max value: "<<*tmpMaxAcP<<", max index: "<<(tmpMaxIndex)<<", L: "<<tmpL<<", R: "<<tmpR<<", mid: "<<tmpM<<std::endl;
+            float tmpTotalRadStep = ltf_cfo(&inSig[tmpM]);
+            dout<<"ieee80211 sync, total cfo:"<<(tmpTotalRadStep) * 20000000.0f / 2.0f / M_PI<<std::endl;
+            sync[tmpM] = 0x01;
+            outRad[tmpM] = tmpTotalRadStep;
+          }
+          d_sSync = SYNC_S_IDLE;
+          consume_each(SYNC_MAX_RES_LEN);
+          return SYNC_MAX_RES_LEN;
+        }
+        else
+        {
+          consume_each(0);
+          return 0;
         }
       }
-
-      consume_each (d_nProc);
-      return d_nProc;
+      // error but return to IDLE
+      d_sSync = SYNC_S_IDLE;
+      consume_each (0);
+      return 0;
     }
 
     void
@@ -165,9 +173,10 @@ namespace gr {
     }
 
     float
-    sync_impl::ltf_cfo(const gr_complex* sig, gr_complex stfConjAvg)
+    sync_impl::ltf_cfo(const gr_complex* sig)
     {
       gr_complex tmpConjSum = gr_complex(0.0f, 0.0f);
+      // this rad step must be from pre sample * conj (next sample)
       float tmpRadStepStf = atan2f(d_conjMultiAvg.imag(), d_conjMultiAvg.real()) / 16.0f;
       for(int i=0;i<128;i++)
       {

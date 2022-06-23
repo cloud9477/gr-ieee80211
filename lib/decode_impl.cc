@@ -34,10 +34,11 @@ namespace gr {
       : gr::block("decode",
               gr::io_signature::make(1, 1, sizeof(float)),
               gr::io_signature::make(0, 0, 0)),
-              d_debug(1)
+              d_debug(0)
     {
       d_sDecode = DECODE_S_IDLE;
       d_pktSeq = 0;
+      set_tag_propagation_policy(block::TPP_DONT);
     }
 
     decode_impl::~decode_impl()
@@ -82,6 +83,7 @@ namespace gr {
           d_sDecode = DECODE_S_DECODE;
           t_nProcd = 0;
           dout<<"ieee80211 decode, tag f:"<<t_format<<", ampdu:"<<t_ampdu<<", len:"<<t_len<<", total:"<<t_nTotal<<", tr:"<<v_trellis<<std::endl;
+          dout<<"ieee80211 decode, seq:"<<d_pktSeq<<std::endl;
           vstb_init();
         }
         consume_each(0);
@@ -94,29 +96,31 @@ namespace gr {
         {
           d_sDecode = DECODE_S_CLEAN;
           vstb_end();
-          for(int i=0;i<40;i++)
-          {
-            dout<<(int)v_scramBits[i]<<", ";
-          }
-          dout<<std::endl;
+          // for(int i=0;i<40;i++)
+          // {
+          //   dout<<(int)v_scramBits[i]<<", ";
+          // }
+          // dout<<std::endl;
           descramble();
-          for(int i=0;i<40;i++)
-          {
-            dout<<(int)v_unCodedBits[i]<<", ";
-          }
-          dout<<std::endl;
-          for(int i=(t_nUnCoded-40);i<t_nUnCoded;i++)
-          {
-            dout<<(int)v_unCodedBits[i]<<", ";
-          }
-          dout<<std::endl;
+          // for(int i=0;i<40;i++)
+          // {
+          //   dout<<(int)v_unCodedBits[i]<<", ";
+          // }
+          // dout<<std::endl;
+          // for(int i=(t_nUnCoded-40);i<t_nUnCoded;i++)
+          // {
+          //   dout<<(int)v_unCodedBits[i]<<", ";
+          // }
+          // dout<<std::endl;
         }
         t_nProcd += tmpProcd;
+        dout<<"ieee80211 decode, proc:"<<tmpProcd<<", procd:"<<t_nProcd<<", total:"<<t_nTotal<<std::endl;
         consume_each(tmpProcd);
         return 0;
       }
       else if(d_sDecode == DECODE_S_CLEAN)
       {
+        
         if(d_nProc >= (t_nTotal - t_nProcd))
         {
           d_sDecode = DECODE_S_IDLE;
@@ -278,17 +282,39 @@ namespace gr {
       int feedback;
       for (int i = 0; i < 7; i++)
       {
-          if (v_scramBits[i])
-          {
-              state |= 1 << (6 - i);
-          }
+        if (v_scramBits[i])
+        {
+          state |= 1 << (6 - i);
+        }
       }
       memset(v_unCodedBits, 0, 7);
       for (int i=7; i<t_nUnCoded; i++)
       {
-          feedback = ((!!(state & 64))) ^ (!!(state & 8));
-          v_unCodedBits[i] = feedback ^ (v_scramBits[i] & 0x1);
-          state = ((state << 1) & 0x7e) | feedback;
+        feedback = ((!!(state & 64))) ^ (!!(state & 8));
+        v_unCodedBits[i] = feedback ^ (v_scramBits[i] & 0x1);
+        state = ((state << 1) & 0x7e) | feedback;
+      }
+    }
+
+    void
+    decode_impl::packetAssemble()
+    {
+      if(t_format == C8P_F_VHT)
+      {
+        // ac ampdu
+
+      }
+      else
+      {
+        // a and n general packet
+        if(t_ampdu)
+        {
+          // n ampdu
+        }
+        else
+        {
+
+        }
       }
     }
 

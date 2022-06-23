@@ -32,6 +32,7 @@
 #define DECODE_S_CLEAN 2
 
 #define DECODE_V_MAX 16000
+#define DECODE_D_MAX 2000
 
 namespace gr {
   namespace ieee80211 {
@@ -68,6 +69,8 @@ namespace gr {
       int v_cr_p, v_cr_len;
       uint8_t v_scramBits[DECODE_V_MAX];
       uint8_t v_unCodedBits[DECODE_V_MAX];
+      // mac packet
+      uint8_t d_dataBytes[DECODE_D_MAX];
       // debug
       int d_pktSeq;
 
@@ -88,7 +91,7 @@ namespace gr {
       int vstb_update(const float* llr, int len);
       void vstb_end();
       void descramble();
-
+      void packetAssemble();
     };
 
   } // namespace ieee80211

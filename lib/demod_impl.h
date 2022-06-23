@@ -27,14 +27,9 @@
 
 #define dout d_debug&&std::cout
 
-#define DEMOD_S_SYNC 10
-#define DEMOD_S_IDELL 11
-#define DEMOD_S_TAGPARSERR 12
-#define DEMOD_S_FORMAT_CHECKK 13
-#define DEMOD_S_NONL_CHANNELL 14
-#define DEMOD_S_VHT_SIGBB 15
-#define DEMOD_S_TAGGENERATEE 16
-#define DEMOD_S_DEMODD 17
+#define DEMOD_S_SYNC 0
+#define DEMOD_S_CHECK 1
+#define DEMOD_S_DEMOD 2
 
 namespace gr {
   namespace ieee80211 {

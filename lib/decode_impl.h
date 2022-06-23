@@ -50,7 +50,7 @@ namespace gr {
       int t_format;
       int t_ampdu;
       int t_cr;
-      int t_nCoded;
+      int t_nUnCoded;
       int t_nTotal;
       int t_nProcd;
       // viterbi
@@ -66,7 +66,8 @@ namespace gr {
       int v_trellis;
       const int *v_cr_punc;
       int v_cr_p, v_cr_len;
-      uint8_t v_dataBits[DECODE_V_MAX];
+      uint8_t v_scramBits[DECODE_V_MAX];
+      uint8_t v_unCodedBits[DECODE_V_MAX];
       // debug
       int d_pktSeq;
 
@@ -86,6 +87,7 @@ namespace gr {
       void vstb_init();
       int vstb_update(const float* llr, int len);
       void vstb_end();
+      void descramble();
 
     };
 

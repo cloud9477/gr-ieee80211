@@ -75,7 +75,7 @@ namespace gr {
           t_format = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("format"), pmt::from_long(99999)));
           t_ampdu = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("ampdu"), pmt::from_long(99999)));
           t_len = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len"), pmt::from_long(99999)));
-          t_nCoded = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("coded"), pmt::from_long(99999)));
+          t_nUnCoded = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("uncoded"), pmt::from_long(99999)));
           t_nTotal = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("total"), pmt::from_long(99999)));
           t_cr = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("cr"), pmt::from_long(99999)));
           v_trellis = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("trellis"), pmt::from_long(99999)));
@@ -94,14 +94,22 @@ namespace gr {
         {
           d_sDecode = DECODE_S_CLEAN;
           vstb_end();
-          //if(d_pktSeq == 1)
+          for(int i=0;i<40;i++)
           {
-            for(int i=0;i<40;i++)
-            {
-              dout<<(int)v_dataBits[i]<<", ";
-            }
-            dout<<std::endl;
+            dout<<(int)v_scramBits[i]<<", ";
           }
+          dout<<std::endl;
+          descramble();
+          for(int i=0;i<40;i++)
+          {
+            dout<<(int)v_unCodedBits[i]<<", ";
+          }
+          dout<<std::endl;
+          for(int i=(t_nUnCoded-40);i<t_nUnCoded;i++)
+          {
+            dout<<(int)v_unCodedBits[i]<<", ";
+          }
+          dout<<std::endl;
         }
         t_nProcd += tmpProcd;
         consume_each(tmpProcd);
@@ -254,12 +262,33 @@ namespace gr {
       {
         if (v_state_seq[j+1] == SV_STATE_NEXT[v_state_seq[j]][1])
         {
-          v_dataBits[j] = 1;
+          v_scramBits[j] = 1;
         }
         else
         {
-          v_dataBits[j] = 0;
+          v_scramBits[j] = 0;
         }
+      }
+    }
+
+    void
+    decode_impl::descramble()
+    {
+      int state = 0;
+      int feedback;
+      for (int i = 0; i < 7; i++)
+      {
+          if (v_scramBits[i])
+          {
+              state |= 1 << (6 - i);
+          }
+      }
+      memset(v_unCodedBits, 0, 7);
+      for (int i=7; i<t_nUnCoded; i++)
+      {
+          feedback = ((!!(state & 64))) ^ (!!(state & 8));
+          v_unCodedBits[i] = feedback ^ (v_scramBits[i] & 0x1);
+          state = ((state << 1) & 0x7e) | feedback;
       }
     }
 

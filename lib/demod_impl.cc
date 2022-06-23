@@ -120,7 +120,7 @@ namespace gr {
             {
               d_format = C8P_F_L;
               signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
-              d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
+              d_unCoded = d_m.len*8 + 22;
               d_nTrellis = (d_m.len*8 + 22) * 2;
               d_nSym = (d_nSigLLen*8 + 22)/d_m.nDBPS + (((d_nSigLLen*8 + 22)%d_m.nDBPS) != 0);
               // config pilot
@@ -211,7 +211,7 @@ namespace gr {
                   if((d_nSym * 80) >= (tmpNSym * d_nSymSamp + 240 + d_m.nLTF * 80))
                   {
                     d_nSym = tmpNSym;
-                    d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
+                    d_unCoded = d_m.len*8 + 22;
                     d_nTrellis = (d_m.len * 8 + 22) * 2;
                     dout<<"ieee80211 demod, ht packet"<<std::endl;
                   }
@@ -226,7 +226,7 @@ namespace gr {
                   d_format = C8P_F_L;
                   dout<<"ieee80211 demod, legacy packet"<<std::endl;
                   signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
-                  d_nCoded = nUncodedToCoded(d_m.len*8 + 22, &d_m);
+                  d_unCoded = d_m.len*8 + 22;
                   d_nTrellis = (d_m.len * 8 + 22) * 2;
                   memcpy(d_pilot, PILOT_L, sizeof(float)*4);
                   d_pilotP = 1;
@@ -314,7 +314,7 @@ namespace gr {
             if((d_nSym * 80) >= (tmpNSym * d_nSymSamp + 240 + d_m.nLTF * 80 + 80))
             {
               d_nSym = tmpNSym;
-              d_nCoded = d_nSym * d_m.nCBPS;
+              d_unCoded = d_nSym * d_m.nDBPS;
               d_nTrellis = d_nSym * d_m.nDBPS;
               dout<<"ieee80211 demod, vht apep len: "<<d_m.len<<", vht DBPS: "<<d_m.nDBPS<<std::endl;
             }
@@ -331,7 +331,7 @@ namespace gr {
             pmt::pmt_t dict = pmt::make_dict();
             dict = pmt::dict_add(dict, pmt::mp("format"), pmt::from_long(d_format));
             dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_m.len));
-            dict = pmt::dict_add(dict, pmt::mp("coded"), pmt::from_long(d_nCoded));
+            dict = pmt::dict_add(dict, pmt::mp("uncoded"), pmt::from_long(d_unCoded));
             dict = pmt::dict_add(dict, pmt::mp("total"), pmt::from_long(d_nSym * d_m.nCBPS));
             dict = pmt::dict_add(dict, pmt::mp("cr"), pmt::from_long(d_m.cr));
             dict = pmt::dict_add(dict, pmt::mp("ampdu"), pmt::from_long(d_ampdu));

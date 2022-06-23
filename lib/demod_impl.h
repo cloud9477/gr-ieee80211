@@ -78,7 +78,7 @@ namespace gr {
       int d_nSymProcd;
       int d_nSymSamp;
       int d_ampdu;
-      int d_nCoded;
+      int d_unCoded;
       int d_nTrellis;
       // pilot
       int d_pilotP;

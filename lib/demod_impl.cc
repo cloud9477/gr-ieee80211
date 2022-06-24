@@ -35,7 +35,7 @@ namespace gr {
       : gr::block("demod",
               gr::io_signature::makev(2, 2, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex)}),
               gr::io_signature::make(1, 1, sizeof(float))),
-              d_debug(0),
+              d_debug(1),
               d_ofdm_fft(64,1)
     {
       d_nProc = 0;
@@ -121,7 +121,7 @@ namespace gr {
               d_format = C8P_F_L;
               signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
               d_unCoded = d_m.len*8 + 22;
-              d_nTrellis = (d_m.len*8 + 22) * 2;
+              d_nTrellis = (d_m.len*8 + 22);
               d_nSym = (d_nSigLLen*8 + 22)/d_m.nDBPS + (((d_nSigLLen*8 + 22)%d_m.nDBPS) != 0);
               // config pilot
               memcpy(d_pilot, PILOT_L, sizeof(float)*4);
@@ -166,8 +166,8 @@ namespace gr {
                   tmpM1 = d_sig1[i] * tmpPilotSum1 / tmpPilotSumAbs1;
                   tmpM2 = d_sig2[i] * tmpPilotSum2 / tmpPilotSumAbs2;
                   d_sigHtIntedLlr[j] = tmpM1.imag();
-                  d_sigVhtAIntedLlr[j] = tmpM1.real();
                   d_sigHtIntedLlr[j + 48] = tmpM2.imag();
+                  d_sigVhtAIntedLlr[j] = tmpM1.real();
                   d_sigVhtAIntedLlr[j + 48] = tmpM2.imag();
                   j++;
                   if(j == 48)
@@ -183,9 +183,6 @@ namespace gr {
               if(signalCheckVhtA(d_sigVhtABits))
               {
                 dout<<"ieee80211 demod, vht packet"<<std::endl;
-                //dout<<"ieee80211 demod, sig a bits:";
-                // for(int i =0;i<48;i++){dout<<(int)d_sigVhtABits[i]<<" ";}
-                // dout<<std::endl;
                 d_format = C8P_F_VHT;
                 signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
                 // config pilot
@@ -203,16 +200,16 @@ namespace gr {
                   d_format = C8P_F_HT;
                   signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
                   if(d_sigHt.shortGi){d_nSymSamp = 72;}
-                  if(d_sigHt.aggre){d_ampdu = 1;}
                   int tmpNSym = ((d_m.len*8 + 22)/d_m.nDBPS + (((d_m.len*8 + 22)%d_m.nDBPS) != 0));
-                  // config pilot
-                  memcpy(d_pilot, PILOT_HT_2_1, sizeof(float)*4);
-                  d_pilotP = 3;
                   if((d_nSym * 80) >= (tmpNSym * d_nSymSamp + 240 + d_m.nLTF * 80))
                   {
+                    if(d_sigHt.aggre){d_ampdu = 1;}
                     d_nSym = tmpNSym;
                     d_unCoded = d_m.len*8 + 22;
-                    d_nTrellis = (d_m.len * 8 + 22) * 2;
+                    d_nTrellis = (d_m.len * 8 + 22);
+                    // config pilot
+                    memcpy(d_pilot, PILOT_HT_2_1, sizeof(float)*4);
+                    d_pilotP = 3;
                     dout<<"ieee80211 demod, ht packet"<<std::endl;
                   }
                   else
@@ -224,12 +221,13 @@ namespace gr {
                 else
                 {
                   d_format = C8P_F_L;
-                  dout<<"ieee80211 demod, legacy packet"<<std::endl;
                   signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
                   d_unCoded = d_m.len*8 + 22;
-                  d_nTrellis = (d_m.len * 8 + 22) * 2;
+                  d_nTrellis = (d_m.len * 8 + 22);
+                  // config pilot
                   memcpy(d_pilot, PILOT_L, sizeof(float)*4);
                   d_pilotP = 1;
+                  dout<<"ieee80211 demod, legacy packet"<<std::endl;
                 }
               }
             }
@@ -301,12 +299,6 @@ namespace gr {
               d_sigVhtACodedLlr[mapDeintVhtSigB20[i]] = d_sigVhtB20IntedLlr[i];
             }
             SV_Decode_Sig(d_sigVhtACodedLlr, d_sigVhtB20Bits, 26);
-            // dout<<"ieee80211 demod, vht sig b bits:";
-            // for(int i=0;i<26;i++)
-            // {
-            //   dout<<(int)d_sigVhtB20Bits[i]<<", ";
-            // }
-            // dout<<std::endl;
             signalParserVhtB(d_sigVhtB20Bits, &d_m);
             if(d_sigVhtA.shortGi){d_nSymSamp = 72;} // mSTBC = 1, stbc not used. nES = 1
             d_ampdu = 1;
@@ -326,7 +318,6 @@ namespace gr {
           //-------------- generate tag for decoder
           if(ifGoOn)
           {
-            //dout<<"ieee80211 demod, add tag for decoder, symProc: "<<d_nSymProcd<<", sym: "<<d_nSym<<std::endl;
             // decoder needs: coded len, coding rate, ampdu
             dout<<"ieee80211 demod, tag f:"<<d_format<<", ampdu:"<<d_ampdu<<", len:"<<d_m.len<<", total:"<<d_nSym * d_m.nCBPS<<", tr:"<<d_nTrellis<<std::endl;
             pmt::pmt_t dict = pmt::make_dict();
@@ -450,9 +441,8 @@ namespace gr {
           d_nSymProcd += 1;
           o1 += d_nSymSamp;
           o2 += d_m.nCBPS;
-          if(d_nSymProcd == d_nSym)
+          if(d_nSymProcd >= d_nSym)
           {
-            //dout<<"ieee80211 demod, qma to llr deint:"<<d_nSymProcd<<" "<<d_nSym<<std::endl;
             dout<<"----------------------------------------------------------------------------------------------------"<<std::endl;
             d_sDemod = DEMOD_S_SYNC;
             break;

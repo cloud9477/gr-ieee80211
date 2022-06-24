@@ -34,7 +34,7 @@ namespace gr {
       : gr::block("decode",
               gr::io_signature::make(1, 1, sizeof(float)),
               gr::io_signature::make(0, 0, 0)),
-              d_debug(0)
+              d_debug(1)
     {
       d_sDecode = DECODE_S_IDLE;
       d_pktSeq = 0;
@@ -124,6 +124,7 @@ namespace gr {
         if(d_nProc >= (t_nTotal - t_nProcd))
         {
           d_sDecode = DECODE_S_IDLE;
+          dout<<"ieee80211 decode, clean:"<<(t_nTotal - t_nProcd)<<std::endl;
           consume_each((t_nTotal - t_nProcd));
           return 0;
         }

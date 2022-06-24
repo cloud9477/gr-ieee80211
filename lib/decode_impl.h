@@ -71,6 +71,7 @@ namespace gr {
       uint8_t v_unCodedBits[DECODE_V_MAX];
       // mac packet
       uint8_t d_dataBytes[DECODE_D_MAX];
+      int d_dataLen;
       // debug
       int d_pktSeq;
 

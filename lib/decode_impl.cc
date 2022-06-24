@@ -112,6 +112,7 @@ namespace gr {
           //   dout<<(int)v_unCodedBits[i]<<", ";
           // }
           // dout<<std::endl;
+          packetAssemble();
         }
         t_nProcd += tmpProcd;
         dout<<"ieee80211 decode, proc:"<<tmpProcd<<", procd:"<<t_nProcd<<", total:"<<t_nTotal<<std::endl;
@@ -303,7 +304,29 @@ namespace gr {
       if(t_format == C8P_F_VHT)
       {
         // ac ampdu
-
+        uint8_t* tmpBitP = &v_unCodedBits[16];  // beginning of AMPDU subframe
+        int tmpEof, tmpLen=0;
+        uint8_t tmpCrc8;
+        while(true)
+        {
+          tmpEof = tmpBitP[0];
+          tmpLen |= (((int)tmpBitP[2])<<12);
+          tmpLen |= (((int)tmpBitP[3])<<13);
+          for(int i=0;i<12;i++)
+          {tmpLen |= (((int)tmpBitP[4+i])<<i);}
+          dout<<"ieee80211 decode, eof len:"<<tmpLen<<std::endl;
+          tmpBitP += 32;
+          for(int i=0;i<tmpLen;i++)
+          {
+            d_dataBytes[i] = 0;
+            for(int j=0;j<8;j++)
+            {
+              d_dataBytes[i] |= (tmpBitP[i*8+j]<<j);
+            }
+          }
+          if(tmpEof)
+          {break;}
+        }
       }
       else
       {

@@ -36,6 +36,8 @@ namespace gr {
               gr::io_signature::make(0, 0, 0)),
               d_debug(1)
     {
+      message_port_register_out(pmt::mp("out"));
+
       d_sDecode = DECODE_S_IDLE;
       d_pktSeq = 0;
       set_tag_propagation_policy(block::TPP_DONT);
@@ -314,7 +316,7 @@ namespace gr {
           tmpLen |= (((int)tmpBitP[3])<<13);
           for(int i=0;i<12;i++)
           {tmpLen |= (((int)tmpBitP[4+i])<<i);}
-          dout<<"ieee80211 decode, eof len:"<<tmpLen<<std::endl;
+          
           tmpBitP += 32;
           for(int i=0;i<tmpLen;i++)
           {
@@ -324,6 +326,13 @@ namespace gr {
               d_dataBytes[i] |= (tmpBitP[i*8+j]<<j);
             }
           }
+          tmpBitP += (tmpLen/4 + ((tmpLen%4)!=0))*8;
+          dout<<"ieee80211 decode, eof len:"<<tmpLen<<std::endl;
+          pmt::pmt_t tmpMeta = pmt::make_dict();
+          tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(tmpLen));
+          pmt::pmt_t tmpPayload = pmt::make_blob(d_dataBytes, tmpLen);
+          message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
+
           if(tmpEof)
           {break;}
         }

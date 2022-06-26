@@ -35,7 +35,7 @@ namespace gr {
       : gr::block("demod",
               gr::io_signature::makev(2, 2, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex)}),
               gr::io_signature::make(1, 1, sizeof(float))),
-              d_debug(1),
+              d_debug(0),
               d_ofdm_fft(64,1)
     {
       d_nProc = 0;
@@ -119,6 +119,7 @@ namespace gr {
             else
             {
               d_format = C8P_F_L;
+              dout<<"ieee80211 demod, legacy packet"<<std::endl;
               signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
               d_unCoded = d_m.len*8 + 22;
               d_nTrellis = (d_m.len*8 + 22);
@@ -127,14 +128,12 @@ namespace gr {
               memcpy(d_pilot, PILOT_L, sizeof(float)*4);
               d_pilotP = 1;
             }
-            //dout<<"ieee80211 demod, compute total legacy nsym:"<<d_nSym<<std::endl;
             d_nSymProcd = 0;
             d_nSymSamp = 80;
             d_ampdu = 0;
             //-------------- check format, two symbols total 160 samples, p=224
             if(d_format == C8P_F_NL)
             {
-              //dout<<"ieee80211 demod, format check."<<std::endl;
               memcpy(d_ofdm_fft.get_inbuf(), &inSig[8+224], sizeof(gr_complex)*64);
               d_ofdm_fft.execute();
               memcpy(d_fftLtfOut1, d_ofdm_fft.get_outbuf(), sizeof(gr_complex)*64);
@@ -195,6 +194,12 @@ namespace gr {
                 procDeintLegacyBpsk(d_sigHtIntedLlr, d_sigHtCodedLlr);
                 procDeintLegacyBpsk(&d_sigHtIntedLlr[48], &d_sigHtCodedLlr[48]);
                 SV_Decode_Sig(d_sigHtCodedLlr, d_sigHtBits, 48);
+                // dout<<"ieee80211 demod, ht sig bits:";
+                // for(int i=0;i<48;i++)
+                // {
+                //   dout<<(int)d_sigHtBits[i]<<", ";
+                // }
+                // dout<<std::endl;
                 if(signalCheckHt(d_sigHtBits))
                 {
                   d_format = C8P_F_HT;
@@ -227,7 +232,7 @@ namespace gr {
                   // config pilot
                   memcpy(d_pilot, PILOT_L, sizeof(float)*4);
                   d_pilotP = 1;
-                  dout<<"ieee80211 demod, legacy packet"<<std::endl;
+                  dout<<"ieee80211 demod, recheck: legacy packet"<<std::endl;
                 }
               }
             }
@@ -338,7 +343,21 @@ namespace gr {
                               alias_pmt());
             }
             d_sDemod = DEMOD_S_DEMOD;
-            consume_each(624);
+
+            switch(d_format)
+            {
+              case C8P_F_L:
+                consume_each(224);
+                break;
+              case C8P_F_HT:
+                consume_each(224 + 160 + 80 + 80*d_m.nLTF);
+                break;
+              case C8P_F_VHT:
+                consume_each(224 + 160 + 80 + 80*d_m.nLTF + 80);
+                break;
+              default:
+                consume_each(80);
+            }            
             return 0;
           }
           else
@@ -374,10 +393,11 @@ namespace gr {
               }
               else
               {
-                d_sig1[i] = d_fftLtfOut1[i] / d_H[0];
+                d_sig1[i] = d_fftLtfOut1[i] / d_H[i];
               }
             }
-            gr_complex tmpPilotSum = std::conj(d_sig1[7] - d_sig1[21] + d_sig1[43] + d_sig1[57]);
+            gr_complex tmpPilotSum = std::conj(d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP] + d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP] + d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP] + d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]);
+            d_pilotP = (d_pilotP + 1) % 127;
             float tmpPilotSumAbs = std::abs(tmpPilotSum);
             int j=24;
             for(int i=0;i<64;i++)
@@ -406,7 +426,7 @@ namespace gr {
                 d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i][0];
               }
             }
-            gr_complex tmpPilotSum = std::conj(d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP] - d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP] + d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP] + d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]);
+            gr_complex tmpPilotSum = std::conj(d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP] + d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP] + d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP] + d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]);
             float tmpPilot0 = d_pilot[0];
             d_pilot[0] = d_pilot[1];
             d_pilot[1] = d_pilot[2];

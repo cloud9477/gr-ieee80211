@@ -9,7 +9,7 @@ options:
     description: ''
     gen_cmake: 'On'
     gen_linking: dynamic
-    generate_options: qt_gui
+    generate_options: no_gui
     hier_block_src_path: '.:'
     id: wifirx
     max_nouts: '0'
@@ -59,7 +59,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [24, 84.0]
+    coordinate: [24, 108.0]
     rotation: 0
     state: enabled
 - name: analog_noise_source_x_0
@@ -78,7 +78,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [24, 116.0]
+    coordinate: [32, 164.0]
     rotation: 0
     state: disabled
 - name: blocks_add_xx_0
@@ -187,7 +187,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [8, 180.0]
+    coordinate: [16, 260.0]
     rotation: 0
     state: enabled
 - name: blocks_message_debug_0

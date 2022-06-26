@@ -180,15 +180,18 @@ bool signalCheckHt(uint8_t* inBits)
 	// correctness check
 	if(inBits[26] != 1)
 	{
+		//std::cout<<"ht check error 1"<<std::endl;
 		return false;
 	}
 	if(!checkBitCrc8(inBits, 34, &inBits[34]))
 	{
+		//std::cout<<"ht check error 2"<<std::endl;
 		return false;
 	}
 	// supporting check
 	if(inBits[5] + inBits[6] + inBits[7] + inBits[28] + inBits[29] + inBits[30] + inBits[32] + inBits[33])
 	{
+		//std::cout<<"ht check error 3"<<std::endl;
 		// mcs > 31 (bit 5 & 6), 40bw (bit 7), stbc, ldpc and ESS are not supported
 		return false;
 	}
@@ -256,7 +259,7 @@ void signalParserL(int mcs, int len, c8p_mod* outMod)
 			break;
 		case 5:	// 0b1011
 			outMod->mod = C8P_QAM_16QAM;
-			outMod->cr = C8P_CR_12;
+			outMod->cr = C8P_CR_34;
 			outMod->nDBPS = 144;
 			outMod->nCBPS = 192;
 			outMod->nBPSCS = 4;
@@ -328,7 +331,7 @@ void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt)
 	{
 		outSigHt->nExtSs |= (((int)inBits[i+32])<<i);
 	}
-	
+
 	// ht modulation related
 	switch(outSigHt->mcs % 8)
 	{
@@ -376,7 +379,7 @@ void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt)
 			break;
 	}
 	outMod->len = outSigHt->len;
-	outMod->nSS = outSigHt->mcs / 8 + ((outSigHt->mcs % 8) != 0);
+	outMod->nSS = outSigHt->mcs / 8 + 1;
 	outMod->nSD = 52;
 	outMod->nSP = 4;
 	outMod->nCBPSS = outMod->nBPSCS * outMod->nSD;
@@ -387,13 +390,13 @@ void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt)
 			outMod->nDBPS = outMod->nCBPS / 2;
 			break;
 		case C8P_CR_23:
-			(outMod->nDBPS = outMod->nCBPS * 2) / 3;
+			outMod->nDBPS = (outMod->nCBPS * 2) / 3;
 			break;
 		case C8P_CR_34:
-			(outMod->nDBPS = outMod->nCBPS * 3) / 4;
+			outMod->nDBPS = (outMod->nCBPS * 3) / 4;
 			break;
 		case C8P_CR_56:
-			(outMod->nDBPS = outMod->nCBPS * 5) / 6;
+			outMod->nDBPS = (outMod->nCBPS * 5) / 6;
 			break;
 		default:
 			break;
@@ -575,13 +578,13 @@ void modParserVht(int mcs, c8p_mod* outMod)
 			outMod->nDBPS = outMod->nCBPS / 2;
 			break;
 		case C8P_CR_23:
-			(outMod->nDBPS = outMod->nCBPS * 2) / 3;
+			outMod->nDBPS = (outMod->nCBPS * 2) / 3;
 			break;
 		case C8P_CR_34:
-			(outMod->nDBPS = outMod->nCBPS * 3) / 4;
+			outMod->nDBPS = (outMod->nCBPS * 3) / 4;
 			break;
 		case C8P_CR_56:
-			(outMod->nDBPS = outMod->nCBPS * 5) / 6;
+			outMod->nDBPS = (outMod->nCBPS * 5) / 6;
 			break;
 		default:
 			break;

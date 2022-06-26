@@ -84,7 +84,7 @@ namespace gr {
           v_trellis = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("trellis"), pmt::from_long(99999)));
           d_sDecode = DECODE_S_DECODE;
           t_nProcd = 0;
-          dout<<"ieee80211 decode, tag f:"<<t_format<<", ampdu:"<<t_ampdu<<", len:"<<t_len<<", total:"<<t_nTotal<<", tr:"<<v_trellis<<std::endl;
+          dout<<"ieee80211 decode, tag f:"<<t_format<<", ampdu:"<<t_ampdu<<", len:"<<t_len<<", total:"<<t_nTotal<<", cr:"<<t_cr<<", tr:"<<v_trellis<<std::endl;
           dout<<"ieee80211 decode, seq:"<<d_pktSeq<<std::endl;
           vstb_init();
         }
@@ -327,7 +327,7 @@ namespace gr {
             }
           }
           tmpBitP += (tmpLen/4 + ((tmpLen%4)!=0))*8;
-          dout<<"ieee80211 decode, eof len:"<<tmpLen<<std::endl;
+          dout<<"ieee80211 decode, vht ampdu eof len:"<<tmpLen<<std::endl;
           pmt::pmt_t tmpMeta = pmt::make_dict();
           tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(tmpLen));
           pmt::pmt_t tmpPayload = pmt::make_blob(d_dataBytes, tmpLen);
@@ -346,7 +346,25 @@ namespace gr {
         }
         else
         {
-
+          uint8_t* tmpBitP = &v_unCodedBits[16];
+          for(int i=0;i<t_len;i++)
+          {
+            d_dataBytes[i] = 0;
+            for(int j=0;j<8;j++)
+            {
+              d_dataBytes[i] |= (tmpBitP[i*8+j]<<j);
+            }
+          }
+          if(t_format == C8P_F_L){
+            dout<<"ieee80211 decode, legacy len:"<<t_len<<std::endl;
+          }
+          else{
+            dout<<"ieee80211 decode, ht len:"<<t_len<<std::endl;
+          }
+          pmt::pmt_t tmpMeta = pmt::make_dict();
+          tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(t_len));
+          pmt::pmt_t tmpPayload = pmt::make_blob(d_dataBytes, t_len);
+          message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
         }
       }
     }

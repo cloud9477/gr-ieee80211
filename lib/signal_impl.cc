@@ -25,19 +25,24 @@ namespace gr {
   namespace ieee80211 {
 
     signal::sptr
-    signal::make()
+    signal::make(int nss)
     {
-      return gnuradio::make_block_sptr<signal_impl>(
+      return gnuradio::make_block_sptr<signal_impl>(nss
         );
     }
 
-    signal_impl::signal_impl()
+    signal_impl::signal_impl(int nss)
       : gr::block("signal",
-              gr::io_signature::makev(3, 3, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex), sizeof(float)}),
-              gr::io_signature::make(1, 1, sizeof(gr_complex))),
+              gr::io_signature::makev(4, 4, std::vector<int>{sizeof(uint8_t), sizeof(float), sizeof(gr_complex), sizeof(gr_complex)}),
+              gr::io_signature::make(2, 2, sizeof(gr_complex))),
+              d_nStream(nss),
               d_debug(0),
               d_ofdm_fft(64,1)
     {
+      if(d_nStream < 1 || d_nStream > 3)
+      {
+        std::cout<<"ieee80211 signal, number of stream error:"<<d_nStream<<std::endl;
+      }
       d_nProc = 0;
       d_nSigPktSeq = 0;
       d_sSignal = S_TRIGGER;
@@ -55,6 +60,7 @@ namespace gr {
       ninput_items_required[0] = noutput_items + 160;
       ninput_items_required[1] = noutput_items + 160;
       ninput_items_required[2] = noutput_items + 160;
+      ninput_items_required[3] = noutput_items + 160;
     }
 
     int
@@ -64,11 +70,13 @@ namespace gr {
                        gr_vector_void_star &output_items)
     {
       const uint8_t* sync = static_cast<const uint8_t*>(input_items[0]);
-      const gr_complex* inSig = static_cast<const gr_complex*>(input_items[1]);
-      const float* inCfoRad = static_cast<const float*>(input_items[2]);
-      gr_complex* outSig = static_cast<gr_complex*>(output_items[0]);
+      const float* inCfoRad = static_cast<const float*>(input_items[1]);
+      const gr_complex* inSig1 = static_cast<const gr_complex*>(input_items[2]);
+      const gr_complex* inSig2 = static_cast<const gr_complex*>(input_items[3]);
+      gr_complex* outSig1 = static_cast<gr_complex*>(output_items[0]);
+      gr_complex* outSig2 = static_cast<gr_complex*>(output_items[1]);
       // input and output not sync
-      d_nProc = std::min(std::min(ninput_items[0], ninput_items[1]), ninput_items[2]);
+      d_nProc = std::min(std::min(std::min(ninput_items[0], ninput_items[1]), ninput_items[2]), ninput_items[3]);
       d_nGen = std::min(noutput_items, d_nProc);
 
       if(d_sSignal == S_TRIGGER)
@@ -83,7 +91,8 @@ namespace gr {
             break;
           }
         }
-        memset(outSig, 0, sizeof(gr_complex) * i);  // maybe not needed to set, not used anyway
+        memset(outSig1, 0, sizeof(gr_complex) * i);  // maybe not needed to set, not used anyway
+        memset(outSig2, 0, sizeof(gr_complex) * i);
         consume_each(i);
         return i;
       }
@@ -91,13 +100,13 @@ namespace gr {
       {
         if(d_nProc > 240)
         {
-          memcpy(d_ofdm_fft.get_inbuf(), &inSig[8], sizeof(gr_complex)*64);
+          memcpy(d_ofdm_fft.get_inbuf(), &inSig1[8], sizeof(gr_complex)*64);
           d_ofdm_fft.execute();
           memcpy(d_fftLtfOut1, d_ofdm_fft.get_outbuf(), sizeof(gr_complex)*64);
-          memcpy(d_ofdm_fft.get_inbuf(), &inSig[8+64], sizeof(gr_complex)*64);
+          memcpy(d_ofdm_fft.get_inbuf(), &inSig1[8+64], sizeof(gr_complex)*64);
           d_ofdm_fft.execute();
           memcpy(d_fftLtfOut2, d_ofdm_fft.get_outbuf(), sizeof(gr_complex)*64);
-          memcpy(d_ofdm_fft.get_inbuf(), &inSig[8+64+80], sizeof(gr_complex)*64);
+          memcpy(d_ofdm_fft.get_inbuf(), &inSig1[8+64+80], sizeof(gr_complex)*64);
           d_ofdm_fft.execute();
           memcpy(d_fftSigOut, d_ofdm_fft.get_outbuf(), sizeof(gr_complex)*64);
 
@@ -165,14 +174,16 @@ namespace gr {
                               alias_pmt());
             }
             d_sSignal = S_COPY;
-            memset(outSig, 0, sizeof(gr_complex) * 224);  // maybe not needed to set, not used anyway
+            memset(outSig1, 0, sizeof(gr_complex) * 224);  // maybe not needed to set, not used anyway
+            memset(outSig2, 0, sizeof(gr_complex) * 224);
             consume_each(224);
             return 224;
           }
           else
           {
             d_sSignal = S_TRIGGER;
-            memset(outSig, 0, sizeof(gr_complex) * 80);  // maybe not needed to set, not used anyway
+            memset(outSig1, 0, sizeof(gr_complex) * 80);  // maybe not needed to set, not used anyway
+            memset(outSig2, 0, sizeof(gr_complex) * 80);
             consume_each(80);
             return 80;
           }
@@ -185,30 +196,44 @@ namespace gr {
       }
       else if(d_sSignal == S_COPY)
       {
-        int i=0;
-        while(i<d_nGen)
-        {
-          // add cfo compensate later
-          outSig[i] = inSig[i];
-          i++;
-          d_nSampleCopied++;
-          if(d_nSampleCopied >= d_nSample)
-          {
-            d_sSignal = S_TRIGGER;
-            break;
-          }
-        }
-        consume_each(i);
-        return i;
+        // int i=0;
+        // while(i<d_nGen)
+        // {
+        //   // add cfo compensate later
+        //   outSig[i] = inSig1[i];
+        //   i++;
+        //   d_nSampleCopied++;
+        //   if(d_nSampleCopied >= d_nSample)
+        //   {
+        //     d_sSignal = S_TRIGGER;
+        //     break;
+        //   }
+        // }
+        // consume_each(i);
+        // return i;
 
         float tmpRadStep;
         if(d_nGen < (d_nSample - d_nSampleCopied))
         {
-          for(int i=0;i<d_nGen;i++)
+          if(d_nStream > 1)
           {
-            tmpRadStep = d_nSampleCopied * d_cfoRad;
-            outSig[i] = inSig[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
-            d_nSampleCopied++;
+            for(int i=0;i<d_nGen;i++)
+            {
+              tmpRadStep = d_nSampleCopied * d_cfoRad;
+              outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
+              outSig2[i] = inSig2[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
+              d_nSampleCopied++;
+            }
+          }
+          else
+          {
+            for(int i=0;i<d_nGen;i++)
+            {
+              tmpRadStep = d_nSampleCopied * d_cfoRad;
+              outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
+              outSig2[i] = gr_complex(0.0f, 0.0f);
+              d_nSampleCopied++;
+            }
           }
           consume_each(d_nGen);
           return d_nGen;
@@ -216,11 +241,25 @@ namespace gr {
         else
         {
           int tmpNumGen = d_nSample - d_nSampleCopied;
-          for(int i=0;i<tmpNumGen;i++)
+          if(d_nStream > 1)
           {
-            tmpRadStep = d_nSampleCopied * d_cfoRad;
-            outSig[i] = inSig[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
-            d_nSampleCopied++;
+            for(int i=0;i<tmpNumGen;i++)
+            {
+              tmpRadStep = d_nSampleCopied * d_cfoRad;
+              outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
+              outSig2[i] = inSig2[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
+              d_nSampleCopied++;
+            }
+          }
+          else
+          {
+            for(int i=0;i<tmpNumGen;i++)
+            {
+              tmpRadStep = d_nSampleCopied * d_cfoRad;
+              outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
+              outSig2[i] = gr_complex(0.0f, 0.0f);   // * cfo
+              d_nSampleCopied++;
+            }
           }
           d_sSignal = S_TRIGGER;
           consume_each(tmpNumGen);

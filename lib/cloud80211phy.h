@@ -25,7 +25,9 @@
 #include <iostream>
 #include <gnuradio/io_signature.h>
 
-#define C8P_MAX_LTF  4 // nSTS * nLTF for non legacy channel
+#define C8P_MAX_N_LTF 4
+#define C8P_MAX_N_SS 2
+#define C8P_MAX_N_CBPSS 416 // 256QAM 8bit/sc * 52 = 416
 
 #define C8P_F_L 0
 #define C8P_F_HT 1
@@ -51,6 +53,11 @@
 class c8p_mod
 {
     public:
+        int format;     // l, ht, vht
+        int nSymSamp;     // sample of a symbol
+        int nSym;
+        int ampdu;
+
         int sumu;       // 0 for su or 1 for mu
         int mod;        // modulation
         int len;        // packet len for legacy, ht, apep-len for vht
@@ -106,6 +113,7 @@ class c8p_sigVhtA
 extern const gr_complex LTF_L_26_F_COMP[64];
 extern const float LTF_L_26_F_FLOAT[64];
 extern const float LTF_NL_28_F_FLOAT[64];
+extern const float LTF_NL_28_F_FLOAT2[64];
 
 extern const int SV_PUNC_12[2];
 extern const int SV_PUNC_23[4];
@@ -126,7 +134,8 @@ void procDeintLegacyBpsk(float* inBits, float* outBits);
 void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits, int trellisLen);
 void procSymQamToLlr(gr_complex* inQam, float* outLlr, c8p_mod* mod);
 void procSymDeintL(float* in, float* out, c8p_mod* mod);
-void procSymDeintNL(float* in, float* out, c8p_mod* mod);
+void procSymDeintNL(float* in, float* out, c8p_mod* mod, int iSS_1);
+void procSymDepasNL(float in[C8P_MAX_N_SS][C8P_MAX_N_CBPSS], float* out, c8p_mod* mod);
 int nCodedToUncoded(int nCoded, c8p_mod* mod);
 int nUncodedToCoded(int nUncoded, c8p_mod* mod);
 

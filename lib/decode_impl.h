@@ -72,8 +72,6 @@ namespace gr {
       // mac packet
       uint8_t d_dataBytes[DECODE_D_MAX];
       int d_dataLen;
-      // debug
-      int d_pktSeq;
 
 
     public:

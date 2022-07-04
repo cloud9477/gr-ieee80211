@@ -28,8 +28,13 @@
 #define dout d_debug&&std::cout
 
 #define DEMOD_S_SYNC 0
-#define DEMOD_S_CHECK 1
-#define DEMOD_S_DEMOD 2
+#define DEMOD_S_RDTAG 1
+#define DEMOD_S_FORMAT 2
+#define DEMOD_S_VHT 3
+#define DEMOD_S_HT 4
+#define DEMOD_S_LEGACY 5
+#define DEMOD_S_WRTAG 6
+#define DEMOD_S_DEMOD 7
 
 namespace gr {
   namespace ieee80211 {
@@ -43,6 +48,7 @@ namespace gr {
       int d_nProc;
       int d_nGen;
       int d_sDemod;
+      int d_nStream;
       // received info from tag
       std::vector<gr::tag_t> tags;
       int d_nSigLMcs;
@@ -64,20 +70,20 @@ namespace gr {
       fft::fft_complex_fwd d_ofdm_fft;
       gr_complex d_fftLtfOut1[64];
       gr_complex d_fftLtfOut2[64];
+      gr_complex d_fftLtfOut12[64];
+      gr_complex d_fftLtfOut22[64];
       // packet info
-      int d_format;
       c8p_mod d_m;
       c8p_sigHt d_sigHt;
       c8p_sigVhtA d_sigVhtA;
-      int d_nSym;
+
       int d_nSymProcd;
-      int d_nSymSamp;
-      int d_ampdu;
       int d_unCoded;
       int d_nTrellis;
       // pilot
       int d_pilotP;
       float d_pilot[4];
+      float d_pilot2[4];
       // non-legacy channel
       /*      P_LTF 4x4
       | 1 -1  1  1 |
@@ -87,12 +93,14 @@ namespace gr {
       for 2x2 in the array
       | 0  1 |
       | 2  3 |      */
-      gr_complex d_H_NL[64][C8P_MAX_LTF];
-      gr_complex d_qam[52];
-      float d_llr[832];     // this ver support upto 2x2
+      gr_complex d_H_NL[64][C8P_MAX_N_LTF];
+      gr_complex d_H_NL_INV[64][C8P_MAX_N_LTF];
+      gr_complex d_qam[C8P_MAX_N_SS][52];
+      float d_llrInted[C8P_MAX_N_SS][C8P_MAX_N_CBPSS];     // interleaved LLR
+      float d_llrSpasd[C8P_MAX_N_SS][C8P_MAX_N_CBPSS];     // stream parsered LLR
 
      public:
-      demod_impl();
+      demod_impl(int nss);
       ~demod_impl();
 
       // Where all the action really happens
@@ -102,7 +110,13 @@ namespace gr {
            gr_vector_int &ninput_items,
            gr_vector_const_void_star &input_items,
            gr_vector_void_star &output_items);
-
+      void nonLegacyChanEstimate(const gr_complex* sig1, const gr_complex* sig2);
+      void vhtChanUpdate(const gr_complex* sig1, const gr_complex* sig2);
+      void htChanUpdate(const gr_complex* sig1, const gr_complex* sig2);
+      void legacyChanUpdate(const gr_complex* sig1);
+      void vhtSigBDemod(const gr_complex* sig1, const gr_complex* sig2);
+      void fft(const gr_complex* sig, gr_complex* res);
+      void pilotShift(float* pilots);
     };
 
   } // namespace ieee80211

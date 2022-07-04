@@ -4,15 +4,23 @@ category: '[ieee80211]'
 
 templates:
   imports: import ieee80211
-  make: ieee80211.demod()
+  make: ieee80211.demod(${nss})
+
+parameters:
+- id: nss
+  label: SS Num
+  dtype: int
+  default: '1'
+  options: ['1', '2']
 
 inputs:
 - label: sync
   domain: stream
   dtype: byte
-#  vlen: ...
-#  optional: ...
-- label: inSig
+- label: inSig1
+  domain: stream
+  dtype: complex
+- label: inSig2
   domain: stream
   dtype: complex
 
@@ -20,8 +28,6 @@ outputs:
 - label: outLlr
   domain: stream
   dtype: float
-#  vlen: ...
-#  optional: ...
 
 #  'file_format' specifies the version of the GRC yml format used in the file
 #  and should usually not be changed.

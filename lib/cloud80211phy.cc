@@ -77,6 +77,24 @@ const float LTF_NL_28_F_FLOAT[64] = {
     1.0f, -1.0f, 1.0f, -1.0f, 
     1.0f, 1.0f, 1.0f, 1.0f};
 
+const float LTF_NL_28_F_FLOAT2[64] = {
+    0.0f, 0.5f, -0.5f, -0.5f, 
+    0.5f, 0.5f, -0.5f, 0.5f, 
+    -0.5f, 0.5f, -0.5f, -0.5f, 
+    -0.5f, -0.5f, -0.5f, 0.5f, 
+    0.5f, -0.5f, -0.5f, 0.5f, 
+    -0.5f, 0.5f, -0.5f, 0.5f, 
+    0.5f, 0.5f, 0.5f, -0.5f, 
+    -0.5f, 0.0f, 0.0f, 0.0f, 
+    0.0f, 0.0f, 0.0f, 0.0f, 
+    0.5f, 0.5f, 0.5f, 0.5f, 
+    -0.5f, -0.5f, 0.5f, 0.5f, 
+    -0.5f, 0.5f, -0.5f, 0.5f, 
+    0.5f, 0.5f, 0.5f, 0.5f, 
+    0.5f, -0.5f, -0.5f, 0.5f, 
+    0.5f, -0.5f, 0.5f, -0.5f, 
+    0.5f, 0.5f, 0.5f, 0.5f};
+
 const float PILOT_P[127] = {
 	 1.0f,  1.0f,  1.0f,  1.0f, -1.0f, -1.0f, -1.0f,  1.0f, -1.0f, -1.0f, -1.0f, -1.0f,  1.0f,  1.0f, -1.0f,  1.0f,
 	-1.0f, -1.0f,  1.0f,  1.0f, -1.0f,  1.0f,  1.0f, -1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f, -1.0f,  1.0f,
@@ -250,7 +268,7 @@ void signalParserL(int mcs, int len, c8p_mod* outMod)
 			outMod->nCBPS = 96;
 			outMod->nBPSCS = 2;
 			break;
-		case 4:		// 0b1001
+		case 4:	// 0b1001
 			outMod->mod = C8P_QAM_16QAM;
 			outMod->cr = C8P_CR_12;
 			outMod->nDBPS = 96;
@@ -264,7 +282,7 @@ void signalParserL(int mcs, int len, c8p_mod* outMod)
 			outMod->nCBPS = 192;
 			outMod->nBPSCS = 4;
 			break;
-		case 6:		// 0b0001
+		case 6:	// 0b0001
 			outMod->mod = C8P_QAM_64QAM;
 			outMod->cr = C8P_CR_23;
 			outMod->nDBPS = 192;
@@ -289,6 +307,11 @@ void signalParserL(int mcs, int len, c8p_mod* outMod)
 	outMod->nSS = 1;		// only 1 ss
 	outMod->sumu = 0;		// su
 	outMod->nLTF = 0;
+
+	outMod->format = C8P_F_L;
+	outMod->nSymSamp = 80;
+	outMod->nSym = (outMod->len*8 + 22)/outMod->nDBPS + (((outMod->len*8 + 22)%outMod->nDBPS) != 0);
+	outMod->ampdu = 0;
 }
 
 void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt)
@@ -333,6 +356,20 @@ void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt)
 	}
 
 	// ht modulation related
+	// format
+	outMod->format = C8P_F_HT;
+	// short GI
+	outMod->nSymSamp = 80;
+	if(outSigHt->shortGi)
+	{
+		outMod->nSymSamp = 72;
+	}
+	// AMPDU
+	outMod->ampdu = 0;
+	if(outSigHt->aggre)
+	{
+		outMod->ampdu = 1;
+	}
 	switch(outSigHt->mcs % 8)
 	{
 		case 0:
@@ -420,6 +457,7 @@ void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt)
 			break;
 		
 	}
+	outMod->nSym = ((outMod->len*8 + 22)/outMod->nDBPS + (((outMod->len*8 + 22)%outMod->nDBPS) != 0));
 }
 
 void signalParserVhtA(uint8_t* inBits, c8p_mod* outMod, c8p_sigVhtA* outSigVhtA)
@@ -484,6 +522,17 @@ void signalParserVhtA(uint8_t* inBits, c8p_mod* outMod, c8p_sigVhtA* outSigVhtA)
 	outSigVhtA->ldpcExtra = inBits[27];
 
 	// modualtion ralated
+	// format
+	outMod->format = C8P_F_VHT;
+	// short GI
+	outMod->nSymSamp = 80;
+	if(outSigVhtA->shortGi)
+	{
+		outMod->nSymSamp = 72;
+	}
+	// AMPDU
+	outMod->ampdu = 1;
+
 	if((outSigVhtA->groupId == 0) || (outSigVhtA->groupId == 63))
 	{
 		outMod->sumu = 0;	// su
@@ -509,6 +558,7 @@ void signalParserVhtB(uint8_t* inBits, c8p_mod* outMod)
 	for(int i=0;i<4;i++){tmpMcs |= (((int)inBits[i+16])<<i);}
 	outMod->len = tmpLen * 4;
 	modParserVht(tmpMcs, outMod);
+	outMod->nSym = (outMod->len*8 + 16 + 6) / outMod->nDBPS + (((outMod->len*8 + 16 + 6) % outMod->nDBPS) != 0);
 }
 
 void modParserVht(int mcs, c8p_mod* outMod)
@@ -930,7 +980,7 @@ void procSymDeintL(float* in, float* out, c8p_mod* mod)
 	}
 }
 
-void procSymDeintNL(float* in, float* out, c8p_mod* mod)
+void procSymDeintNL(float* in, float* out, c8p_mod* mod, int iSS_1)		// iSS_1 is: iSS - 1 in standard
 {
 	// this version follows standard
 	int s = std::max(mod->nBPSCS/2, 1);
@@ -947,7 +997,24 @@ void procSymDeintNL(float* in, float* out, c8p_mod* mod)
 	}
 	else
 	{
-		// to be added
+		for(int r=0; r<mod->nCBPSS; r++)
+		{
+			j = (r + ((2*iSS_1) % 3 + 3 * (iSS_1/3)) * mod->nIntRot * mod->nBPSCS) % mod->nCBPSS;
+			i = s * (j/s) + (j + (mod->nIntCol * j)/mod->nCBPSS) % s;
+			k = mod->nIntCol*i - (mod->nCBPSS - 1) * (i/mod->nIntRow);
+			out[k] = in[r];
+		}
+	}
+}
+
+void procSymDepasNL(float in[C8P_MAX_N_SS][C8P_MAX_N_CBPSS], float* out, c8p_mod* mod)
+{
+	// this ver only for 2 ss
+	int s = std::max(mod->nBPSCS/2, 1);
+	for(int i=0; i<mod->nSD; i++)
+	{
+		memcpy(&out[i*2*s], &in[0][i*s], sizeof(float)*s);
+		memcpy(&out[(i*2+1)*s], &in[1][i*s], sizeof(float)*s);
 	}
 }
 

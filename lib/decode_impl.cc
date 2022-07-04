@@ -39,7 +39,6 @@ namespace gr {
       message_port_register_out(pmt::mp("out"));
 
       d_sDecode = DECODE_S_IDLE;
-      d_pktSeq = 0;
       set_tag_propagation_policy(block::TPP_DONT);
     }
 
@@ -70,22 +69,19 @@ namespace gr {
         get_tags_in_range(tags, 0, nitems_read(0) , nitems_read(0) + 1);
         if(tags.size())
         {
-          d_pktSeq++;
           pmt::pmt_t d_meta = pmt::make_dict();
           for (auto tag : tags){
             d_meta = pmt::dict_add(d_meta, tag.key, tag.value);
           }
           t_format = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("format"), pmt::from_long(99999)));
-          t_ampdu = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("ampdu"), pmt::from_long(99999)));
           t_len = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len"), pmt::from_long(99999)));
-          t_nUnCoded = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("uncoded"), pmt::from_long(99999)));
           t_nTotal = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("total"), pmt::from_long(99999)));
           t_cr = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("cr"), pmt::from_long(99999)));
+          t_ampdu = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("ampdu"), pmt::from_long(99999)));
           v_trellis = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("trellis"), pmt::from_long(99999)));
           d_sDecode = DECODE_S_DECODE;
           t_nProcd = 0;
           dout<<"ieee80211 decode, tag f:"<<t_format<<", ampdu:"<<t_ampdu<<", len:"<<t_len<<", total:"<<t_nTotal<<", cr:"<<t_cr<<", tr:"<<v_trellis<<std::endl;
-          dout<<"ieee80211 decode, seq:"<<d_pktSeq<<std::endl;
           vstb_init();
         }
         consume_each(0);
@@ -98,32 +94,15 @@ namespace gr {
         {
           d_sDecode = DECODE_S_CLEAN;
           vstb_end();
-          // for(int i=0;i<40;i++)
-          // {
-          //   dout<<(int)v_scramBits[i]<<", ";
-          // }
-          // dout<<std::endl;
           descramble();
-          // for(int i=0;i<40;i++)
-          // {
-          //   dout<<(int)v_unCodedBits[i]<<", ";
-          // }
-          // dout<<std::endl;
-          // for(int i=(t_nUnCoded-40);i<t_nUnCoded;i++)
-          // {
-          //   dout<<(int)v_unCodedBits[i]<<", ";
-          // }
-          // dout<<std::endl;
           packetAssemble();
         }
         t_nProcd += tmpProcd;
-        dout<<"ieee80211 decode, proc:"<<tmpProcd<<", procd:"<<t_nProcd<<", total:"<<t_nTotal<<std::endl;
         consume_each(tmpProcd);
         return 0;
       }
       else if(d_sDecode == DECODE_S_CLEAN)
       {
-        
         if(d_nProc >= (t_nTotal - t_nProcd))
         {
           d_sDecode = DECODE_S_IDLE;
@@ -174,7 +153,6 @@ namespace gr {
           v_cr_punc = SV_PUNC_56;
           break;
         default:
-          dout << "ieee80211, decode: tagged coding rate error" << std::endl;
           break;
       }
     }
@@ -265,7 +243,6 @@ namespace gr {
       {
         v_state_seq[j-1] = v_state_his[v_state_seq[j]][j];
       }
-      //memset(decoded_bits, 0, trellisLen * sizeof(int));
       for (int j = 0; j < v_trellis; j++)
       {
         if (v_state_seq[j+1] == SV_STATE_NEXT[v_state_seq[j]][1])
@@ -292,7 +269,7 @@ namespace gr {
         }
       }
       memset(v_unCodedBits, 0, 7);
-      for (int i=7; i<t_nUnCoded; i++)
+      for (int i=7; i<v_trellis; i++)
       {
         feedback = ((!!(state & 64))) ^ (!!(state & 8));
         v_unCodedBits[i] = feedback ^ (v_scramBits[i] & 0x1);
@@ -303,38 +280,58 @@ namespace gr {
     void
     decode_impl::packetAssemble()
     {
+      int tmpBitsProcd = 0;
       if(t_format == C8P_F_VHT)
       {
         // ac ampdu
-        uint8_t* tmpBitP = &v_unCodedBits[16];  // beginning of AMPDU subframe
-        int tmpEof, tmpLen=0;
-        uint8_t tmpCrc8;
-        while(true)
+        tmpBitsProcd += 16;
+        if(tmpBitsProcd < v_trellis)
         {
-          tmpEof = tmpBitP[0];
-          tmpLen |= (((int)tmpBitP[2])<<12);
-          tmpLen |= (((int)tmpBitP[3])<<13);
-          for(int i=0;i<12;i++)
-          {tmpLen |= (((int)tmpBitP[4+i])<<i);}
-          
-          tmpBitP += 32;
-          for(int i=0;i<tmpLen;i++)
+          uint8_t* tmpBitP = &v_unCodedBits[16];
+          int tmpEof, tmpLen=0;
+          uint8_t tmpCrc8;
+          while(true)
           {
-            d_dataBytes[i] = 0;
-            for(int j=0;j<8;j++)
+            tmpBitsProcd += 32;
+            if(tmpBitsProcd > v_trellis)
             {
-              d_dataBytes[i] |= (tmpBitP[i*8+j]<<j);
+              dout<<"ieee80211 decode, ampdu error"<<std::endl;
+              break;
+            }
+            tmpEof = tmpBitP[0];
+            tmpLen |= (((int)tmpBitP[2])<<12);
+            tmpLen |= (((int)tmpBitP[3])<<13);
+            for(int i=0;i<12;i++)
+            {
+              tmpLen |= (((int)tmpBitP[4+i])<<i);
+            }
+            tmpBitsProcd += ((tmpLen/4 + ((tmpLen%4)!=0))*4*8);
+            if(tmpBitsProcd > v_trellis)
+            {
+              dout<<"ieee80211 decode, ampdu error"<<std::endl;
+              break;
+            }
+            tmpBitP += 32;
+            for(int i=0;i<tmpLen;i++)
+            {
+              d_dataBytes[i] = 0;
+              for(int j=0;j<8;j++)
+              {
+                d_dataBytes[i] |= (tmpBitP[i*8+j]<<j);
+              }
+            }
+            tmpBitP += ((tmpLen/4 + ((tmpLen%4)!=0))*4*8);
+            dout<<"ieee80211 decode, vht ampdu subf len:"<<tmpLen<<std::endl;
+            pmt::pmt_t tmpMeta = pmt::make_dict();
+            tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(tmpLen));
+            pmt::pmt_t tmpPayload = pmt::make_blob(d_dataBytes, tmpLen);
+            message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
+
+            if(tmpEof)
+            {
+              break;
             }
           }
-          tmpBitP += (tmpLen/4 + ((tmpLen%4)!=0))*8;
-          dout<<"ieee80211 decode, vht ampdu eof len:"<<tmpLen<<std::endl;
-          pmt::pmt_t tmpMeta = pmt::make_dict();
-          tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(tmpLen));
-          pmt::pmt_t tmpPayload = pmt::make_blob(d_dataBytes, tmpLen);
-          message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
-
-          if(tmpEof)
-          {break;}
         }
       }
       else
@@ -342,7 +339,7 @@ namespace gr {
         // a and n general packet
         if(t_ampdu)
         {
-          // n ampdu
+          // n ampdu, to be added
         }
         else
         {

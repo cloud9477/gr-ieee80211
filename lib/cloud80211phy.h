@@ -54,13 +54,14 @@ class c8p_mod
 {
     public:
         int format;     // l, ht, vht
-        int nSymSamp;     // sample of a symbol
+        int len;        // packet len for legacy, ht, apep-len for vht
+
         int nSym;
         int ampdu;
-
         int sumu;       // 0 for su or 1 for mu
+        int nSymSamp;     // sample of a symbol
+        
         int mod;        // modulation
-        int len;        // packet len for legacy, ht, apep-len for vht
         int cr;         // coding rate
         int nSD;        // data sub carrier
         int nSP;        // pilot sub carrier
@@ -145,6 +146,7 @@ bool signalCheckVhtA(uint8_t* inBits);
 
 void signalParserL(int mcs, int len, c8p_mod* outMod);
 void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt);
+void modParserHt(int mcs, c8p_mod* outMod);
 void signalParserVhtA(uint8_t* inBits, c8p_mod* outMod, c8p_sigVhtA* outSigVhtA);
 void signalParserVhtB(uint8_t* inBits, c8p_mod* outMod);
 void modParserVht(int mcs, c8p_mod* outMod);
@@ -152,7 +154,8 @@ void modParserVht(int mcs, c8p_mod* outMod);
 uint8_t genByteCrc8(uint8_t* inBits, int len);
 bool checkBitCrc8(uint8_t* inBits, int len, uint8_t* crcBits);
 
-
+void formatToModSu(c8p_mod* mod, int format, int mcs, int nss, int len);
+bool formatCheck(int format, int mcs, int nss);
 
 
 #endif /* INCLUDED_IEEE80211_SIGNAL_IMPL_H */

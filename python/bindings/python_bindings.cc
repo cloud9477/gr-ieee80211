@@ -26,6 +26,7 @@ namespace py = pybind11;
     void bind_signal(py::module& m);
     void bind_demod(py::module& m);
     void bind_decode(py::module& m);
+    void bind_encode(py::module& m);
 // ) END BINDING_FUNCTION_PROTOTYPES
 
 
@@ -59,5 +60,6 @@ PYBIND11_MODULE(ieee80211_python, m)
     bind_signal(m);
     bind_demod(m);
     bind_decode(m);
+    bind_encode(m);
     // ) END BINDING_FUNCTION_CALLS
 }

@@ -15,5 +15,6 @@ install(FILES
     sync.h
     signal.h
     demod.h
-    decode.h DESTINATION include/ieee80211
+    decode.h
+    encode.h DESTINATION include/ieee80211
 )

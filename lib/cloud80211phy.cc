@@ -460,6 +460,95 @@ void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt)
 	outMod->nSym = ((outMod->len*8 + 22)/outMod->nDBPS + (((outMod->len*8 + 22)%outMod->nDBPS) != 0));
 }
 
+void modParserHt(int mcs, c8p_mod* outMod)
+{
+	switch(mcs % 8)
+	{
+		case 0:
+			outMod->mod = C8P_QAM_BPSK;
+			outMod->nBPSCS = 1;
+			outMod->cr = C8P_CR_12;
+			break;
+		case 1:
+			outMod->mod = C8P_QAM_QPSK;
+			outMod->nBPSCS = 2;
+			outMod->cr = C8P_CR_12;
+			break;
+		case 2:
+			outMod->mod = C8P_QAM_QPSK;
+			outMod->nBPSCS = 2;
+			outMod->cr = C8P_CR_34;
+			break;
+		case 3:
+			outMod->mod = C8P_QAM_16QAM;
+			outMod->nBPSCS = 4;
+			outMod->cr = C8P_CR_12;
+			break;
+		case 4:
+			outMod->mod = C8P_QAM_16QAM;
+			outMod->nBPSCS = 4;
+			outMod->cr = C8P_CR_34;
+			break;
+		case 5:
+			outMod->mod = C8P_QAM_64QAM;
+			outMod->nBPSCS = 6;
+			outMod->cr = C8P_CR_23;
+			break;
+		case 6:
+			outMod->mod = C8P_QAM_64QAM;
+			outMod->nBPSCS = 6;
+			outMod->cr = C8P_CR_34;
+			break;
+		case 7:
+			outMod->mod = C8P_QAM_64QAM;
+			outMod->nBPSCS = 6;
+			outMod->cr = C8P_CR_56;
+			break;
+		default:
+			break;
+	}
+	outMod->nSD = 52;
+	outMod->nSP = 4;
+	outMod->nCBPSS = outMod->nBPSCS * outMod->nSD;
+	outMod->nCBPS = outMod->nCBPSS * outMod->nSS;
+	switch(outMod->cr)
+	{
+		case C8P_CR_12:
+			outMod->nDBPS = outMod->nCBPS / 2;
+			break;
+		case C8P_CR_23:
+			outMod->nDBPS = (outMod->nCBPS * 2) / 3;
+			break;
+		case C8P_CR_34:
+			outMod->nDBPS = (outMod->nCBPS * 3) / 4;
+			break;
+		case C8P_CR_56:
+			outMod->nDBPS = (outMod->nCBPS * 5) / 6;
+			break;
+		default:
+			break;
+	}
+	outMod->nIntCol = 13;
+	outMod->nIntRow = outMod->nBPSCS * 4;
+	outMod->nIntRot = 11;
+	switch(outMod->nSS)
+	{
+		case 1:
+			outMod->nLTF = 1;
+			break;
+		case 2:
+			outMod->nLTF = 2;
+			break;
+		case 3:
+		case 4:
+			outMod->nLTF = 4;
+			break;
+		default:
+			break;
+		
+	}
+}
+
 void signalParserVhtA(uint8_t* inBits, c8p_mod* outMod, c8p_sigVhtA* outSigVhtA)
 {
 	// vht signal field
@@ -1052,5 +1141,41 @@ int nUncodedToCoded(int nUncoded, c8p_mod* mod)
 	}
 }
 
+void formatToModSu(c8p_mod* mod, int format, int mcs, int nss, int len)
+{
+	// not supporting other bandwidth and short GI in this version
+	if(format == C8P_F_L)
+	{
+		signalParserL(mcs, len, mod);
+	}
+	else if(format == C8P_F_VHT)
+	{
+		mod->format = C8P_F_VHT;
+		mod->nSS = nss;
+		mod->len = len;
+		modParserVht(mcs, mod);
+		mod->nSymSamp = 80;
+		mod->ampdu = 1;
+		mod->sumu = 0;
+		mod->nSym = (mod->len*8 + 16 + 6) / mod->nDBPS + (((mod->len*8 + 16 + 6) % mod->nDBPS) != 0);
+	}
+	else
+	{
+		mod->format = C8P_F_HT;
+		mod->nSS = nss;
+		mod->len = len;
+		modParserHt(mcs, mod);
+		mod->nSymSamp = 80;
+		mod->ampdu = 0;
+		mod->sumu = 0;
+		mod->nSym = ((mod->len*8 + 22)/mod->nDBPS + (((mod->len*8 + 22)%mod->nDBPS) != 0));
+	}
+}
 
 
+bool formatCheck(int format, int mcs, int nss)
+{
+	// to be added
+
+	return true;
+}

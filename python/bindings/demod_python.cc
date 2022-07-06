@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(demod.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(4a56268f3714bc36ececb257816c4647)                     */
+/* BINDTOOL_HEADER_FILE_HASH(a4265d766b8ad13a683b1c3ff2eea898)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -30,13 +30,14 @@ namespace py = pybind11;
 void bind_demod(py::module& m)
 {
 
-    using demod    = gr::ieee80211::demod;
+    using demod    = ::gr::ieee80211::demod;
 
 
     py::class_<demod, gr::block, gr::basic_block,
         std::shared_ptr<demod>>(m, "demod", D(demod))
 
         .def(py::init(&demod::make),
+           py::arg("nss"),
            D(demod,make)
         )
         

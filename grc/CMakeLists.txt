@@ -11,5 +11,6 @@ install(FILES
     ieee80211_sync.block.yml
     ieee80211_signal.block.yml
     ieee80211_demod.block.yml
-    ieee80211_decode.block.yml DESTINATION share/gnuradio/grc/blocks
+    ieee80211_decode.block.yml
+    ieee80211_encode.block.yml DESTINATION share/gnuradio/grc/blocks
 )

@@ -18,6 +18,7 @@ list(APPEND ieee80211_sources
     cloud80211phy.cc
     demod_impl.cc
     decode_impl.cc
+    encode_impl.cc
 )
 
 set(ieee80211_sources "${ieee80211_sources}" PARENT_SCOPE)

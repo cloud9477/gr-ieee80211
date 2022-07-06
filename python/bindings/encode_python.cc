@@ -13,8 +13,8 @@
 /* If manual edits are made, the following tags should be modified accordingly.    */
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
-/* BINDTOOL_HEADER_FILE(signal.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(00dd6269e8257e23399a6976e9b84fc2)                     */
+/* BINDTOOL_HEADER_FILE(encode.h)                                        */
+/* BINDTOOL_HEADER_FILE_HASH(e1dac3cff625ba6b5ee3c04cd688f64e)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -23,22 +23,22 @@
 
 namespace py = pybind11;
 
-#include <ieee80211/signal.h>
+#include <ieee80211/encode.h>
 // pydoc.h is automatically generated in the build directory
-#include <signal_pydoc.h>
+#include <encode_pydoc.h>
 
-void bind_signal(py::module& m)
+void bind_encode(py::module& m)
 {
 
-    using signal    = ::gr::ieee80211::signal;
+    using encode    = ::gr::ieee80211::encode;
 
 
-    py::class_<signal, gr::block, gr::basic_block,
-        std::shared_ptr<signal>>(m, "signal", D(signal))
+    py::class_<encode, gr::tagged_stream_block, gr::block, gr::basic_block,
+        std::shared_ptr<encode>>(m, "encode", D(encode))
 
-        .def(py::init(&signal::make),
-           py::arg("nss"),
-           D(signal,make)
+        .def(py::init(&encode::make),
+           py::arg("lengthtagname") = "packet_len",
+           D(encode,make)
         )
         
 

@@ -46,9 +46,20 @@ namespace gr {
       int d_nBitsGenProcd;
       // msg
       void msgRead(pmt::pmt_t msg);
-      uint8_t d_msg[DECODE_D_MAX];
+      uint8_t d_dataBits[DECODE_B_MAX];
       // modulation
       c8p_mod d_m;
+      // signal
+      uint8_t d_legacySig[24];
+      uint8_t d_legacySigCoded[48];
+      uint8_t d_htSig[48];
+      uint8_t d_htSigCoded[96];
+      uint8_t d_vhtSigA[48];
+      uint8_t d_vhtSigACoded[96];
+      uint8_t d_vhtSigB20[26];
+      uint8_t d_vhtSigB20Coded[52];
+      uint8_t d_vhtSigBCrc8[8];
+
       
      protected:
       int calculate_output_stream_length(const gr_vector_int &ninput_items);

@@ -54,6 +54,7 @@ class c8p_mod
 {
     public:
         int format;     // l, ht, vht
+        int mcs;
         int len;        // packet len for legacy, ht, apep-len for vht
 
         int nSym;
@@ -128,6 +129,7 @@ extern const float PILOT_L[4];
 extern const float PILOT_HT_2_1[4];
 extern const float PILOT_HT_2_2[4];
 extern const float PILOT_VHT[4];
+extern const uint8_t EOF_PAD_SUBFRAME[32];
 
 extern const int mapDeintVhtSigB20[52];
 void procDeintLegacyBpsk(uint8_t* inBits, uint8_t* outBits);
@@ -151,11 +153,17 @@ void signalParserVhtA(uint8_t* inBits, c8p_mod* outMod, c8p_sigVhtA* outSigVhtA)
 void signalParserVhtB(uint8_t* inBits, c8p_mod* outMod);
 void modParserVht(int mcs, c8p_mod* outMod);
 
-uint8_t genByteCrc8(uint8_t* inBits, int len);
+void genCrc8Bits(uint8_t* inBits, uint8_t* outBits, int len);
 bool checkBitCrc8(uint8_t* inBits, int len, uint8_t* crcBits);
+void bccEncoder(uint8_t* inBits, uint8_t* outBits, int len);
+void scrambler(uint8_t* inBits, uint8_t* outBits, int len);
 
 void formatToModSu(c8p_mod* mod, int format, int mcs, int nss, int len);
 bool formatCheck(int format, int mcs, int nss);
 
+void legacySigBitsGen(uint8_t* sigbits, uint8_t* sigbitscoded, int mcs, int len);
+void vhtSigABitsGenSU(uint8_t* sigabits, uint8_t* sigabitscoded, c8p_mod* mod);
+void vhtSigB20BitsGenSU(uint8_t* sigbbits, uint8_t* sigbbitscoded, uint8_t* sigbbitscrc, c8p_mod* mod);
+void htSigBitsGen(uint8_t* sigbits, uint8_t* sigbitscoded, c8p_mod* mod);
 
 #endif /* INCLUDED_IEEE80211_SIGNAL_IMPL_H */

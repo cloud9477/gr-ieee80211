@@ -109,6 +109,18 @@ const float PILOT_L[4] = {1.0f, 1.0f, 1.0f, -1.0f};
 const float PILOT_HT_2_1[4] = {1.0f, 1.0f, -1.0f, -1.0f};
 const float PILOT_HT_2_2[4] = {1.0f, -1.0f, -1.0f, 1.0f};
 const float PILOT_VHT[4] = {1.0f, 1.0f, 1.0f, -1.0f};
+const uint8_t EOF_PAD_SUBFRAME[32] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0};
+
+const uint8_t LEGACY_RATE_BITS[8][4] = {
+	{1, 1, 0, 1},
+	{1, 1, 1, 1},
+	{0, 1, 0, 1},
+	{0, 1, 1, 1},
+	{1, 0, 0, 1},
+	{1, 0, 1, 1},
+	{0, 0, 0, 1},
+	{0, 0, 1, 1}
+};
 
 /***************************************************/
 /* signal field */
@@ -238,6 +250,7 @@ bool signalCheckVhtA(uint8_t* inBits)
 
 void signalParserL(int mcs, int len, c8p_mod* outMod)
 {
+	outMod->mcs = mcs;
 	switch(mcs)
 	{
 		case 0:	// 0b1101
@@ -462,6 +475,7 @@ void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt)
 
 void modParserHt(int mcs, c8p_mod* outMod)
 {
+	outMod->mcs = mcs;
 	switch(mcs % 8)
 	{
 		case 0:
@@ -652,6 +666,7 @@ void signalParserVhtB(uint8_t* inBits, c8p_mod* outMod)
 
 void modParserVht(int mcs, c8p_mod* outMod)
 {
+	outMod->mcs = mcs;
 	switch(mcs)
 	{
 		case 0:
@@ -753,7 +768,7 @@ void modParserVht(int mcs, c8p_mod* outMod)
 /* coding */
 /***************************************************/
 
-uint8_t genByteCrc8(uint8_t* inBits, int len)
+void genCrc8Bits(uint8_t* inBits, uint8_t* outBits, int len)
 {
 	uint16_t c = 0x00ff;
 	uint8_t cf = 0x00;
@@ -781,12 +796,15 @@ uint8_t genByteCrc8(uint8_t* inBits, int len)
 	c = (0x00ff - (c & 0x00ff));
 	for (int i = 0; i < 8; i++)
 	{
-		if (c & (1 << i))
+		if (c & (1 << (7-i)))
 		{
-			cf |= (1 << (7 - i));
+			outBits[i] = 1;
+		}
+		else
+		{
+			outBits[i] = 0;
 		}
 	}
-	return cf;
 }
 
 bool checkBitCrc8(uint8_t* inBits, int len, uint8_t* crcBits)
@@ -1157,7 +1175,7 @@ void formatToModSu(c8p_mod* mod, int format, int mcs, int nss, int len)
 		mod->nSymSamp = 80;
 		mod->ampdu = 1;
 		mod->sumu = 0;
-		mod->nSym = (mod->len*8 + 16 + 6) / mod->nDBPS + (((mod->len*8 + 16 + 6) % mod->nDBPS) != 0);
+		mod->nSym = (mod->len*8 + 22) / mod->nDBPS + (((mod->len*8 + 22) % mod->nDBPS) != 0);
 	}
 	else
 	{
@@ -1179,3 +1197,175 @@ bool formatCheck(int format, int mcs, int nss)
 
 	return true;
 }
+
+void scramEncoder(uint8_t* inBits, uint8_t* outBits, int len, int init)
+{
+	int tmpState = init;
+    int tmpFb;
+
+	for(int i=0;i<len;i++)
+	{
+		tmpFb = (!!(tmpState & 64)) ^ (!!(tmpState & 8));
+        outBits[i] = tmpFb ^ inBits[i];
+        tmpState = ((tmpState << 1) & 0x7e) | tmpFb;
+	}
+}
+
+void bccEncoder(uint8_t* inBits, uint8_t* outBits, int len)
+{
+
+    int state = 0;
+	int count = 0;
+    for (int i = 0; i < len; i++) {
+        state = ((state << 1) & 0x7e) | inBits[i];
+		count = 0;
+		for(int j=0;j<7;j++)
+		{
+			if((state & 0155) & (1 << j))
+				count++;
+		}
+        outBits[i * 2] = count % 2;
+		count = 0;
+		for(int j=0;j<7;j++)
+		{
+			if((state & 0117) & (1 << j))
+				count++;
+		}
+        outBits[i * 2 + 1] = count % 2;
+    }
+}
+
+void legacySigBitsGen(uint8_t* sigbits, uint8_t* sigbitscoded, int mcs, int len)
+{
+	int p = 0;
+	// b 0-3 rate
+	memcpy(sigbits, LEGACY_RATE_BITS[mcs], 4);
+	// b 4 reserved
+	sigbits[4] = 0;
+	// b 5-16 len
+	for(int i=0;i<12;i++)
+	{
+		sigbits[5+i] = (len >> i) & 0x01;
+	}
+	// b 17 p
+	for(int i=0;i<17;i++)
+	{
+		if(sigbits[i])
+			p++;
+	}
+	sigbits[17] = (p % 2);
+	// b 18-23 tail
+	memset(&sigbits[18], 0, 6);
+
+	// ----------------------coding---------------------
+
+	bccEncoder(sigbits, sigbitscoded, 24);
+}
+
+void vhtSigABitsGenSU(uint8_t* sigabits, uint8_t* sigabitscoded, c8p_mod* mod)
+{
+	// b 0-1, bw
+	memset(&sigabits[0], 0, 2);
+	// b 2, reserved
+	sigabits[2] = 1;
+	// b 3, stbc
+	sigabits[3] = 0;
+	// b 4-9, group ID
+	memset(&sigabits[4], 0, 6);
+	// b 10-12 SU nSTS
+	for(int i=0;i<3;i++)
+	{
+		sigabits[10+i] = ((mod->nSS-1) >> i) & 0x01;
+	}
+	// b 13-21 SU partial AID
+	memset(&sigabits[13], 0, 9);
+	// b 22 txop ps not allowed, set 0, allowed
+	sigabits[22] = 0;
+	// b 23 reserved
+	sigabits[23] = 1;
+	// b 24 short GI
+	sigabits[24] = 0;
+	// b 25 short GI disam
+	sigabits[25] = 0;
+	// b 26 SU coding, BCC
+	sigabits[26] = 0;
+	// b 27 LDPC extra
+	sigabits[27] = 0;
+	// b 28-31 SU mcs
+	for(int i=0;i<4;i++)
+	{
+		sigabits[28+i] = (mod->mcs >> i) & 0x01;
+	}
+	// 32 beamforming
+	sigabits[32] = 0;
+	// 33 reserved
+	sigabits[33] = 1;
+	// 34-41 crc 8
+	genCrc8Bits(sigabits, &sigabits[34], 34);
+	// 42-47 tail, all 0
+	memset(&sigabits[42], 0, 6);
+
+	// ----------------------coding---------------------
+
+	bccEncoder(sigabits, sigabitscoded, 48);
+}
+
+void vhtSigB20BitsGenSU(uint8_t* sigbbits, uint8_t* sigbbitscoded, uint8_t* sigbbitscrc, c8p_mod* mod)
+{
+	// b 0-16 apep-len/4
+	for(int i=0;i<17;i++)
+	{
+		sigbbits[i] = ((mod->len/4) >> i) & 0x01;	
+	}
+	// b 17-19 reserved
+	memset(&sigbbits[17], 1, 3);
+	// b 20-25 tail
+	memset(&sigbbits[20], 0, 5);
+	// compute crc 8 for service part
+	genCrc8Bits(sigbbits, sigbbitscrc, 20);
+
+	// ----------------------coding---------------------
+
+	bccEncoder(sigbbits, sigbbitscoded, 26);
+}
+
+void htSigBitsGen(uint8_t* sigbits, uint8_t* sigbitscoded, c8p_mod* mod)
+{
+	// b 0-6 mcs
+	for(int i=0;i<7;i++)
+	{
+		sigbits[i] = (mod->mcs >> i) & 0x01;
+	}
+	// b 7 bw
+	sigbits[7] = 0;
+	// b 8-23 len
+	for(int i=0;i<16;i++)
+	{
+		sigbits[i+8] = (mod->len >> i) & 0x01;
+	}
+	// b 24 smoothing
+	sigbits[24] = 1;
+	// b 25 no sounding
+	sigbits[25] = 1;
+	// b 26 reserved
+	sigbits[26] = 1;
+	// b 27 aggregation
+	sigbits[27] = 0;
+	// b 28-29 stbc
+	memset(&sigbits[28], 0, 2);
+	// b 30, bcc
+	sigbits[30] = 0;
+	// b 31 short GI
+	sigbits[31] = 0;
+	// b 32-33 ext ss
+	memset(&sigbits[32], 0, 2);
+	// b 34-41 crc 8
+	genCrc8Bits(sigbits, &sigbits[34], 34);
+	// 42-47 tail, all 0
+	memset(&sigbits[42], 0, 6);
+
+	// ----------------------coding---------------------
+
+	bccEncoder(sigbits, sigbitscoded, 48);
+}
+

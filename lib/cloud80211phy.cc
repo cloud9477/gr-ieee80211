@@ -850,9 +850,18 @@ const int mapDeintVhtSigB20[52] = {
 	30, 43, 5, 18, 31, 44, 6,19, 32, 45, 7, 20, 33, 46, 8, 21, 34, 47,
 	9, 22, 35, 48, 10, 23, 36, 49, 11, 24, 37, 50, 12, 25, 38, 51};
 
+const int mapIntelVhtSigB20[52] = {
+	0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 1, 5, 9, 13, 17, 
+	21, 25, 29, 33, 37, 41, 45, 49, 2, 6, 10, 14, 18, 22, 26, 30, 34, 
+	38, 42, 46, 50, 3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47, 51};
+
 const int mapDeintLegacyBpsk[48] = {
     0, 16, 32, 1, 17, 33, 2, 18, 34, 3, 19, 35, 4, 20, 36, 5, 21, 37, 6, 22, 38, 7, 23, 39, 8, 24, 
     40, 9, 25, 41, 10, 26, 42, 11, 27, 43, 12, 28, 44, 13, 29, 45, 14, 30, 46, 15, 31, 47};
+
+const int mapIntelLegacyBpsk[48] = {
+	0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 1, 4, 7, 10, 13, 16, 19, 22, 25, 
+	28, 31, 34, 37, 40, 43, 46, 2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35, 38, 41, 44, 47};
 
 void procDeintLegacyBpsk(uint8_t* inBits, uint8_t* outBits)
 {
@@ -867,6 +876,22 @@ void procDeintLegacyBpsk(float* inBits, float* outBits)
     for(int i=0;i<48;i++)
     {
         outBits[mapDeintLegacyBpsk[i]] = inBits[i];
+    }
+}
+
+void procIntelLegacyBpsk(uint8_t* inBits, uint8_t* outBits)
+{
+	for(int i=0;i<48;i++)
+    {
+        outBits[mapIntelLegacyBpsk[i]] = inBits[i];
+    }
+}
+
+void procIntelVhtB20(uint8_t* inBits, uint8_t* outBits)
+{
+	for(int i=0;i<52;i++)
+    {
+        outBits[mapIntelVhtSigB20[i]] = inBits[i];
     }
 }
 
@@ -1233,6 +1258,140 @@ void bccEncoder(uint8_t* inBits, uint8_t* outBits, int len)
 		}
         outBits[i * 2 + 1] = count % 2;
     }
+}
+
+void punctEncoder(uint8_t* inBits, uint8_t* outBits, int len, c8p_mod* mod)
+{
+	int tmpPunctIndex = 0;
+	if(mod->cr == C8P_CR_12)
+	{
+		memcpy(outBits, inBits, len);
+	}
+	else if(mod->cr == C8P_CR_23)
+	{
+		for(int i=0;i<len;i++)
+		{
+			if(SV_PUNC_23[i%4])
+			{
+				outBits[tmpPunctIndex] = inBits[i];
+				tmpPunctIndex++;
+			}
+		}
+	}
+	else if(mod->cr == C8P_CR_34)
+	{
+		for(int i=0;i<len;i++)
+		{
+			if(SV_PUNC_34[i%6])
+			{
+				outBits[tmpPunctIndex] = inBits[i];
+				tmpPunctIndex++;
+			}
+		}
+	}
+	else
+	{
+		for(int i=0;i<len;i++)
+		{
+			if(SV_PUNC_56[i%10])
+			{
+				outBits[tmpPunctIndex] = inBits[i];
+				tmpPunctIndex++;
+			}
+		}
+	}
+}
+
+void streamParser2(uint8_t* inBits, uint8_t* outBits1, uint8_t* outBits2, int len, c8p_mod* mod)
+{
+	int s = std::max(mod->nBPSCS/2, 1);
+	uint8_t* tmpInP = inBits;
+	uint8_t* tmpOutP1 = outBits1;
+	uint8_t* tmpOutP2 = outBits2;
+	for(int i=0;i<(len/2/s);i++)
+	{
+		memcpy(tmpOutP1, tmpInP, s);
+		tmpOutP1 += s;
+		tmpInP += s;
+		memcpy(tmpOutP2, tmpInP, s);
+		tmpOutP2 += s;
+		tmpInP += s;
+	}
+}
+
+void procInterLegacy(uint8_t* inBits, uint8_t* outBits, c8p_mod* mod)
+{
+	int s = std::max(1, mod->nBPSCS/2);
+	int i, j;
+	for(int k=0;k<mod->nCBPS;k++)
+	{
+		i = (mod->nCBPS/16) * (k % mod->nCBPS) + (k / 16);
+		j = s * (i / s) + (i + mod->nCBPS - ((16 * i) / mod->nCBPS)) % s;
+		outBits[j] = inBits[k];
+	}
+}
+
+void procInterNonLegacy(uint8_t* inBits, uint8_t* outBits, c8p_mod* mod)
+{
+	int s = std::max(1, mod->nBPSCS/2);
+	int i, j, r;
+	for(int k=0;k<mod->nCBPSS;k++)
+	{
+		i = mod->nIntRow * (k % mod->nIntCol) + (k / mod->nIntCol);
+		j = s * (i / s) + (i + mod->nCBPSS - ((mod->nIntCol * i) / mod->nCBPSS)) % s;
+		if(mod->nSS > 1)
+		{
+			r = (j - ((2*(mod->nSS - 1))%3 + 3 * ((mod->nSS - 1)/3)) * mod->nIntRot * mod->nBPSCS) % mod->nCBPSS;
+		}
+		else
+		{
+			r = j;
+		}
+		outBits[r] = inBits[k];
+	}
+}
+
+void bitsToChips(uint8_t* inBits, uint8_t* outChips, int len, c8p_mod* mod)
+{
+	int tmpBitIndex = 0;
+	int tmpChipIndex = 0;
+	uint8_t tmpChip;
+	int i, tmpChipLen;
+
+	switch(mod->mod)
+	{
+		case C8P_QAM_BPSK:
+			tmpChipLen = 1;
+			break;
+		case C8P_QAM_QPSK:
+			tmpChipLen = 2;
+			break;
+		case C8P_QAM_16QAM:
+			tmpChipLen = 4;
+			break;
+		case C8P_QAM_64QAM:
+			tmpChipLen = 6;
+			break;
+		case C8P_QAM_256QAM:
+			tmpChipLen = 8;
+			break;
+		default:
+			tmpChipLen = 1;
+			break;
+	}
+
+	while(tmpBitIndex < len)
+	{
+		tmpChip = 0;
+		for(i=0;i<tmpChipLen;i++)
+		{
+			tmpChip |= (inBits[tmpBitIndex] << i);
+			tmpBitIndex++;
+		}
+		outChips[tmpChipIndex] = tmpChip;
+		tmpChipIndex++;
+	}
+	
 }
 
 void legacySigBitsGen(uint8_t* sigbits, uint8_t* sigbitscoded, int mcs, int len)

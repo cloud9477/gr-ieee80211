@@ -38,7 +38,7 @@ namespace gr {
     encode_impl::encode_impl(const std::string& tsb_tag_key)
       : gr::tagged_stream_block("encode",
               gr::io_signature::make(0, 0, 0),
-              gr::io_signature::make(1, 1, sizeof(uint8_t)), tsb_tag_key)
+              gr::io_signature::make(2, 2, sizeof(uint8_t)), tsb_tag_key)
     {
       //message_port_register_in(pdu::pdu_port_id());
       d_sEncode = ENCODE_S_IDLE;
@@ -74,6 +74,7 @@ namespace gr {
       {
         // legacy
         legacySigBitsGen(d_legacySig, d_legacySigCoded, d_m.mcs, d_m.len);
+        procIntelLegacyBpsk(d_legacySigCoded, d_legacySigInted);
 
         uint8_t* tmpDataP = d_dataBits;
         memset(tmpDataP, 0, 16);
@@ -96,12 +97,17 @@ namespace gr {
       {
         // vht
         vhtSigABitsGenSU(d_vhtSigA, d_vhtSigACoded, &d_m);
+        procIntelLegacyBpsk(&d_vhtSigACoded[0], &d_vhtSigAInted[0]);
+        procIntelLegacyBpsk(&d_vhtSigACoded[48], &d_vhtSigAInted[48]);
         vhtSigB20BitsGenSU(d_vhtSigB20, d_vhtSigB20Coded, d_vhtSigBCrc8, &d_m);
+        procIntelVhtB20(d_vhtSigB20Coded, d_vhtSigB20Inted);
+
         int tmpPsduLen = (d_m.nSym * d_m.nDBPS - 16 - 6)/8;
         // legacy training 16, legacy sig 4, vhtsiga 8, vht training 4+4n, vhtsigb, payload, no short GI
         int tmpTxTime = 20 + 8 + 4 + d_m.nLTF * 4 + 4 + d_m.nSym * 4;
         int tmpLegacyLen = ((tmpTxTime - 20) / 4 + (((tmpTxTime - 20) % 4) != 0)) * 3 - 3;
         legacySigBitsGen(d_legacySig, d_legacySigCoded, 0, tmpLegacyLen);
+        procIntelLegacyBpsk(d_legacySigCoded, d_legacySigInted);
 
         uint8_t* tmpDataP = d_dataBits;
         // 7 scrambler init, 1 reserved
@@ -138,10 +144,13 @@ namespace gr {
       {
         // ht
         htSigBitsGen(d_htSig, d_htSigCoded, &d_m);
+        procIntelLegacyBpsk(&d_htSigCoded[0], &d_htSigInted[0]);
+        procIntelLegacyBpsk(&d_htSigCoded[48], &d_htSigInted[48]);
         // legacy training and sig 20, htsig 8, ht training 4+4n, payload, no short GI
         int tmpTxTime = 20 + 8 + 4 + d_m.nLTF * 4 + d_m.nSym * 4;
         int tmpLegacyLen = ((tmpTxTime - 20) / 4 + (((tmpTxTime - 20) % 4) != 0)) * 3 - 3;
         legacySigBitsGen(d_legacySig, d_legacySigCoded, 0, tmpLegacyLen);
+        procIntelLegacyBpsk(d_legacySigCoded, d_legacySigInted);
 
         uint8_t* tmpDataP = d_dataBits;
         // service
@@ -171,11 +180,11 @@ namespace gr {
       if(d_sEncode == ENCODE_S_SCEDULE)
       {
         std::cout<<"schedule in calculate"<<std::endl;
-        d_nBitsGen = d_m.nSym * d_m.nCBPS;      // gen payload part coded bits, signal parts in the tag
-        d_nBitsGenProcd = 0;
+        d_nChipsGen = d_m.nSym * d_m.nSD;      // gen payload part qam chips
+        d_nChipsGenProcd = 0;
         d_sEncode = ENCODE_S_ENCODE;
       }
-      return d_nBitsGen;
+      return d_nChipsGen;
     }
 
     int
@@ -185,7 +194,8 @@ namespace gr {
                        gr_vector_void_star &output_items)
     {
       //auto in = static_cast<const input_type*>(input_items[0]);
-      uint8_t* out = static_cast<uint8_t*>(output_items[0]);
+      uint8_t* outChips1 = static_cast<uint8_t*>(output_items[0]);
+      uint8_t* outChips2 = static_cast<uint8_t*>(output_items[1]);
       d_nGen = noutput_items;
 
       switch(d_sEncode)
@@ -205,6 +215,102 @@ namespace gr {
         case ENCODE_S_ENCODE:
         {
           std::cout<<"encode and gen tag"<<std::endl;
+          // scrambling
+          if(d_m.format == C8P_F_VHT)
+          {
+            scramEncoder(d_dataBits, d_scramBits, (d_m.nSym * d_m.nDBPS - 6), 97);
+            memset(&d_scramBits[d_m.nSym * d_m.nDBPS - 6], 0, 6);
+          }
+          else
+          {
+            scramEncoder(d_dataBits, d_scramBits, (d_m.nSym * d_m.nDBPS), 97);
+            memset(&d_scramBits[d_m.len * 8 + 16], 0, 6);
+          }
+          // binary convolutional coding
+          bccEncoder(d_scramBits, d_convlBits, d_m.nSym * d_m.nDBPS);
+          // puncturing
+          punctEncoder(d_scramBits, d_punctBits, d_m.nSym * d_m.nDBPS * 2, &d_m);
+          // interleave and convert to qam chips
+          if(d_m.nSS == 1)
+          {
+            if(d_m.format == C8P_F_L)
+            {
+              for(int i=0;i<d_m.nSym;i++)
+              {
+                procInterLegacy(&d_punctBits[i*d_m.nCBPS], &d_IntedBits1[i*d_m.nCBPS], &d_m);
+              }
+            }
+            else
+            {
+              for(int i=0;i<d_m.nSym;i++)
+              {
+                procInterNonLegacy(&d_punctBits[i*d_m.nCBPS], &d_IntedBits1[i*d_m.nCBPS], &d_m);
+              }
+            }
+            bitsToChips(d_IntedBits1, d_qamChips1, d_m.nSym * d_m.nCBPS, &d_m);
+          }
+          else
+          {
+            // stream parser first
+            streamParser2(d_punctBits, d_parsdBits1, d_parsdBits2, d_m.nSym * d_m.nCBPS, &d_m);
+            for(int i=0;i<d_m.nSym;i++)
+            {
+              procInterNonLegacy(&d_parsdBits1[i*d_m.nCBPSS], &d_IntedBits1[i*d_m.nCBPSS], &d_m);
+              procInterNonLegacy(&d_parsdBits2[i*d_m.nCBPSS], &d_IntedBits2[i*d_m.nCBPSS], &d_m);
+            }
+            bitsToChips(d_IntedBits1, d_qamChips1, d_m.nSym * d_m.nCBPSS, &d_m);
+            bitsToChips(d_IntedBits2, d_qamChips2, d_m.nSym * d_m.nCBPSS, &d_m);
+          }
+
+          // gen tag
+          d_tagLegacyBits.clear();
+          d_tagLegacyBits.reserve(48);
+          for(int i=0;i<48;i++)
+          {
+            d_tagLegacyBits.push_back(d_legacySigInted[i]);
+          }
+          pmt::pmt_t dict = pmt::make_dict();
+          dict = pmt::dict_add(dict, pmt::mp("format"), pmt::from_long(d_m.format));
+          dict = pmt::dict_add(dict, pmt::mp("nss"), pmt::from_long(d_m.format));
+          dict = pmt::dict_add(dict, pmt::mp("nsym"), pmt::from_long(d_m.nSym));
+          dict = pmt::dict_add(dict, pmt::mp("lsig"), pmt::init_u8vector(d_tagLegacyBits.size(), d_tagLegacyBits));
+          if(d_m.format == C8P_F_HT)
+          {
+            d_tagHtBits.clear();
+            d_tagHtBits.reserve(96);
+            for(int i=0;i<96;i++)
+            {
+              d_tagHtBits.push_back(d_htSigInted[i]);
+            }
+            dict = pmt::dict_add(dict, pmt::mp("htsig"), pmt::init_u8vector(d_tagHtBits.size(), d_tagHtBits));
+          }
+          else if(d_m.format == C8P_F_VHT)
+          {
+            d_tagVhtABits.clear();
+            d_tagVhtABits.reserve(96);
+            d_tagVhtB20Bits.clear();
+            d_tagVhtB20Bits.reserve(52);
+            for(int i=0;i<96;i++)
+            {
+              d_tagVhtABits.push_back(d_vhtSigAInted[i]);
+            }
+            for(int i=0;i<52;i++)
+            {
+              d_tagVhtB20Bits.push_back(d_vhtSigB20Inted[i]);
+            }
+            dict = pmt::dict_add(dict, pmt::mp("vhtsiga"), pmt::init_u8vector(d_tagVhtABits.size(), d_tagVhtABits));
+            dict = pmt::dict_add(dict, pmt::mp("vhtsigb"), pmt::init_u8vector(d_tagVhtB20Bits.size(), d_tagVhtB20Bits));
+          }
+          pmt::pmt_t pairs = pmt::dict_items(dict);
+          for (int i = 0; i < pmt::length(pairs); i++) {
+              pmt::pmt_t pair = pmt::nth(i, pairs);
+              add_item_tag(0,                   // output port index
+                            nitems_written(0),  // output sample index
+                            pmt::car(pair),     
+                            pmt::cdr(pair),
+                            alias_pmt());
+          }
+
           d_sEncode = ENCODE_S_COPY;
           return 0;
         }
@@ -213,12 +319,21 @@ namespace gr {
         {
           std::cout<<"copy"<<std::endl;
           int o1 = 0;
-          int nCBPS = 1000; 
-          while((o1 + nCBPS) < d_nGen)
+          while((o1 + d_m.nSD) < d_nGen)
           {
-            o1 += nCBPS;
-            d_nBitsGenProcd += nCBPS;
-            if(d_nBitsGenProcd >= d_nBitsGen)
+            if(d_m.nSS == 1)
+            {
+              memcpy(&outChips1[o1], &d_qamChips1[d_nChipsGenProcd], d_m.nSD);
+              memset(&outChips2[o1], 0, d_m.nSD);
+            }
+            else
+            {
+              memcpy(&outChips1[o1], &d_qamChips1[d_nChipsGenProcd], d_m.nSD);
+              memcpy(&outChips2[o1], &d_qamChips2[d_nChipsGenProcd], d_m.nSD);
+            }
+            o1 += d_m.nSD;
+            d_nChipsGenProcd += d_m.nSD;
+            if(d_nChipsGenProcd >= d_nChipsGen)
             {
               std::cout<<"copy done"<<std::endl;
               d_sEncode = ENCODE_S_IDLE;

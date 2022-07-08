@@ -30,8 +30,9 @@
 #define ENCODE_S_ENCODE 2
 #define ENCODE_S_COPY 3
 
-#define DECODE_B_MAX 16000
-#define DECODE_D_MAX 2000
+#define DECODE_CB_MAX 32000   // max coded bits
+#define DECODE_B_MAX 16000    // max data bits
+#define DECODE_D_MAX 2000     // max payload bytes
 
 namespace gr {
   namespace ieee80211 {
@@ -42,23 +43,45 @@ namespace gr {
       // block
       int d_sEncode;
       int d_nGen;
-      int d_nBitsGen;
-      int d_nBitsGenProcd;
+      int d_nChipsGen;
+      int d_nChipsGenProcd;
       // msg
       void msgRead(pmt::pmt_t msg);
       uint8_t d_dataBits[DECODE_B_MAX];
+      uint8_t d_scramBits[DECODE_B_MAX];
+      uint8_t d_convlBits[DECODE_CB_MAX];
+      uint8_t d_punctBits[DECODE_CB_MAX];
+      uint8_t d_parsdBits1[DECODE_CB_MAX];
+      uint8_t d_parsdBits2[DECODE_CB_MAX];
+      uint8_t d_IntedBits1[DECODE_CB_MAX];
+      uint8_t d_IntedBits2[DECODE_CB_MAX];
+      uint8_t d_qamChips1[DECODE_CB_MAX];
+      uint8_t d_qamChips2[DECODE_CB_MAX];
       // modulation
       c8p_mod d_m;
       // signal
       uint8_t d_legacySig[24];
       uint8_t d_legacySigCoded[48];
+      uint8_t d_legacySigInted[48];
+
       uint8_t d_htSig[48];
       uint8_t d_htSigCoded[96];
+      uint8_t d_htSigInted[96];
+
       uint8_t d_vhtSigA[48];
       uint8_t d_vhtSigACoded[96];
+      uint8_t d_vhtSigAInted[96];
+
       uint8_t d_vhtSigB20[26];
       uint8_t d_vhtSigB20Coded[52];
+      uint8_t d_vhtSigB20Inted[52];
+
       uint8_t d_vhtSigBCrc8[8];
+      // tag
+      std::vector<uint8_t> d_tagLegacyBits;
+      std::vector<uint8_t> d_tagVhtABits;
+      std::vector<uint8_t> d_tagVhtB20Bits;
+      std::vector<uint8_t> d_tagHtBits;
 
       
      protected:

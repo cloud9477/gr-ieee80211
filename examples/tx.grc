@@ -54,7 +54,7 @@ blocks:
     maxoutbuf: '0'
     minoutbuf: '0'
     msg: pmt.intern("TEST")
-    period: '1000'
+    period: '5000'
   states:
     bus_sink: false
     bus_source: false
@@ -79,6 +79,23 @@ blocks:
     coordinate: [792, 304.0]
     rotation: 0
     state: true
+- name: blocks_null_sink_0_0
+  id: blocks_null_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    bus_structure_sink: '[[0,],]'
+    comment: ''
+    num_inputs: '1'
+    type: byte
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [792, 344.0]
+    rotation: 0
+    state: true
 - name: ieee80211_encode_0
   id: ieee80211_encode
   parameters:
@@ -99,6 +116,7 @@ blocks:
 connections:
 - [blocks_message_strobe_0, strobe, ieee80211_encode_0, pdus]
 - [ieee80211_encode_0, '0', blocks_null_sink_0, '0']
+- [ieee80211_encode_0, '1', blocks_null_sink_0_0, '0']
 
 metadata:
   file_format: 1

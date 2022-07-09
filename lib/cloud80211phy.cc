@@ -1269,6 +1269,7 @@ void punctEncoder(uint8_t* inBits, uint8_t* outBits, int len, c8p_mod* mod)
 	}
 	else if(mod->cr == C8P_CR_23)
 	{
+		std::cout<<"ieee80211 puncture, coding rate 23"<<std::endl;
 		for(int i=0;i<len;i++)
 		{
 			if(SV_PUNC_23[i%4])
@@ -1280,6 +1281,7 @@ void punctEncoder(uint8_t* inBits, uint8_t* outBits, int len, c8p_mod* mod)
 	}
 	else if(mod->cr == C8P_CR_34)
 	{
+		std::cout<<"ieee80211 puncture, coding rate 34"<<std::endl;
 		for(int i=0;i<len;i++)
 		{
 			if(SV_PUNC_34[i%6])
@@ -1291,6 +1293,7 @@ void punctEncoder(uint8_t* inBits, uint8_t* outBits, int len, c8p_mod* mod)
 	}
 	else
 	{
+		std::cout<<"ieee80211 puncture, coding rate 56"<<std::endl;
 		for(int i=0;i<len;i++)
 		{
 			if(SV_PUNC_56[i%10])
@@ -1325,13 +1328,13 @@ void procInterLegacy(uint8_t* inBits, uint8_t* outBits, c8p_mod* mod)
 	int i, j;
 	for(int k=0;k<mod->nCBPS;k++)
 	{
-		i = (mod->nCBPS/16) * (k % mod->nCBPS) + (k / 16);
+		i = (mod->nCBPS/16) * (k % 16) + (k / 16);
 		j = s * (i / s) + (i + mod->nCBPS - ((16 * i) / mod->nCBPS)) % s;
 		outBits[j] = inBits[k];
 	}
 }
 
-void procInterNonLegacy(uint8_t* inBits, uint8_t* outBits, c8p_mod* mod)
+void procInterNonLegacy(uint8_t* inBits, uint8_t* outBits, c8p_mod* mod, int iss_1)
 {
 	int s = std::max(1, mod->nBPSCS/2);
 	int i, j, r;
@@ -1341,7 +1344,7 @@ void procInterNonLegacy(uint8_t* inBits, uint8_t* outBits, c8p_mod* mod)
 		j = s * (i / s) + (i + mod->nCBPSS - ((mod->nIntCol * i) / mod->nCBPSS)) % s;
 		if(mod->nSS > 1)
 		{
-			r = (j - ((2*(mod->nSS - 1))%3 + 3 * ((mod->nSS - 1)/3)) * mod->nIntRot * mod->nBPSCS) % mod->nCBPSS;
+			r = (j - ((2*iss_1)%3 + 3 * (iss_1/3)) * mod->nIntRot * mod->nBPSCS + mod->nCBPSS) % mod->nCBPSS;
 		}
 		else
 		{
@@ -1351,12 +1354,11 @@ void procInterNonLegacy(uint8_t* inBits, uint8_t* outBits, c8p_mod* mod)
 	}
 }
 
-void bitsToChips(uint8_t* inBits, uint8_t* outChips, int len, c8p_mod* mod)
+void bitsToChips(uint8_t* inBits, uint8_t* outChips, c8p_mod* mod)
 {
 	int tmpBitIndex = 0;
 	int tmpChipIndex = 0;
-	uint8_t tmpChip;
-	int i, tmpChipLen;
+	int i, tmpChipLen, tmpChipNum;
 
 	switch(mod->mod)
 	{
@@ -1380,15 +1382,21 @@ void bitsToChips(uint8_t* inBits, uint8_t* outChips, int len, c8p_mod* mod)
 			break;
 	}
 
-	while(tmpBitIndex < len)
+	tmpChipNum = (mod->nSym * mod->nCBPSS) / tmpChipLen;
+
+	while(tmpChipIndex < tmpChipNum)
 	{
-		tmpChip = 0;
+		outChips[tmpChipIndex] = 0;
 		for(i=0;i<tmpChipLen;i++)
 		{
-			tmpChip |= (inBits[tmpBitIndex] << i);
+			// method 1
+			//outChips[tmpChipIndex] |= (inBits[tmpBitIndex] << i);
+			// method 2
+			outChips[tmpChipIndex] <<= 1;
+			outChips[tmpChipIndex] |= inBits[tmpBitIndex];
+
 			tmpBitIndex++;
 		}
-		outChips[tmpChipIndex] = tmpChip;
 		tmpChipIndex++;
 	}
 	

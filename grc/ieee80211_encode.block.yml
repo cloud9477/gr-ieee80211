@@ -13,7 +13,10 @@ inputs:
   id: pdus
 
 outputs:
-- label: outBits
+- label: outBits1
+  domain: stream
+  dtype: byte
+- label: outBits2
   domain: stream
   dtype: byte
 

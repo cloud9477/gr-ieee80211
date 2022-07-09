@@ -161,9 +161,9 @@ void bccEncoder(uint8_t* inBits, uint8_t* outBits, int len);
 void scramEncoder(uint8_t* inBits, uint8_t* outBits, int len, int init);
 void punctEncoder(uint8_t* inBits, uint8_t* outBits, int len, c8p_mod* mod);
 void streamParser2(uint8_t* inBits, uint8_t* outBits1, uint8_t* outBits2, int len, c8p_mod* mod);
-void bitsToChips(uint8_t* inBits, uint8_t* outChips, int len, c8p_mod* mod);
+void bitsToChips(uint8_t* inBits, uint8_t* outChips, c8p_mod* mod);
 void procInterLegacy(uint8_t* inBits, uint8_t* outBits, c8p_mod* mod);
-void procInterNonLegacy(uint8_t* inBits, uint8_t* outBits, c8p_mod* mod);
+void procInterNonLegacy(uint8_t* inBits, uint8_t* outBits, c8p_mod* mod, int iss_1);
 
 void formatToModSu(c8p_mod* mod, int format, int mcs, int nss, int len);
 bool formatCheck(int format, int mcs, int nss);

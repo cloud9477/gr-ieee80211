@@ -513,8 +513,9 @@ namespace gr {
           }
           pmt::pmt_t dict = pmt::make_dict();
           dict = pmt::dict_add(dict, pmt::mp("format"), pmt::from_long(d_m.format));
-          dict = pmt::dict_add(dict, pmt::mp("nss"), pmt::from_long(d_m.format));
-          dict = pmt::dict_add(dict, pmt::mp("nsym"), pmt::from_long(d_m.nSym));
+          dict = pmt::dict_add(dict, pmt::mp("mcs"), pmt::from_long(d_m.mcs));
+          dict = pmt::dict_add(dict, pmt::mp("nss"), pmt::from_long(d_m.nSS));
+          dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_m.len));
           dict = pmt::dict_add(dict, pmt::mp("lsig"), pmt::init_u8vector(d_tagLegacyBits.size(), d_tagLegacyBits));
           if(d_m.format == C8P_F_HT)
           {

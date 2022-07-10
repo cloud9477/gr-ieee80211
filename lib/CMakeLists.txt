@@ -19,6 +19,7 @@ list(APPEND ieee80211_sources
     demod_impl.cc
     decode_impl.cc
     encode_impl.cc
+    modulation_impl.cc
 )
 
 set(ieee80211_sources "${ieee80211_sources}" PARENT_SCOPE)

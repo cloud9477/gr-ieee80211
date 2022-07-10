@@ -24,6 +24,7 @@
 #include <cstring>
 #include <iostream>
 #include <gnuradio/io_signature.h>
+#include <math.h>
 
 #define C8P_MAX_N_LTF 4
 #define C8P_MAX_N_SS 2
@@ -132,6 +133,16 @@ extern const float PILOT_VHT[4];
 extern const uint8_t EOF_PAD_SUBFRAME[32];
 
 extern const int mapDeintVhtSigB20[52];
+
+// 
+
+extern const gr_complex C8P_STF_F[64];
+extern const gr_complex C8P_LTF_L_F[64];
+extern const gr_complex C8P_LTF_NL_F[64];
+extern const gr_complex C8P_LTF_NL_F_N[64];
+
+
+
 void procDeintLegacyBpsk(uint8_t* inBits, uint8_t* outBits);
 void procDeintLegacyBpsk(float* inBits, float* outBits);
 void procIntelLegacyBpsk(uint8_t* inBits, uint8_t* outBits);
@@ -143,6 +154,8 @@ void procSymDeintNL(float* in, float* out, c8p_mod* mod, int iSS_1);
 void procSymDepasNL(float in[C8P_MAX_N_SS][C8P_MAX_N_CBPSS], float* out, c8p_mod* mod);
 int nCodedToUncoded(int nCoded, c8p_mod* mod);
 int nUncodedToCoded(int nUncoded, c8p_mod* mod);
+void procCSD(gr_complex* sig, int cycShift);
+void procToneScaling(gr_complex* sig, int ntf, int nss);
 
 bool signalCheckLegacy(uint8_t* inBits, int* mcs, int* len, int* nDBPS);
 bool signalCheckHt(uint8_t* inBits);

@@ -199,6 +199,187 @@ const gr_complex C8P_LTF_NL_F_N[64] = {
 };
 
 
+const gr_complex C8P_QAM_TAB_BPSK[2] = {gr_complex(-1.0f, 0.0f), gr_complex(1.0f, 0.0f)};
+const gr_complex C8P_QAM_TAB_QBPSK[2] = {gr_complex(0.0f, -1.0f), gr_complex(0.0f, 1.0f)};
+const gr_complex C8P_QAM_TAB_QPSK[4] = {
+	gr_complex(-1.0f, -1.0f)/sqrtf(2.0f), gr_complex(-1.0f, 1.0f)/sqrtf(2.0f), 
+	gr_complex(1.0f, -1.0f)/sqrtf(2.0f), gr_complex(1.0f, 1.0f)/sqrtf(2.0f)
+};
+const gr_complex C8P_QAM_TAB_16QAM[16] = {
+	gr_complex(-3.0f, -3.0f)/sqrtf(10.0f), gr_complex(-3.0f, -1.0f)/sqrtf(10.0f), 
+	gr_complex(-3.0f, 3.0f)/sqrtf(10.0f), gr_complex(-3.0f, 1.0f)/sqrtf(10.0f), 
+	gr_complex(-1.0f, -3.0f)/sqrtf(10.0f), gr_complex(-1.0f, -1.0f)/sqrtf(10.0f), 
+	gr_complex(-1.0f, 3.0f)/sqrtf(10.0f), gr_complex(-1.0f, 1.0f)/sqrtf(10.0f), 
+	gr_complex(3.0f, -3.0f)/sqrtf(10.0f), gr_complex(3.0f, -1.0f)/sqrtf(10.0f), 
+	gr_complex(3.0f, 3.0f)/sqrtf(10.0f), gr_complex(3.0f, 1.0f)/sqrtf(10.0f), 
+	gr_complex(1.0f, -3.0f)/sqrtf(10.0f), gr_complex(1.0f, -1.0f)/sqrtf(10.0f), 
+	gr_complex(1.0f, 3.0f)/sqrtf(10.0f), gr_complex(1.0f, 1.0f)/sqrtf(10.0f)
+};
+const gr_complex C8P_QAM_TAB_64QAM[64] = {
+	gr_complex(-7.0f, -7.0f)/sqrtf(42.0f), gr_complex(-7.0f, -5.0f)/sqrtf(42.0f), 
+	gr_complex(-7.0f, -1.0f)/sqrtf(42.0f), gr_complex(-7.0f, -3.0f)/sqrtf(42.0f), 
+	gr_complex(-7.0f, 7.0f)/sqrtf(42.0f), gr_complex(-7.0f, 5.0f)/sqrtf(42.0f), 
+	gr_complex(-7.0f, 1.0f)/sqrtf(42.0f), gr_complex(-7.0f, 3.0f)/sqrtf(42.0f), 
+	gr_complex(-5.0f, -7.0f)/sqrtf(42.0f), gr_complex(-5.0f, -5.0f)/sqrtf(42.0f), 
+	gr_complex(-5.0f, -1.0f)/sqrtf(42.0f), gr_complex(-5.0f, -3.0f)/sqrtf(42.0f), 
+	gr_complex(-5.0f, 7.0f)/sqrtf(42.0f), gr_complex(-5.0f, 5.0f)/sqrtf(42.0f), 
+	gr_complex(-5.0f, 1.0f)/sqrtf(42.0f), gr_complex(-5.0f, 3.0f)/sqrtf(42.0f), 
+	gr_complex(-1.0f, -7.0f)/sqrtf(42.0f), gr_complex(-1.0f, -5.0f)/sqrtf(42.0f), 
+	gr_complex(-1.0f, -1.0f)/sqrtf(42.0f), gr_complex(-1.0f, -3.0f)/sqrtf(42.0f), 
+	gr_complex(-1.0f, 7.0f)/sqrtf(42.0f), gr_complex(-1.0f, 5.0f)/sqrtf(42.0f), 
+	gr_complex(-1.0f, 1.0f)/sqrtf(42.0f), gr_complex(-1.0f, 3.0f)/sqrtf(42.0f), 
+	gr_complex(-3.0f, -7.0f)/sqrtf(42.0f), gr_complex(-3.0f, -5.0f)/sqrtf(42.0f), 
+	gr_complex(-3.0f, -1.0f)/sqrtf(42.0f), gr_complex(-3.0f, -3.0f)/sqrtf(42.0f), 
+	gr_complex(-3.0f, 7.0f)/sqrtf(42.0f), gr_complex(-3.0f, 5.0f)/sqrtf(42.0f), 
+	gr_complex(-3.0f, 1.0f)/sqrtf(42.0f), gr_complex(-3.0f, 3.0f)/sqrtf(42.0f), 
+	gr_complex(7.0f, -7.0f)/sqrtf(42.0f), gr_complex(7.0f, -5.0f)/sqrtf(42.0f), 
+	gr_complex(7.0f, -1.0f)/sqrtf(42.0f), gr_complex(7.0f, -3.0f)/sqrtf(42.0f), 
+	gr_complex(7.0f, 7.0f)/sqrtf(42.0f), gr_complex(7.0f, 5.0f)/sqrtf(42.0f), 
+	gr_complex(7.0f, 1.0f)/sqrtf(42.0f), gr_complex(7.0f, 3.0f)/sqrtf(42.0f), 
+	gr_complex(5.0f, -7.0f)/sqrtf(42.0f), gr_complex(5.0f, -5.0f)/sqrtf(42.0f), 
+	gr_complex(5.0f, -1.0f)/sqrtf(42.0f), gr_complex(5.0f, -3.0f)/sqrtf(42.0f), 
+	gr_complex(5.0f, 7.0f)/sqrtf(42.0f), gr_complex(5.0f, 5.0f)/sqrtf(42.0f), 
+	gr_complex(5.0f, 1.0f)/sqrtf(42.0f), gr_complex(5.0f, 3.0f)/sqrtf(42.0f), 
+	gr_complex(1.0f, -7.0f)/sqrtf(42.0f), gr_complex(1.0f, -5.0f)/sqrtf(42.0f), 
+	gr_complex(1.0f, -1.0f)/sqrtf(42.0f), gr_complex(1.0f, -3.0f)/sqrtf(42.0f), 
+	gr_complex(1.0f, 7.0f)/sqrtf(42.0f), gr_complex(1.0f, 5.0f)/sqrtf(42.0f), 
+	gr_complex(1.0f, 1.0f)/sqrtf(42.0f), gr_complex(1.0f, 3.0f)/sqrtf(42.0f), 
+	gr_complex(3.0f, -7.0f)/sqrtf(42.0f), gr_complex(3.0f, -5.0f)/sqrtf(42.0f), 
+	gr_complex(3.0f, -1.0f)/sqrtf(42.0f), gr_complex(3.0f, -3.0f)/sqrtf(42.0f), 
+	gr_complex(3.0f, 7.0f)/sqrtf(42.0f), gr_complex(3.0f, 5.0f)/sqrtf(42.0f), 
+	gr_complex(3.0f, 1.0f)/sqrtf(42.0f), gr_complex(3.0f, 3.0f)/sqrtf(42.0f)
+};
+
+const gr_complex C8P_QAM_TAB_256QAM[256] = {
+	gr_complex(-15.0f, -15.0f)/sqrtf(170.0f), gr_complex(-15.0f, -13.0f)/sqrtf(170.0f), 
+	gr_complex(-15.0f, -9.0f)/sqrtf(170.0f), gr_complex(-15.0f, -11.0f)/sqrtf(170.0f), 
+	gr_complex(-15.0f, -1.0f)/sqrtf(170.0f), gr_complex(-15.0f, -3.0f)/sqrtf(170.0f), 
+	gr_complex(-15.0f, -7.0f)/sqrtf(170.0f), gr_complex(-15.0f, -5.0f)/sqrtf(170.0f), 
+	gr_complex(-15.0f, 15.0f)/sqrtf(170.0f), gr_complex(-15.0f, 13.0f)/sqrtf(170.0f), 
+	gr_complex(-15.0f, 9.0f)/sqrtf(170.0f), gr_complex(-15.0f, 11.0f)/sqrtf(170.0f), 
+	gr_complex(-15.0f, 1.0f)/sqrtf(170.0f), gr_complex(-15.0f, 3.0f)/sqrtf(170.0f), 
+	gr_complex(-15.0f, 7.0f)/sqrtf(170.0f), gr_complex(-15.0f, 5.0f)/sqrtf(170.0f), 
+	gr_complex(-13.0f, -15.0f)/sqrtf(170.0f), gr_complex(-13.0f, -13.0f)/sqrtf(170.0f), 
+	gr_complex(-13.0f, -9.0f)/sqrtf(170.0f), gr_complex(-13.0f, -11.0f)/sqrtf(170.0f), 
+	gr_complex(-13.0f, -1.0f)/sqrtf(170.0f), gr_complex(-13.0f, -3.0f)/sqrtf(170.0f), 
+	gr_complex(-13.0f, -7.0f)/sqrtf(170.0f), gr_complex(-13.0f, -5.0f)/sqrtf(170.0f), 
+	gr_complex(-13.0f, 15.0f)/sqrtf(170.0f), gr_complex(-13.0f, 13.0f)/sqrtf(170.0f), 
+	gr_complex(-13.0f, 9.0f)/sqrtf(170.0f), gr_complex(-13.0f, 11.0f)/sqrtf(170.0f), 
+	gr_complex(-13.0f, 1.0f)/sqrtf(170.0f), gr_complex(-13.0f, 3.0f)/sqrtf(170.0f), 
+	gr_complex(-13.0f, 7.0f)/sqrtf(170.0f), gr_complex(-13.0f, 5.0f)/sqrtf(170.0f), 
+	gr_complex(-9.0f, -15.0f)/sqrtf(170.0f), gr_complex(-9.0f, -13.0f)/sqrtf(170.0f), 
+	gr_complex(-9.0f, -9.0f)/sqrtf(170.0f), gr_complex(-9.0f, -11.0f)/sqrtf(170.0f), 
+	gr_complex(-9.0f, -1.0f)/sqrtf(170.0f), gr_complex(-9.0f, -3.0f)/sqrtf(170.0f), 
+	gr_complex(-9.0f, -7.0f)/sqrtf(170.0f), gr_complex(-9.0f, -5.0f)/sqrtf(170.0f), 
+	gr_complex(-9.0f, 15.0f)/sqrtf(170.0f), gr_complex(-9.0f, 13.0f)/sqrtf(170.0f), 
+	gr_complex(-9.0f, 9.0f)/sqrtf(170.0f), gr_complex(-9.0f, 11.0f)/sqrtf(170.0f), 
+	gr_complex(-9.0f, 1.0f)/sqrtf(170.0f), gr_complex(-9.0f, 3.0f)/sqrtf(170.0f), 
+	gr_complex(-9.0f, 7.0f)/sqrtf(170.0f), gr_complex(-9.0f, 5.0f)/sqrtf(170.0f), 
+	gr_complex(-11.0f, -15.0f)/sqrtf(170.0f), gr_complex(-11.0f, -13.0f)/sqrtf(170.0f), 
+	gr_complex(-11.0f, -9.0f)/sqrtf(170.0f), gr_complex(-11.0f, -11.0f)/sqrtf(170.0f), 
+	gr_complex(-11.0f, -1.0f)/sqrtf(170.0f), gr_complex(-11.0f, -3.0f)/sqrtf(170.0f), 
+	gr_complex(-11.0f, -7.0f)/sqrtf(170.0f), gr_complex(-11.0f, -5.0f)/sqrtf(170.0f), 
+	gr_complex(-11.0f, 15.0f)/sqrtf(170.0f), gr_complex(-11.0f, 13.0f)/sqrtf(170.0f), 
+	gr_complex(-11.0f, 9.0f)/sqrtf(170.0f), gr_complex(-11.0f, 11.0f)/sqrtf(170.0f), 
+	gr_complex(-11.0f, 1.0f)/sqrtf(170.0f), gr_complex(-11.0f, 3.0f)/sqrtf(170.0f), 
+	gr_complex(-11.0f, 7.0f)/sqrtf(170.0f), gr_complex(-11.0f, 5.0f)/sqrtf(170.0f), 
+	gr_complex(-1.0f, -15.0f)/sqrtf(170.0f), gr_complex(-1.0f, -13.0f)/sqrtf(170.0f), 
+	gr_complex(-1.0f, -9.0f)/sqrtf(170.0f), gr_complex(-1.0f, -11.0f)/sqrtf(170.0f), 
+	gr_complex(-1.0f, -1.0f)/sqrtf(170.0f), gr_complex(-1.0f, -3.0f)/sqrtf(170.0f), 
+	gr_complex(-1.0f, -7.0f)/sqrtf(170.0f), gr_complex(-1.0f, -5.0f)/sqrtf(170.0f), 
+	gr_complex(-1.0f, 15.0f)/sqrtf(170.0f), gr_complex(-1.0f, 13.0f)/sqrtf(170.0f), 
+	gr_complex(-1.0f, 9.0f)/sqrtf(170.0f), gr_complex(-1.0f, 11.0f)/sqrtf(170.0f), 
+	gr_complex(-1.0f, 1.0f)/sqrtf(170.0f), gr_complex(-1.0f, 3.0f)/sqrtf(170.0f), 
+	gr_complex(-1.0f, 7.0f)/sqrtf(170.0f), gr_complex(-1.0f, 5.0f)/sqrtf(170.0f), 
+	gr_complex(-3.0f, -15.0f)/sqrtf(170.0f), gr_complex(-3.0f, -13.0f)/sqrtf(170.0f), 
+	gr_complex(-3.0f, -9.0f)/sqrtf(170.0f), gr_complex(-3.0f, -11.0f)/sqrtf(170.0f), 
+	gr_complex(-3.0f, -1.0f)/sqrtf(170.0f), gr_complex(-3.0f, -3.0f)/sqrtf(170.0f), 
+	gr_complex(-3.0f, -7.0f)/sqrtf(170.0f), gr_complex(-3.0f, -5.0f)/sqrtf(170.0f), 
+	gr_complex(-3.0f, 15.0f)/sqrtf(170.0f), gr_complex(-3.0f, 13.0f)/sqrtf(170.0f), 
+	gr_complex(-3.0f, 9.0f)/sqrtf(170.0f), gr_complex(-3.0f, 11.0f)/sqrtf(170.0f), 
+	gr_complex(-3.0f, 1.0f)/sqrtf(170.0f), gr_complex(-3.0f, 3.0f)/sqrtf(170.0f), 
+	gr_complex(-3.0f, 7.0f)/sqrtf(170.0f), gr_complex(-3.0f, 5.0f)/sqrtf(170.0f), 
+	gr_complex(-7.0f, -15.0f)/sqrtf(170.0f), gr_complex(-7.0f, -13.0f)/sqrtf(170.0f), 
+	gr_complex(-7.0f, -9.0f)/sqrtf(170.0f), gr_complex(-7.0f, -11.0f)/sqrtf(170.0f), 
+	gr_complex(-7.0f, -1.0f)/sqrtf(170.0f), gr_complex(-7.0f, -3.0f)/sqrtf(170.0f), 
+	gr_complex(-7.0f, -7.0f)/sqrtf(170.0f), gr_complex(-7.0f, -5.0f)/sqrtf(170.0f), 
+	gr_complex(-7.0f, 15.0f)/sqrtf(170.0f), gr_complex(-7.0f, 13.0f)/sqrtf(170.0f), 
+	gr_complex(-7.0f, 9.0f)/sqrtf(170.0f), gr_complex(-7.0f, 11.0f)/sqrtf(170.0f), 
+	gr_complex(-7.0f, 1.0f)/sqrtf(170.0f), gr_complex(-7.0f, 3.0f)/sqrtf(170.0f), 
+	gr_complex(-7.0f, 7.0f)/sqrtf(170.0f), gr_complex(-7.0f, 5.0f)/sqrtf(170.0f), 
+	gr_complex(-5.0f, -15.0f)/sqrtf(170.0f), gr_complex(-5.0f, -13.0f)/sqrtf(170.0f), 
+	gr_complex(-5.0f, -9.0f)/sqrtf(170.0f), gr_complex(-5.0f, -11.0f)/sqrtf(170.0f), 
+	gr_complex(-5.0f, -1.0f)/sqrtf(170.0f), gr_complex(-5.0f, -3.0f)/sqrtf(170.0f), 
+	gr_complex(-5.0f, -7.0f)/sqrtf(170.0f), gr_complex(-5.0f, -5.0f)/sqrtf(170.0f), 
+	gr_complex(-5.0f, 15.0f)/sqrtf(170.0f), gr_complex(-5.0f, 13.0f)/sqrtf(170.0f), 
+	gr_complex(-5.0f, 9.0f)/sqrtf(170.0f), gr_complex(-5.0f, 11.0f)/sqrtf(170.0f), 
+	gr_complex(-5.0f, 1.0f)/sqrtf(170.0f), gr_complex(-5.0f, 3.0f)/sqrtf(170.0f), 
+	gr_complex(-5.0f, 7.0f)/sqrtf(170.0f), gr_complex(-5.0f, 5.0f)/sqrtf(170.0f), 
+	gr_complex(15.0f, -15.0f)/sqrtf(170.0f), gr_complex(15.0f, -13.0f)/sqrtf(170.0f), 
+	gr_complex(15.0f, -9.0f)/sqrtf(170.0f), gr_complex(15.0f, -11.0f)/sqrtf(170.0f), 
+	gr_complex(15.0f, -1.0f)/sqrtf(170.0f), gr_complex(15.0f, -3.0f)/sqrtf(170.0f), 
+	gr_complex(15.0f, -7.0f)/sqrtf(170.0f), gr_complex(15.0f, -5.0f)/sqrtf(170.0f), 
+	gr_complex(15.0f, 15.0f)/sqrtf(170.0f), gr_complex(15.0f, 13.0f)/sqrtf(170.0f), 
+	gr_complex(15.0f, 9.0f)/sqrtf(170.0f), gr_complex(15.0f, 11.0f)/sqrtf(170.0f), 
+	gr_complex(15.0f, 1.0f)/sqrtf(170.0f), gr_complex(15.0f, 3.0f)/sqrtf(170.0f), 
+	gr_complex(15.0f, 7.0f)/sqrtf(170.0f), gr_complex(15.0f, 5.0f)/sqrtf(170.0f), 
+	gr_complex(13.0f, -15.0f)/sqrtf(170.0f), gr_complex(13.0f, -13.0f)/sqrtf(170.0f), 
+	gr_complex(13.0f, -9.0f)/sqrtf(170.0f), gr_complex(13.0f, -11.0f)/sqrtf(170.0f), 
+	gr_complex(13.0f, -1.0f)/sqrtf(170.0f), gr_complex(13.0f, -3.0f)/sqrtf(170.0f), 
+	gr_complex(13.0f, -7.0f)/sqrtf(170.0f), gr_complex(13.0f, -5.0f)/sqrtf(170.0f), 
+	gr_complex(13.0f, 15.0f)/sqrtf(170.0f), gr_complex(13.0f, 13.0f)/sqrtf(170.0f), 
+	gr_complex(13.0f, 9.0f)/sqrtf(170.0f), gr_complex(13.0f, 11.0f)/sqrtf(170.0f), 
+	gr_complex(13.0f, 1.0f)/sqrtf(170.0f), gr_complex(13.0f, 3.0f)/sqrtf(170.0f), 
+	gr_complex(13.0f, 7.0f)/sqrtf(170.0f), gr_complex(13.0f, 5.0f)/sqrtf(170.0f), 
+	gr_complex(9.0f, -15.0f)/sqrtf(170.0f), gr_complex(9.0f, -13.0f)/sqrtf(170.0f), 
+	gr_complex(9.0f, -9.0f)/sqrtf(170.0f), gr_complex(9.0f, -11.0f)/sqrtf(170.0f), 
+	gr_complex(9.0f, -1.0f)/sqrtf(170.0f), gr_complex(9.0f, -3.0f)/sqrtf(170.0f), 
+	gr_complex(9.0f, -7.0f)/sqrtf(170.0f), gr_complex(9.0f, -5.0f)/sqrtf(170.0f), 
+	gr_complex(9.0f, 15.0f)/sqrtf(170.0f), gr_complex(9.0f, 13.0f)/sqrtf(170.0f), 
+	gr_complex(9.0f, 9.0f)/sqrtf(170.0f), gr_complex(9.0f, 11.0f)/sqrtf(170.0f), 
+	gr_complex(9.0f, 1.0f)/sqrtf(170.0f), gr_complex(9.0f, 3.0f)/sqrtf(170.0f), 
+	gr_complex(9.0f, 7.0f)/sqrtf(170.0f), gr_complex(9.0f, 5.0f)/sqrtf(170.0f), 
+	gr_complex(11.0f, -15.0f)/sqrtf(170.0f), gr_complex(11.0f, -13.0f)/sqrtf(170.0f), 
+	gr_complex(11.0f, -9.0f)/sqrtf(170.0f), gr_complex(11.0f, -11.0f)/sqrtf(170.0f), 
+	gr_complex(11.0f, -1.0f)/sqrtf(170.0f), gr_complex(11.0f, -3.0f)/sqrtf(170.0f), 
+	gr_complex(11.0f, -7.0f)/sqrtf(170.0f), gr_complex(11.0f, -5.0f)/sqrtf(170.0f), 
+	gr_complex(11.0f, 15.0f)/sqrtf(170.0f), gr_complex(11.0f, 13.0f)/sqrtf(170.0f), 
+	gr_complex(11.0f, 9.0f)/sqrtf(170.0f), gr_complex(11.0f, 11.0f)/sqrtf(170.0f), 
+	gr_complex(11.0f, 1.0f)/sqrtf(170.0f), gr_complex(11.0f, 3.0f)/sqrtf(170.0f), 
+	gr_complex(11.0f, 7.0f)/sqrtf(170.0f), gr_complex(11.0f, 5.0f)/sqrtf(170.0f), 
+	gr_complex(1.0f, -15.0f)/sqrtf(170.0f), gr_complex(1.0f, -13.0f)/sqrtf(170.0f), 
+	gr_complex(1.0f, -9.0f)/sqrtf(170.0f), gr_complex(1.0f, -11.0f)/sqrtf(170.0f), 
+	gr_complex(1.0f, -1.0f)/sqrtf(170.0f), gr_complex(1.0f, -3.0f)/sqrtf(170.0f), 
+	gr_complex(1.0f, -7.0f)/sqrtf(170.0f), gr_complex(1.0f, -5.0f)/sqrtf(170.0f), 
+	gr_complex(1.0f, 15.0f)/sqrtf(170.0f), gr_complex(1.0f, 13.0f)/sqrtf(170.0f), 
+	gr_complex(1.0f, 9.0f)/sqrtf(170.0f), gr_complex(1.0f, 11.0f)/sqrtf(170.0f), 
+	gr_complex(1.0f, 1.0f)/sqrtf(170.0f), gr_complex(1.0f, 3.0f)/sqrtf(170.0f), 
+	gr_complex(1.0f, 7.0f)/sqrtf(170.0f), gr_complex(1.0f, 5.0f)/sqrtf(170.0f), 
+	gr_complex(3.0f, -15.0f)/sqrtf(170.0f), gr_complex(3.0f, -13.0f)/sqrtf(170.0f), 
+	gr_complex(3.0f, -9.0f)/sqrtf(170.0f), gr_complex(3.0f, -11.0f)/sqrtf(170.0f), 
+	gr_complex(3.0f, -1.0f)/sqrtf(170.0f), gr_complex(3.0f, -3.0f)/sqrtf(170.0f), 
+	gr_complex(3.0f, -7.0f)/sqrtf(170.0f), gr_complex(3.0f, -5.0f)/sqrtf(170.0f), 
+	gr_complex(3.0f, 15.0f)/sqrtf(170.0f), gr_complex(3.0f, 13.0f)/sqrtf(170.0f), 
+	gr_complex(3.0f, 9.0f)/sqrtf(170.0f), gr_complex(3.0f, 11.0f)/sqrtf(170.0f), 
+	gr_complex(3.0f, 1.0f)/sqrtf(170.0f), gr_complex(3.0f, 3.0f)/sqrtf(170.0f), 
+	gr_complex(3.0f, 7.0f)/sqrtf(170.0f), gr_complex(3.0f, 5.0f)/sqrtf(170.0f), 
+	gr_complex(7.0f, -15.0f)/sqrtf(170.0f), gr_complex(7.0f, -13.0f)/sqrtf(170.0f), 
+	gr_complex(7.0f, -9.0f)/sqrtf(170.0f), gr_complex(7.0f, -11.0f)/sqrtf(170.0f), 
+	gr_complex(7.0f, -1.0f)/sqrtf(170.0f), gr_complex(7.0f, -3.0f)/sqrtf(170.0f), 
+	gr_complex(7.0f, -7.0f)/sqrtf(170.0f), gr_complex(7.0f, -5.0f)/sqrtf(170.0f), 
+	gr_complex(7.0f, 15.0f)/sqrtf(170.0f), gr_complex(7.0f, 13.0f)/sqrtf(170.0f), 
+	gr_complex(7.0f, 9.0f)/sqrtf(170.0f), gr_complex(7.0f, 11.0f)/sqrtf(170.0f), 
+	gr_complex(7.0f, 1.0f)/sqrtf(170.0f), gr_complex(7.0f, 3.0f)/sqrtf(170.0f), 
+	gr_complex(7.0f, 7.0f)/sqrtf(170.0f), gr_complex(7.0f, 5.0f)/sqrtf(170.0f), 
+	gr_complex(5.0f, -15.0f)/sqrtf(170.0f), gr_complex(5.0f, -13.0f)/sqrtf(170.0f), 
+	gr_complex(5.0f, -9.0f)/sqrtf(170.0f), gr_complex(5.0f, -11.0f)/sqrtf(170.0f), 
+	gr_complex(5.0f, -1.0f)/sqrtf(170.0f), gr_complex(5.0f, -3.0f)/sqrtf(170.0f), 
+	gr_complex(5.0f, -7.0f)/sqrtf(170.0f), gr_complex(5.0f, -5.0f)/sqrtf(170.0f), 
+	gr_complex(5.0f, 15.0f)/sqrtf(170.0f), gr_complex(5.0f, 13.0f)/sqrtf(170.0f), 
+	gr_complex(5.0f, 9.0f)/sqrtf(170.0f), gr_complex(5.0f, 11.0f)/sqrtf(170.0f), 
+	gr_complex(5.0f, 1.0f)/sqrtf(170.0f), gr_complex(5.0f, 3.0f)/sqrtf(170.0f), 
+	gr_complex(5.0f, 7.0f)/sqrtf(170.0f), gr_complex(5.0f, 5.0f)/sqrtf(170.0f)
+};
 
 /***************************************************/
 /* signal field */
@@ -1480,18 +1661,116 @@ void bitsToChips(uint8_t* inBits, uint8_t* outChips, c8p_mod* mod)
 	
 }
 
+void procChipsToQam(const uint8_t* inChips,  gr_complex* outQam, int qamType, int len)
+{
+	if(qamType == C8P_QAM_BPSK)
+	{
+		for(int i=0;i<len;i++)
+		{
+			outQam[i] = C8P_QAM_TAB_BPSK[inChips[i]];
+		}
+	}
+	else if(qamType == C8P_QAM_QBPSK)
+	{
+		for(int i=0;i<len;i++)
+		{
+			outQam[i] = C8P_QAM_TAB_QBPSK[inChips[i]];
+		}
+	}
+	else if(qamType == C8P_QAM_QPSK)
+	{
+		for(int i=0;i<len;i++)
+		{
+			outQam[i] = C8P_QAM_TAB_QPSK[inChips[i]];
+		}
+	}
+	else if(qamType == C8P_QAM_16QAM)
+	{
+		for(int i=0;i<len;i++)
+		{
+			outQam[i] = C8P_QAM_TAB_16QAM[inChips[i]];
+		}
+	}
+	else if(qamType == C8P_QAM_64QAM)
+	{
+		for(int i=0;i<len;i++)
+		{
+			outQam[i] = C8P_QAM_TAB_64QAM[inChips[i]];
+		}
+	}
+	else if(qamType == C8P_QAM_256QAM)
+	{
+		for(int i=0;i<len;i++)
+		{
+			outQam[i] = C8P_QAM_TAB_256QAM[inChips[i]];
+		}
+	}
+	else
+	{
+		std::cout<<"ieee80211 procQam qam type error."<<std::endl;
+	}
+}
+
+void procInsertPilotsDc(gr_complex* sigIn, gr_complex* sigOut, gr_complex* pilots, int format)
+{
+	if(format == C8P_F_L)
+	{
+		memcpy(&sigOut[0], &sigIn[0], 5*sizeof(gr_complex));
+		sigOut[5] = pilots[0];
+		memcpy(&sigOut[6], &sigIn[5], 13*sizeof(gr_complex));
+		sigOut[19] = pilots[1];
+		memcpy(&sigOut[20], &sigIn[18], 6*sizeof(gr_complex));
+		sigOut[26] = gr_complex(0.0f, 0.0f);
+		memcpy(&sigOut[27], &sigIn[24], 6*sizeof(gr_complex));
+		sigOut[33] = pilots[2];
+		memcpy(&sigOut[34], &sigIn[30], 13*sizeof(gr_complex));
+		sigOut[47] = pilots[3];
+		memcpy(&sigOut[48], &sigIn[43], 5*sizeof(gr_complex));
+	}
+	else
+	{
+		memcpy(&sigOut[0], &sigIn[0], 7*sizeof(gr_complex));
+		sigOut[7] = pilots[0];
+		memcpy(&sigOut[8], &sigIn[7], 13*sizeof(gr_complex));
+		sigOut[21] = pilots[1];
+		memcpy(&sigOut[22], &sigIn[20], 6*sizeof(gr_complex));
+		sigOut[28] = gr_complex(0.0f, 0.0f);
+		memcpy(&sigOut[29], &sigIn[26], 6*sizeof(gr_complex));
+		sigOut[35] = pilots[2];
+		memcpy(&sigOut[36], &sigIn[32], 13*sizeof(gr_complex));
+		sigOut[49] = pilots[3];
+		memcpy(&sigOut[50], &sigIn[45], 7*sizeof(gr_complex));
+	}
+}
+
+void procNonDataSc(gr_complex* sigIn, gr_complex* sigOut, int format)
+{
+	if(format == C8P_F_L)
+	{
+		memcpy(&sigOut[0], &sigIn[26], 27*sizeof(gr_complex));
+		memset(&sigOut[27], 0, 11*sizeof(gr_complex));
+		memcpy(&sigOut[38], &sigIn[0], 26*sizeof(gr_complex));
+	}
+	else
+	{
+		memcpy(&sigOut[0], &sigIn[28], 29*sizeof(gr_complex));
+		memset(&sigOut[29], 0, 7*sizeof(gr_complex));
+		memcpy(&sigOut[36], &sigIn[0], 28*sizeof(gr_complex));
+	}
+}
+
 void procCSD(gr_complex* sig, int cycShift)
 {
-	float tmpStep = gr_complex(0.0f, -2.0f) * M_PI * (float)cycShift * 20.0f * 0.001f;
+	gr_complex tmpStep = gr_complex(0.0f, -2.0f) * (float)M_PI * (float)cycShift * 20.0f * 0.001f;
 	for(int i=0;i<64;i++)
 	{
 		sig[i] = sig[i] * std::exp( tmpStep * (float)(i - 32) / 64.0f);
 	}
 }
 
-void procToneScaling(gr_complex* sig, int ntf, int nss)
+void procToneScaling(gr_complex* sig, int ntf, int nss, int len)
 {
-	for(int i=0;i<64;i++)
+	for(int i=0;i<len;i++)
 	{
 		sig[i] = sig[i] / sqrtf((float)ntf * (float)nss);
 	}

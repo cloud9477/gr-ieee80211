@@ -22,12 +22,14 @@
 #define INCLUDED_IEEE80211_MODULATION_IMPL_H
 
 #include <ieee80211/modulation.h>
+#include <gnuradio/fft/fft.h>
 #include "cloud80211phy.h"
 
 #define MODUL_S_IDLE 0
 #define MODUL_S_RD_TAG 1
-#define MODUL_S_MOD 2
-#define MODUL_S_COPY 3
+#define MODUL_S_SIG 2
+#define MODUL_S_DATA 3
+#define MODUL_S_COPY 4
 
 namespace gr {
   namespace ieee80211 {
@@ -36,6 +38,8 @@ namespace gr {
     {
     private:
       // block
+      int d_nProc;
+      int d_nGen;
       int d_sModul;
       // tag
       std::vector<gr::tag_t> d_tags;
@@ -61,11 +65,17 @@ namespace gr {
       gr_complex d_ltf_nl2[80];
       gr_complex d_ltf_nl_n[80];
 
-      
-      
+      gr_complex d_sig1[53000];
+      gr_complex d_sig2[53000];
+      gr_complex* d_sigPtr1;
+      gr_complex* d_sigPtr2;
 
-      float d_sig1[53000];
-      float d_sig2[53000];
+      // data
+      int d_pilotP;
+      int d_nSymRd;
+      gr_complex d_pilots1[4];
+      gr_complex d_pilots2[4];
+      gr_complex d_pilotsTmp[4];
 
      public:
       modulation_impl();

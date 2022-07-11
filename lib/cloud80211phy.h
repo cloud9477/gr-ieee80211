@@ -155,7 +155,10 @@ void procSymDepasNL(float in[C8P_MAX_N_SS][C8P_MAX_N_CBPSS], float* out, c8p_mod
 int nCodedToUncoded(int nCoded, c8p_mod* mod);
 int nUncodedToCoded(int nUncoded, c8p_mod* mod);
 void procCSD(gr_complex* sig, int cycShift);
-void procToneScaling(gr_complex* sig, int ntf, int nss);
+void procToneScaling(gr_complex* sig, int ntf, int nss, int len);
+void procChipsToQam(const uint8_t* inChips,  gr_complex* outQam, int qamType, int len);
+void procInsertPilotsDc(gr_complex* sigIn, gr_complex* sigOut, gr_complex* pilots, int format);
+void procNonDataSc(gr_complex* sigIn, gr_complex* sigOut, int format);
 
 bool signalCheckLegacy(uint8_t* inBits, int* mcs, int* len, int* nDBPS);
 bool signalCheckHt(uint8_t* inBits);

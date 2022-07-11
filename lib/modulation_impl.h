@@ -31,6 +31,8 @@
 #define MODUL_S_DATA 3
 #define MODUL_S_COPY 4
 
+#define dout d_debug&&std::cout
+
 namespace gr {
   namespace ieee80211 {
 
@@ -41,6 +43,7 @@ namespace gr {
       int d_nProc;
       int d_nGen;
       int d_sModul;
+      bool d_debug;
       // tag
       std::vector<gr::tag_t> d_tags;
       std::vector<uint8_t> d_tagLegacyBits;
@@ -73,6 +76,8 @@ namespace gr {
       // data
       int d_pilotP;
       int d_nSymRd;
+      int d_nSampWr;
+      int d_nSampWrTotal;
       gr_complex d_pilots1[4];
       gr_complex d_pilots2[4];
       gr_complex d_pilotsTmp[4];
@@ -90,6 +95,7 @@ namespace gr {
            gr_vector_void_star &output_items);
       
       void ifft(const gr_complex* sig, gr_complex* res);
+      void pilotShift(gr_complex* pilots);
     };
 
   } // namespace ieee80211

@@ -34,6 +34,8 @@
 #define DECODE_B_MAX 16000    // max data bits
 #define DECODE_D_MAX 2000     // max payload bytes
 
+#define dout d_debug&&std::cout
+
 namespace gr {
   namespace ieee80211 {
 
@@ -45,6 +47,7 @@ namespace gr {
       int d_nGen;
       int d_nChipsGen;
       int d_nChipsGenProcd;
+      bool d_debug;
       // msg
       void msgRead(pmt::pmt_t msg);
       uint8_t d_dataBits[DECODE_B_MAX];

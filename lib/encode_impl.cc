@@ -42,7 +42,7 @@ uint8_t test_htPkt[105] = {
 };
 
 uint8_t test_vhtPkt[105] = {
-  2, 8, 2, 0, 100,
+  2, 3, 2, 0, 100,
   1, 6, 157, 78, 136, 1, 110, 0, 244, 105, 213, 128, 15, 160, 0, 192, 202, 177, 
   91, 225, 244, 105, 213, 128, 15, 160, 0, 169, 0, 0, 170, 170, 3, 0, 0, 0, 8, 
   0, 69, 0, 0, 58, 171, 2, 64, 0, 64, 17, 123, 150, 10, 10, 0, 6, 10, 10, 0, 1, 
@@ -72,7 +72,8 @@ namespace gr {
     {
       //message_port_register_in(pdu::pdu_port_id());
       d_sEncode = ENCODE_S_IDLE;
-      d_debug = false;
+      d_debug = true;
+      d_pktSeq = 0;
 
       message_port_register_in(pmt::mp("pdus"));
       set_msg_handler(pmt::mp("pdus"), boost::bind(&encode_impl::msgRead, this, _1));
@@ -88,7 +89,6 @@ namespace gr {
     void
     encode_impl::msgRead(pmt::pmt_t msg)
     {
-      dout<<"ieee80211 encode, new msg";
       // pmt::pmt_t vector = pmt::cdr(msg);
       // int tmpMsgLen = pmt::blob_length(vector);
       // size_t tmpOffset(0);
@@ -103,7 +103,7 @@ namespace gr {
       tmpLen = ((int)tmpPkt[3] * 256  + (int)tmpPkt[4]);
       int tmpHenderShift = 5;
       
-      dout<<"ieee80211 encode, new msg, len:"<<(int)tmpLen<<std::endl;
+      dout<<"ieee80211 encode, new msg, format:"<<(int)tmpPkt[0]<<", mcs:"<<(int)tmpPkt[1]<<", nSS:"<<(int)tmpPkt[2]<<", len:"<<(int)tmpLen<<std::endl;
       formatToModSu(&d_m, (int)tmpPkt[0], (int)tmpPkt[1], (int)tmpPkt[2], tmpLen);
       if(d_m.format == C8P_F_L)
       {
@@ -111,26 +111,6 @@ namespace gr {
         dout<<"ieee80211 encode, legacy packet"<<std::endl;
         legacySigBitsGen(d_legacySig, d_legacySigCoded, d_m.mcs, d_m.len);
         procIntelLegacyBpsk(d_legacySigCoded, d_legacySigInted);
-        
-        dout<<"ieee80211 encode, legacy sig bits";
-        for(int q=0;q<24;q++)
-        {
-          dout<<(int)d_legacySig[q]<<" ";
-        }
-        dout<<std::endl;
-        dout<<"ieee80211 encode, legacy sig coded bits";
-        for(int q=0;q<48;q++)
-        {
-          dout<<(int)d_legacySigCoded[q]<<" ";
-        }
-        dout<<std::endl;
-        dout<<"ieee80211 encode, legacy sig inted bits";
-        for(int q=0;q<48;q++)
-        {
-          dout<<(int)d_legacySigInted[q]<<" ";
-        }
-        dout<<std::endl;
-
 
         uint8_t* tmpDataP = d_dataBits;
         memset(tmpDataP, 0, 16);
@@ -148,17 +128,11 @@ namespace gr {
         tmpDataP += 6;
         // pad
         memset(tmpDataP, 0, (d_m.nSym * d_m.nDBPS - 22 - d_m.len*8));
-        
-        dout<<"ieee80211 encode, legacy data bits";
-        for(int q=0;q<d_m.nSym * d_m.nDBPS;q++)
-        {
-          dout<<(int)d_dataBits[q]<<", ";
-        }
-        dout<<std::endl;
       }
       else if(d_m.format == C8P_F_VHT)
       {
         // vht
+        dout<<"ieee80211 encode, vht packet"<<std::endl;
         vhtSigABitsGenSU(d_vhtSigA, d_vhtSigACoded, &d_m);
         procIntelLegacyBpsk(&d_vhtSigACoded[0], &d_vhtSigAInted[0]);
         procIntelLegacyBpsk(&d_vhtSigACoded[48], &d_vhtSigAInted[48]);
@@ -171,27 +145,6 @@ namespace gr {
         int tmpLegacyLen = ((tmpTxTime - 20) / 4 + (((tmpTxTime - 20) % 4) != 0)) * 3 - 3;
         legacySigBitsGen(d_legacySig, d_legacySigCoded, 0, tmpLegacyLen);
         procIntelLegacyBpsk(d_legacySigCoded, d_legacySigInted);
-
-        dout<<"ieee80211 encode, legacy sig inted bits";
-        for(int q=0;q<48;q++)
-        {
-          dout<<(int)d_legacySigInted[q]<<" ";
-        }
-        dout<<std::endl;
-        dout<<"ieee80211 encode, vht sig a inted bits";
-        for(int q=0;q<96;q++)
-        {
-          dout<<(int)d_vhtSigAInted[q]<<" ";
-        }
-        dout<<std::endl;
-        dout<<"ieee80211 encode, vht sig b inted bits";
-        for(int q=0;q<52;q++)
-        {
-          dout<<(int)d_vhtSigB20Inted[q]<<" ";
-        }
-        dout<<std::endl;
-
-
 
         uint8_t* tmpDataP = d_dataBits;
         // 7 scrambler init, 1 reserved
@@ -222,20 +175,11 @@ namespace gr {
         //   memset(tmpDataP, 0, 8);
         //   tmpDataP += 8;
         // }
-
-        // EOF padding tmp
+        // EOF padding tmp, copy header bits to pad
         memcpy(tmpDataP, &d_dataBits[16], (tmpPsduLen - d_m.len)*8);
         tmpDataP += (tmpPsduLen - d_m.len)*8;
-
         // tail pading, all 0, includes tail bits, when scrambling, do not scramble tail
         memset(tmpDataP, 0, (d_m.nSym * d_m.nDBPS - tmpPsduLen*8 - 16));
-
-        dout<<"ieee80211 encode, vht data bits";
-        for(int q=0;q<d_m.nSym * d_m.nDBPS;q++)
-        {
-          dout<<(int)d_dataBits[q]<<", ";
-        }
-        dout<<std::endl;
       }
       else
       {
@@ -249,44 +193,6 @@ namespace gr {
         int tmpLegacyLen = ((tmpTxTime - 20) / 4 + (((tmpTxTime - 20) % 4) != 0)) * 3 - 3;
         legacySigBitsGen(d_legacySig, d_legacySigCoded, 0, tmpLegacyLen);
         procIntelLegacyBpsk(d_legacySigCoded, d_legacySigInted);
-
-        dout<<"ieee80211 encode, legacy sig bits";
-        for(int q=0;q<24;q++)
-        {
-          dout<<(int)d_legacySig[q]<<" ";
-        }
-        dout<<std::endl;
-        dout<<"ieee80211 encode, legacy sig coded bits";
-        for(int q=0;q<48;q++)
-        {
-          dout<<(int)d_legacySigCoded[q]<<" ";
-        }
-        dout<<std::endl;
-        dout<<"ieee80211 encode, legacy sig inted bits";
-        for(int q=0;q<48;q++)
-        {
-          dout<<(int)d_legacySigInted[q]<<" ";
-        }
-        dout<<std::endl;
-        dout<<"ieee80211 encode, ht sig bits";
-        for(int q=0;q<48;q++)
-        {
-          dout<<(int)d_htSig[q]<<" ";
-        }
-        dout<<std::endl;
-        dout<<"ieee80211 encode, ht sig coded bits";
-        for(int q=0;q<96;q++)
-        {
-          dout<<(int)d_htSigCoded[q]<<" ";
-        }
-        dout<<std::endl;
-        dout<<"ieee80211 encode, ht sig inted bits";
-        for(int q=0;q<96;q++)
-        {
-          dout<<(int)d_htSigInted[q]<<" ";
-        }
-        dout<<std::endl;
-
 
         uint8_t* tmpDataP = d_dataBits;
         // service
@@ -306,13 +212,6 @@ namespace gr {
         tmpDataP += 6;
         // pad
         memset(tmpDataP, 0, (d_m.nSym * d_m.nDBPS - 22 - d_m.len*8));
-
-        dout<<"ieee80211 encode, ht data bits";
-        for(int q=0;q<d_m.nSym * d_m.nDBPS;q++)
-        {
-          dout<<(int)d_dataBits[q]<<", ";
-        }
-        dout<<std::endl;
       }
       d_sEncode = ENCODE_S_SCEDULE;
     }
@@ -322,8 +221,8 @@ namespace gr {
     {
       if(d_sEncode == ENCODE_S_SCEDULE)
       {
-        dout<<"schedule in calculate"<<std::endl;
-        d_nChipsGen = d_m.nSym * d_m.nSD;      // gen payload part qam chips
+        dout<<"ieee80211 encode, schedule in calculate, nSym:"<<d_m.nSym<<", total:"<<(d_m.nSym * d_m.nSD)<<std::endl;
+        d_nChipsGen = d_m.nSym * d_m.nSD;
         d_nChipsGenProcd = 0;
         d_sEncode = ENCODE_S_ENCODE;
       }
@@ -345,66 +244,32 @@ namespace gr {
       {
         case ENCODE_S_IDLE:
         {
-          dout<<"idle"<<std::endl;
           return 0;
         }
 
         case ENCODE_S_SCEDULE:
         {
-          dout<<"schedule in work"<<std::endl;
           return 0;
         }
 
         case ENCODE_S_ENCODE:
         {
-          dout<<"ieee80211 encode, encode and gen tag"<<std::endl;
+          dout<<"ieee80211 encode, encode and gen tag, seq:"<<d_pktSeq<<std::endl;
           // scrambling
           if(d_m.format == C8P_F_VHT)
           {
-            dout<<"ieee80211 encode, vht scrambling"<<std::endl;
             scramEncoder(d_dataBits, d_scramBits, (d_m.nSym * d_m.nDBPS - 6), 97);
             memset(&d_scramBits[d_m.nSym * d_m.nDBPS - 6], 0, 6);
-
-            dout<<"ieee80211 encode, vht scrambled bits: ";
-            for(int q=0;q<d_m.nSym * d_m.nDBPS;q++)
-            {
-              dout<<(int)d_scramBits[q]<<", ";
-            }
-            dout<<std::endl;
           }
           else
           {
-            dout<<"ieee80211 encode, non-vht scrambling"<<std::endl;
             scramEncoder(d_dataBits, d_scramBits, (d_m.nSym * d_m.nDBPS), 97);
             memset(&d_scramBits[d_m.len * 8 + 16], 0, 6);
-
-            dout<<"ieee80211 encode, non-vht scrambled bits: ";
-            for(int q=0;q<d_m.nSym * d_m.nDBPS;q++)
-            {
-              dout<<(int)d_scramBits[q]<<", ";
-            }
-            dout<<std::endl;
           }
           // binary convolutional coding
           bccEncoder(d_scramBits, d_convlBits, d_m.nSym * d_m.nDBPS);
-
-          dout<<"ieee80211 encode, coded bits: ";
-          for(int q=0;q<d_m.nSym * d_m.nDBPS * 2;q++)
-          {
-            dout<<(int)d_convlBits[q]<<", ";
-          }
-          dout<<std::endl;
-          
           // puncturing
           punctEncoder(d_convlBits, d_punctBits, d_m.nSym * d_m.nDBPS * 2, &d_m);
-
-          dout<<"ieee80211 encode, punctured bits: ";
-          for(int q=0;q<d_m.nSym * d_m.nCBPS;q++)
-          {
-            dout<<(int)d_punctBits[q]<<", ";
-          }
-          dout<<std::endl;
-
           // interleave and convert to qam chips
           if(d_m.nSS == 1)
           {
@@ -414,13 +279,6 @@ namespace gr {
               {
                 procInterLegacy(&d_punctBits[i*d_m.nCBPS], &d_IntedBits1[i*d_m.nCBPS], &d_m);
               }
-
-              dout<<"ieee80211 encode, legacy inteleaved bits: ";
-              for(int q=0;q<d_m.nSym * d_m.nCBPS;q++)
-              {
-                dout<<(int)d_IntedBits1[q]<<", ";
-              }
-              dout<<std::endl;
             }
             else
             {
@@ -428,81 +286,23 @@ namespace gr {
               {
                 procInterNonLegacy(&d_punctBits[i*d_m.nCBPS], &d_IntedBits1[i*d_m.nCBPS], &d_m, 0);
               }
-
-              dout<<"ieee80211 encode, non-legacy inteleaved bits: ";
-              for(int q=0;q<d_m.nSym * d_m.nCBPS;q++)
-              {
-                dout<<(int)d_IntedBits1[q]<<", ";
-              }
-              dout<<std::endl;
-
             }
             bitsToChips(d_IntedBits1, d_qamChips1, &d_m);
             memset(d_qamChips2, 0, d_m.nSym * d_m.nSD);
-
-            dout<<"ieee80211 encode, single ss chips: ";
-            for(int q=0;q<d_m.nSym * d_m.nSD;q++)
-            {
-              dout<<(int)d_qamChips1[q]<<", ";
-            }
-            dout<<std::endl;
           }
           else
           {
             // stream parser first
             streamParser2(d_punctBits, d_parsdBits1, d_parsdBits2, d_m.nSym * d_m.nCBPS, &d_m);
-
-            dout<<"ieee80211 encode, parsdBits 1 chips: ";
-            for(int q=0;q<d_m.nSym * d_m.nCBPSS;q++)
-            {
-              dout<<(int)d_parsdBits1[q]<<", ";
-            }
-            dout<<std::endl;
-
-            dout<<"ieee80211 encode, parsdBits 2 chips: ";
-            for(int q=0;q<d_m.nSym * d_m.nCBPSS;q++)
-            {
-              dout<<(int)d_parsdBits2[q]<<", ";
-            }
-            dout<<std::endl;
-
+            // interleave
             for(int i=0;i<d_m.nSym;i++)
             {
               procInterNonLegacy(&d_parsdBits1[i*d_m.nCBPSS], &d_IntedBits1[i*d_m.nCBPSS], &d_m, 0);  // iss - 1 = 0
               procInterNonLegacy(&d_parsdBits2[i*d_m.nCBPSS], &d_IntedBits2[i*d_m.nCBPSS], &d_m, 1); // iss - 1 = 1
             }
-
-            dout<<"ieee80211 encode, IntedBits 1 chips: ";
-            for(int q=0;q<d_m.nSym * d_m.nCBPSS;q++)
-            {
-              dout<<(int)d_IntedBits1[q]<<", ";
-            }
-            dout<<std::endl;
-
-            dout<<"ieee80211 encode, IntedBits 2 chips: ";
-            for(int q=0;q<d_m.nSym * d_m.nCBPSS;q++)
-            {
-              dout<<(int)d_IntedBits2[q]<<", ";
-            }
-            dout<<std::endl;
-
+            // convert to qam chips
             bitsToChips(d_IntedBits1, d_qamChips1, &d_m);
             bitsToChips(d_IntedBits2, d_qamChips2, &d_m);
-
-            dout<<"ieee80211 encode, ss 1 chips: ";
-            for(int q=0;q<d_m.nSym * d_m.nSD;q++)
-            {
-              dout<<(int)d_qamChips1[q]<<", ";
-            }
-            dout<<std::endl;
-
-            dout<<"ieee80211 encode, ss 2 chips: ";
-            for(int q=0;q<d_m.nSym * d_m.nSD;q++)
-            {
-              dout<<(int)d_qamChips2[q]<<", ";
-            }
-            dout<<std::endl;
-
           }
 
           // gen tag
@@ -517,7 +317,9 @@ namespace gr {
           dict = pmt::dict_add(dict, pmt::mp("mcs"), pmt::from_long(d_m.mcs));
           dict = pmt::dict_add(dict, pmt::mp("nss"), pmt::from_long(d_m.nSS));
           dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_m.len));
+          dict = pmt::dict_add(dict, pmt::mp("seq"), pmt::from_long(d_pktSeq));
           dict = pmt::dict_add(dict, pmt::mp("lsig"), pmt::init_u8vector(d_tagLegacyBits.size(), d_tagLegacyBits));
+          d_pktSeq++;
           if(d_m.format == C8P_F_HT)
           {
             d_tagHtBits.clear();
@@ -561,7 +363,6 @@ namespace gr {
 
         case ENCODE_S_COPY:
         {
-          dout<<"copy"<<std::endl;
           int o1 = 0;
           while((o1 + d_m.nSD) < d_nGen)
           {
@@ -571,7 +372,7 @@ namespace gr {
             d_nChipsGenProcd += d_m.nSD;
             if(d_nChipsGenProcd >= d_nChipsGen)
             {
-              dout<<"copy done"<<std::endl;
+              dout<<"ieee80211 encode, copy done"<<std::endl;
               d_sEncode = ENCODE_S_IDLE;
               break;
             }

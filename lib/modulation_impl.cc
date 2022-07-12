@@ -134,7 +134,7 @@ namespace gr {
         
         case MODUL_S_RD_TAG:
         {
-          int tmpTagFormat, tmpTagMcs, tmpTagNss, tmpTagLen;
+          int tmpTagFormat, tmpTagMcs, tmpTagNss, tmpTagLen, tmpTagSeq;
           pmt::pmt_t d_meta = pmt::make_dict();
           for (auto tag : d_tags){
             d_meta = pmt::dict_add(d_meta, tag.key, tag.value);
@@ -144,6 +144,7 @@ namespace gr {
           tmpTagMcs = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("mcs"), pmt::from_long(9999)));
           tmpTagNss = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("nss"), pmt::from_long(9999)));
           tmpTagLen = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len"), pmt::from_long(9999)));
+          tmpTagSeq = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("seq"), pmt::from_long(9999)));
           formatToModSu(&d_m, tmpTagFormat, tmpTagMcs, tmpTagNss, tmpTagLen);
           // sig
           d_tagLegacyBits = pmt::u8vector_elements(pmt::dict_ref(d_meta, pmt::mp("lsig"), pmt::PMT_NIL));
@@ -160,7 +161,7 @@ namespace gr {
             d_tagHtBits = pmt::u8vector_elements(pmt::dict_ref(d_meta, pmt::mp("htsig"), pmt::PMT_NIL));
             std::copy(d_tagHtBits.begin(), d_tagHtBits.end(), d_htSigInted);
           }
-          dout<<"ieee80211 modulation, tag read."<<std::endl;
+          dout<<"ieee80211 modulation, tag read, seq:"<<tmpTagSeq<<std::endl;
           d_sModul = MODUL_S_SIG;
           consume_each(0);
           return 0;

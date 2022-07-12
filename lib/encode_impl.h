@@ -60,6 +60,7 @@ namespace gr {
       uint8_t d_IntedBits2[DECODE_CB_MAX];
       uint8_t d_qamChips1[DECODE_CB_MAX];
       uint8_t d_qamChips2[DECODE_CB_MAX];
+      int d_pktSeq;
       // modulation
       c8p_mod d_m;
       // signal

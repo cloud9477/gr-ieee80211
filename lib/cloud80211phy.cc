@@ -1528,7 +1528,6 @@ void punctEncoder(uint8_t* inBits, uint8_t* outBits, int len, c8p_mod* mod)
 	}
 	else if(mod->cr == C8P_CR_23)
 	{
-		std::cout<<"ieee80211 puncture, coding rate 23"<<std::endl;
 		for(int i=0;i<len;i++)
 		{
 			if(SV_PUNC_23[i%4])
@@ -1540,7 +1539,6 @@ void punctEncoder(uint8_t* inBits, uint8_t* outBits, int len, c8p_mod* mod)
 	}
 	else if(mod->cr == C8P_CR_34)
 	{
-		std::cout<<"ieee80211 puncture, coding rate 34"<<std::endl;
 		for(int i=0;i<len;i++)
 		{
 			if(SV_PUNC_34[i%6])
@@ -1552,7 +1550,6 @@ void punctEncoder(uint8_t* inBits, uint8_t* outBits, int len, c8p_mod* mod)
 	}
 	else
 	{
-		std::cout<<"ieee80211 puncture, coding rate 56"<<std::endl;
 		for(int i=0;i<len;i++)
 		{
 			if(SV_PUNC_56[i%10])

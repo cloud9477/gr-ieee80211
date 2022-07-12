@@ -140,6 +140,7 @@ extern const gr_complex C8P_STF_F[64];
 extern const gr_complex C8P_LTF_L_F[64];
 extern const gr_complex C8P_LTF_NL_F[64];
 extern const gr_complex C8P_LTF_NL_F_N[64];
+extern const gr_complex C8P_LTF_NL_F_VHT22[64];
 
 
 

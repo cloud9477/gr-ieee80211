@@ -87,7 +87,11 @@ namespace gr {
       ifft(C8P_LTF_NL_F_N, tmpSig);
       memcpy(&d_ltf_nl_n[0], &tmpSig[48], 16*sizeof(gr_complex));
       memcpy(&d_ltf_nl_n[16], &tmpSig[0], 64*sizeof(gr_complex));
-
+      // non legacy ltf, vht ss 2 2nd ltf, due to different pilots polarity
+      memcpy(tmpSig, C8P_LTF_NL_F_VHT22, 64*sizeof(gr_complex));
+      procCSD(tmpSig, -400);
+      ifft(tmpSig, &d_ltf_nl_vht22[16]);
+      memcpy(&d_ltf_nl_vht22[0], &d_ltf_nl_vht22[64], 16*sizeof(gr_complex));
     }
 
     /*
@@ -414,8 +418,15 @@ namespace gr {
             memcpy(d_sigPtr2, d_ltf_nl2, sizeof(gr_complex) * 80);
             procToneScaling(d_sigPtr2, 56, d_m.nSS, 80);
             d_sigPtr2 += 80;
-            // non-legacy ltf
-            memcpy(d_sigPtr2, d_ltf_nl2, sizeof(gr_complex) * 80);
+            // non-legacy ltf 2nd, VHT has different pilots polarity
+            if(d_m.format == C8P_F_VHT)
+            {
+              memcpy(d_sigPtr2, d_ltf_nl_vht22, sizeof(gr_complex) * 80);
+            }
+            else
+            {
+              memcpy(d_sigPtr2, d_ltf_nl2, sizeof(gr_complex) * 80);
+            }
             procToneScaling(d_sigPtr2, 56, d_m.nSS, 80);
             d_sigPtr2 += 80;
             // vht sig b

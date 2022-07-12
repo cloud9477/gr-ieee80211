@@ -67,6 +67,7 @@ namespace gr {
       gr_complex d_ltf_nl[80];
       gr_complex d_ltf_nl2[80];
       gr_complex d_ltf_nl_n[80];
+      gr_complex d_ltf_nl_vht22[80];
 
       gr_complex d_sig1[53000];
       gr_complex d_sig2[53000];

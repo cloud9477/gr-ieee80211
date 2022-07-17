@@ -122,6 +122,10 @@ const uint8_t LEGACY_RATE_BITS[8][4] = {
 	{0, 0, 1, 1}
 };
 
+const uint8_t VHT_NDP_SIGB_20_BITS[26] = {
+	0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0
+};
+
 const gr_complex C8P_STF_F[64] = {
 	gr_complex(0.0f, 0.0f)/sqrtf(2.0f), gr_complex(0.0f, 0.0f)/sqrtf(2.0f), gr_complex(0.0f, 0.0f)/sqrtf(2.0f), gr_complex(0.0f, 0.0f)/sqrtf(2.0f), 
 	gr_complex(-1.0f, -1.0f)/sqrtf(2.0f), gr_complex(0.0f, 0.0f)/sqrtf(2.0f), gr_complex(0.0f, 0.0f)/sqrtf(2.0f), gr_complex(0.0f, 0.0f)/sqrtf(2.0f), 
@@ -1477,7 +1481,15 @@ void formatToModSu(c8p_mod* mod, int format, int mcs, int nss, int len)
 		mod->nSymSamp = 80;
 		mod->ampdu = 1;
 		mod->sumu = 0;
-		mod->nSym = (mod->len*8 + 22) / mod->nDBPS + (((mod->len*8 + 22) % mod->nDBPS) != 0);
+		if(len > 0)
+		{
+			mod->nSym = (mod->len*8 + 22) / mod->nDBPS + (((mod->len*8 + 22) % mod->nDBPS) != 0);
+		}
+		else
+		{
+			mod->nSym = 0;		// NDP
+		}
+		
 	}
 	else
 	{
@@ -1830,6 +1842,10 @@ void vhtSigABitsGenSU(uint8_t* sigabits, uint8_t* sigabitscoded, c8p_mod* mod)
 	}
 	// b 13-21 SU partial AID
 	memset(&sigabits[13], 0, 9);
+	// for(int i=0;i<9;i++)
+	// {
+	// 	sigabits[13+i] = (0 >> i) & 0x01;
+	// }
 	// b 22 txop ps not allowed, set 0, allowed
 	sigabits[22] = 0;
 	// b 23 reserved
@@ -1863,17 +1879,27 @@ void vhtSigABitsGenSU(uint8_t* sigabits, uint8_t* sigabitscoded, c8p_mod* mod)
 
 void vhtSigB20BitsGenSU(uint8_t* sigbbits, uint8_t* sigbbitscoded, uint8_t* sigbbitscrc, c8p_mod* mod)
 {
-	// b 0-16 apep-len/4
-	for(int i=0;i<17;i++)
+	if(mod->len > 0)
 	{
-		sigbbits[i] = ((mod->len/4) >> i) & 0x01;	
+		// general data packet
+		// b 0-16 apep-len/4
+		for(int i=0;i<17;i++)
+		{
+			sigbbits[i] = ((mod->len/4) >> i) & 0x01;	
+		}
+		// b 17-19 reserved
+		memset(&sigbbits[17], 1, 3);
+		// b 20-25 tail
+		memset(&sigbbits[20], 0, 5);
+		// compute crc 8 for service part
+		genCrc8Bits(sigbbits, sigbbitscrc, 20);
 	}
-	// b 17-19 reserved
-	memset(&sigbbits[17], 1, 3);
-	// b 20-25 tail
-	memset(&sigbbits[20], 0, 5);
-	// compute crc 8 for service part
-	genCrc8Bits(sigbbits, sigbbitscrc, 20);
+	else
+	{
+		// NDP bit pattern
+		memcpy(sigbbits, VHT_NDP_SIGB_20_BITS, 26);
+		memset(sigbbitscrc, 0, 8);
+	}
 
 	// ----------------------coding---------------------
 

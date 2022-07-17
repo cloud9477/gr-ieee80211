@@ -149,6 +149,7 @@ namespace gr {
           tmpTagNss = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("nss"), pmt::from_long(9999)));
           tmpTagLen = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len"), pmt::from_long(9999)));
           tmpTagSeq = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("seq"), pmt::from_long(9999)));
+          d_nChipsTotal = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("total"), pmt::from_long(9999)));
           formatToModSu(&d_m, tmpTagFormat, tmpTagMcs, tmpTagNss, tmpTagLen);
           // sig
           d_tagLegacyBits = pmt::u8vector_elements(pmt::dict_ref(d_meta, pmt::mp("lsig"), pmt::PMT_NIL));
@@ -327,8 +328,6 @@ namespace gr {
             memcpy(d_sigPtr1, tmpSig2, sizeof(gr_complex) * 64);
             d_sigPtr1 += 64;
           }
-          // tail pad
-          memset(d_sigPtr1, 0, 1000 * sizeof(gr_complex));
 
 
           // ss 2 part
@@ -443,8 +442,6 @@ namespace gr {
               memcpy(d_sigPtr2, tmpSig2, sizeof(gr_complex) * 64);
               d_sigPtr2 += 64;
             }
-            // tail pad
-            memset(d_sigPtr2, 0, 1000 * sizeof(gr_complex));
           }
 
           consume_each(0);
@@ -458,73 +455,88 @@ namespace gr {
           int i1 = 0;
           while((i1 + d_m.nSD) <= d_nProc)
           {
-            if(d_m.format == C8P_F_L)
+            if(d_m.len > 0)
             {
-              d_pilotsTmp[0] = d_pilots1[0] * PILOT_P[d_pilotP];
-              d_pilotsTmp[1] = d_pilots1[1] * PILOT_P[d_pilotP];
-              d_pilotsTmp[2] = d_pilots1[2] * PILOT_P[d_pilotP];
-              d_pilotsTmp[3] = d_pilots1[3] * PILOT_P[d_pilotP];
-              d_pilotP = (d_pilotP + 1) % 127;
-
-              procChipsToQam(&inBits1[i1], tmpSig1, d_m.mod, 48);
-              procInsertPilotsDc(tmpSig1, tmpSig2, d_pilotsTmp, C8P_F_L);
-              procNonDataSc(tmpSig2, tmpSig1, C8P_F_L);
-              ifft(tmpSig1, tmpSig2);
-              procToneScaling(tmpSig2, 52, d_m.nSS, 64);
-              memcpy(d_sigPtr1, &tmpSig2[48], sizeof(gr_complex) * 16);
-              d_sigPtr1 += 16;
-              memcpy(d_sigPtr1, tmpSig2, sizeof(gr_complex) * 64);
-              d_sigPtr1 += 64;
-              dout<<"ieee80211 modulation, gen legacy data sym: "<<d_nSymRd<<", total: "<<d_m.nSym<<std::endl;
-            }
-            else
-            {
-              d_pilotsTmp[0] = d_pilots1[0] * PILOT_P[d_pilotP];
-              d_pilotsTmp[1] = d_pilots1[1] * PILOT_P[d_pilotP];
-              d_pilotsTmp[2] = d_pilots1[2] * PILOT_P[d_pilotP];
-              d_pilotsTmp[3] = d_pilots1[3] * PILOT_P[d_pilotP];
-              
-              procChipsToQam(&inBits1[i1], tmpSig1, d_m.mod, 52);
-              procInsertPilotsDc(tmpSig1, tmpSig2, d_pilotsTmp, d_m.format);
-              procNonDataSc(tmpSig2, tmpSig1, d_m.format);
-              ifft(tmpSig1, tmpSig2);
-              procToneScaling(tmpSig2, 56, d_m.nSS, 64);
-              memcpy(d_sigPtr1, &tmpSig2[48], sizeof(gr_complex) * 16);
-              d_sigPtr1 += 16;
-              memcpy(d_sigPtr1, tmpSig2, sizeof(gr_complex) * 64);
-              d_sigPtr1 += 64;
-              dout<<"ieee80211 modulation, gen non-legacy data sym: "<<d_nSymRd<<", total: "<<d_m.nSym<<std::endl;
-              if(d_m.nSS == 2)
+              if(d_m.format == C8P_F_L)
               {
-                d_pilotsTmp[0] = d_pilots2[0] * PILOT_P[d_pilotP];
-                d_pilotsTmp[1] = d_pilots2[1] * PILOT_P[d_pilotP];
-                d_pilotsTmp[2] = d_pilots2[2] * PILOT_P[d_pilotP];
-                d_pilotsTmp[3] = d_pilots2[3] * PILOT_P[d_pilotP];
+                d_pilotsTmp[0] = d_pilots1[0] * PILOT_P[d_pilotP];
+                d_pilotsTmp[1] = d_pilots1[1] * PILOT_P[d_pilotP];
+                d_pilotsTmp[2] = d_pilots1[2] * PILOT_P[d_pilotP];
+                d_pilotsTmp[3] = d_pilots1[3] * PILOT_P[d_pilotP];
+                d_pilotP = (d_pilotP + 1) % 127;
 
-                procChipsToQam(&inBits2[i1], tmpSig1, d_m.mod, 52);
+                procChipsToQam(&inBits1[i1], tmpSig1, d_m.mod, 48);
+                procInsertPilotsDc(tmpSig1, tmpSig2, d_pilotsTmp, C8P_F_L);
+                procNonDataSc(tmpSig2, tmpSig1, C8P_F_L);
+                ifft(tmpSig1, tmpSig2);
+                procToneScaling(tmpSig2, 52, d_m.nSS, 64);
+                memcpy(d_sigPtr1, &tmpSig2[48], sizeof(gr_complex) * 16);
+                d_sigPtr1 += 16;
+                memcpy(d_sigPtr1, tmpSig2, sizeof(gr_complex) * 64);
+                d_sigPtr1 += 64;
+                dout<<"ieee80211 modulation, gen legacy data sym: "<<d_nSymRd<<", total: "<<d_m.nSym<<std::endl;
+              }
+              else
+              {
+                d_pilotsTmp[0] = d_pilots1[0] * PILOT_P[d_pilotP];
+                d_pilotsTmp[1] = d_pilots1[1] * PILOT_P[d_pilotP];
+                d_pilotsTmp[2] = d_pilots1[2] * PILOT_P[d_pilotP];
+                d_pilotsTmp[3] = d_pilots1[3] * PILOT_P[d_pilotP];
+                
+                procChipsToQam(&inBits1[i1], tmpSig1, d_m.mod, 52);
                 procInsertPilotsDc(tmpSig1, tmpSig2, d_pilotsTmp, d_m.format);
                 procNonDataSc(tmpSig2, tmpSig1, d_m.format);
-                procCSD(tmpSig1, -400);
                 ifft(tmpSig1, tmpSig2);
                 procToneScaling(tmpSig2, 56, d_m.nSS, 64);
-                memcpy(d_sigPtr2, &tmpSig2[48], sizeof(gr_complex) * 16);
-                d_sigPtr2 += 16;
-                memcpy(d_sigPtr2, tmpSig2, sizeof(gr_complex) * 64);
-                d_sigPtr2 += 64;
-                dout<<"ieee80211 modulation, gen non-legacy data sym ss 2: "<<d_nSymRd<<", total: "<<d_m.nSym<<std::endl;
-              }
-              pilotShift(d_pilots1);
-              pilotShift(d_pilots2);
-              d_pilotP = (d_pilotP + 1) % 127;
-            }
+                memcpy(d_sigPtr1, &tmpSig2[48], sizeof(gr_complex) * 16);
+                d_sigPtr1 += 16;
+                memcpy(d_sigPtr1, tmpSig2, sizeof(gr_complex) * 64);
+                d_sigPtr1 += 64;
+                dout<<"ieee80211 modulation, gen non-legacy data sym: "<<d_nSymRd<<", total: "<<d_m.nSym<<std::endl;
+                if(d_m.nSS == 2)
+                {
+                  d_pilotsTmp[0] = d_pilots2[0] * PILOT_P[d_pilotP];
+                  d_pilotsTmp[1] = d_pilots2[1] * PILOT_P[d_pilotP];
+                  d_pilotsTmp[2] = d_pilots2[2] * PILOT_P[d_pilotP];
+                  d_pilotsTmp[3] = d_pilots2[3] * PILOT_P[d_pilotP];
 
-            i1 += d_m.nSD;
-            d_nSymRd++;
+                  procChipsToQam(&inBits2[i1], tmpSig1, d_m.mod, 52);
+                  procInsertPilotsDc(tmpSig1, tmpSig2, d_pilotsTmp, d_m.format);
+                  procNonDataSc(tmpSig2, tmpSig1, d_m.format);
+                  procCSD(tmpSig1, -400);
+                  ifft(tmpSig1, tmpSig2);
+                  procToneScaling(tmpSig2, 56, d_m.nSS, 64);
+                  memcpy(d_sigPtr2, &tmpSig2[48], sizeof(gr_complex) * 16);
+                  d_sigPtr2 += 16;
+                  memcpy(d_sigPtr2, tmpSig2, sizeof(gr_complex) * 64);
+                  d_sigPtr2 += 64;
+                  dout<<"ieee80211 modulation, gen non-legacy data sym ss 2: "<<d_nSymRd<<", total: "<<d_m.nSym<<std::endl;
+                }
+                pilotShift(d_pilots1);
+                pilotShift(d_pilots2);
+                d_pilotP = (d_pilotP + 1) % 127;
+              }
+
+              i1 += d_m.nSD;
+              d_nSymRd++;
+            }
+            
             if(d_nSymRd >= d_m.nSym)
             {
+              // tail pad
+              memset(d_sigPtr1, 0, 1000 * sizeof(gr_complex));
+              memset(d_sigPtr2, 0, 1000 * sizeof(gr_complex));
               d_sigPtr1 = d_sig1;
               d_sigPtr2 = d_sig2;
-              d_sModul = MODUL_S_COPY;
+              if((d_m.nSym * d_m.nSD) < d_nChipsTotal)
+              {
+                d_sModul = MODUL_S_CLEAN;
+              }
+              else
+              {
+                d_sModul = MODUL_S_COPY;
+              }
+              
               if(d_m.format == C8P_F_L)
               {
                 // total num of sym to be output
@@ -545,6 +557,21 @@ namespace gr {
             }
           }
           consume_each(i1);
+          return 0;
+        }
+
+        case MODUL_S_CLEAN:
+        {
+          if(d_nProc >= (d_nChipsTotal - (d_m.nSym * d_m.nSD)))
+          {
+            dout<<"ieee80211 modulation, clean padded chips: "<<(d_nChipsTotal - (d_m.nSym * d_m.nSD))<<std::endl;
+            consume_each(d_nChipsTotal - (d_m.nSym * d_m.nSD));
+            d_sModul = MODUL_S_COPY;
+          }
+          else
+          {
+            consume_each(0);
+          }
           return 0;
         }
 

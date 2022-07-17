@@ -29,7 +29,8 @@
 #define MODUL_S_RD_TAG 1
 #define MODUL_S_SIG 2
 #define MODUL_S_DATA 3
-#define MODUL_S_COPY 4
+#define MODUL_S_CLEAN 4
+#define MODUL_S_COPY 5
 
 #define dout d_debug&&std::cout
 
@@ -44,6 +45,7 @@ namespace gr {
       int d_nGen;
       int d_sModul;
       bool d_debug;
+      int d_nChipsTotal;
       // tag
       std::vector<gr::tag_t> d_tags;
       std::vector<uint8_t> d_tagLegacyBits;

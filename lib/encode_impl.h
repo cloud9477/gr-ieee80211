@@ -29,6 +29,7 @@
 #define ENCODE_S_SCEDULE 1
 #define ENCODE_S_ENCODE 2
 #define ENCODE_S_COPY 3
+#define ENCODE_S_PAD 4
 
 #define DECODE_CB_MAX 32000   // max coded bits
 #define DECODE_B_MAX 16000    // max data bits
@@ -48,6 +49,7 @@ namespace gr {
       int d_nChipsGen;
       int d_nChipsGenProcd;
       bool d_debug;
+      int d_nChipsWithPadded;
       // msg
       void msgRead(pmt::pmt_t msg);
       uint8_t d_dataBits[DECODE_B_MAX];

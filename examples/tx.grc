@@ -78,7 +78,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [976, 364.0]
+    coordinate: [1136, 380.0]
     rotation: 0
     state: true
 - name: blocks_message_strobe_0
@@ -111,7 +111,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [480, 300.0]
+    coordinate: [448, 312.0]
     rotation: 0
     state: true
 - name: ieee80211_modulation_0

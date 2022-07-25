@@ -53,9 +53,13 @@ namespace gr {
       // msg
       void msgRead(pmt::pmt_t msg);
       uint8_t d_dataBits[DECODE_B_MAX];
+      uint8_t d_dataBits2[DECODE_B_MAX];
       uint8_t d_scramBits[DECODE_B_MAX];
+      uint8_t d_scramBits2[DECODE_B_MAX];
       uint8_t d_convlBits[DECODE_CB_MAX];
+      uint8_t d_convlBits2[DECODE_CB_MAX];
       uint8_t d_punctBits[DECODE_CB_MAX];
+      uint8_t d_punctBits2[DECODE_CB_MAX];
       uint8_t d_parsdBits1[DECODE_CB_MAX];
       uint8_t d_parsdBits2[DECODE_CB_MAX];
       uint8_t d_IntedBits1[DECODE_CB_MAX];
@@ -78,16 +82,25 @@ namespace gr {
       uint8_t d_vhtSigACoded[96];
       uint8_t d_vhtSigAInted[96];
 
-      uint8_t d_vhtSigB20[26];
-      uint8_t d_vhtSigB20Coded[52];
-      uint8_t d_vhtSigB20Inted[52];
-
+      uint8_t d_vhtSigB[26];
+      uint8_t d_vhtSigBCoded[52];
+      uint8_t d_vhtSigBInted[52];
       uint8_t d_vhtSigBCrc8[8];
+
+      uint8_t d_vhtSigBMu1[26];
+      uint8_t d_vhtSigBMu1Coded[52];
+      uint8_t d_vhtSigBMu1Inted[52];
+      uint8_t d_vhtSigBMu1Crc8[8];
+
+      uint8_t d_vhtBfQbytesR[1024];
+      uint8_t d_vhtBfQbytesI[1024];
       // tag
       std::vector<uint8_t> d_tagLegacyBits;
       std::vector<uint8_t> d_tagVhtABits;
-      std::vector<uint8_t> d_tagVhtB20Bits;
+      std::vector<uint8_t> d_tagVhtBBits;
+      std::vector<uint8_t> d_tagVhtBMu1Bits;
       std::vector<uint8_t> d_tagHtBits;
+      std::vector<gr_complex> d_tagBfQ;
 
       
      protected:

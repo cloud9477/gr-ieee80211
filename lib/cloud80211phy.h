@@ -33,7 +33,9 @@
 #define C8P_F_L 0
 #define C8P_F_HT 1
 #define C8P_F_VHT 2
-#define C8P_F_NL 3
+#define C8P_F_VHT_MU 3
+#define C8P_F_VHT_BFQ_R 10
+#define C8P_F_VHT_BFQ_I 11
 
 #define C8P_BW_20   0
 #define C8P_BW_40   1
@@ -55,19 +57,20 @@ class c8p_mod
 {
     public:
         int format;     // l, ht, vht
-        int mcs;
-        int len;        // packet len for legacy, ht, apep-len for vht
-
-        int nSym;
-        int ampdu;
         int sumu;       // 0 for su or 1 for mu
-        int nSymSamp;     // sample of a symbol
-        
-        int mod;        // modulation
-        int cr;         // coding rate
+        int ampdu;
+        int nSym;
+        int nSymSamp;   // sample of a symbol
+
         int nSD;        // data sub carrier
         int nSP;        // pilot sub carrier
         int nSS;        // spatial streams
+        int nLTF;       // number of LTF in non-legacy part
+
+        int mcs;
+        int len;        // packet len for legacy, ht, apep-len for vht
+        int mod;        // modulation
+        int cr;         // coding rate
         int nBPSCS;     // bit per sub carrier
         int nDBPS;      // data bit per sym
         int nCBPS;      // coded bit per sym
@@ -76,7 +79,20 @@ class c8p_mod
         int nIntCol;
         int nIntRow;
         int nIntRot;
-        int nLTF;       // number of LTF in non-legacy part
+
+        int groupId;
+        int mcsMu[4];
+        int lenMu[4];        // packet len for legacy, ht, apep-len for vht
+        int modMu[4];        // modulation
+        int crMu[4];         // coding rate
+        int nBPSCSMu[4];     // bit per sub carrier
+        int nDBPSMu[4];      // data bit per sym
+        int nCBPSMu[4];      // coded bit per sym
+        int nCBPSSMu[4];     // coded bit per sym per ss
+        // ht & vht
+        int nIntColMu[4];
+        int nIntRowMu[4];
+        int nIntRotMu[4];
 };
 
 class c8p_sigHt
@@ -157,6 +173,7 @@ int nCodedToUncoded(int nCoded, c8p_mod* mod);
 int nUncodedToCoded(int nUncoded, c8p_mod* mod);
 void procCSD(gr_complex* sig, int cycShift);
 void procToneScaling(gr_complex* sig, int ntf, int nss, int len);
+void procNss2SymBfQ(gr_complex* sig0, gr_complex* sig1, gr_complex* bfQ);
 void procChipsToQam(const uint8_t* inChips,  gr_complex* outQam, int qamType, int len);
 void procInsertPilotsDc(gr_complex* sigIn, gr_complex* sigOut, gr_complex* pilots, int format);
 void procNonDataSc(gr_complex* sigIn, gr_complex* sigOut, int format);
@@ -183,11 +200,15 @@ void procInterLegacy(uint8_t* inBits, uint8_t* outBits, c8p_mod* mod);
 void procInterNonLegacy(uint8_t* inBits, uint8_t* outBits, c8p_mod* mod, int iss_1);
 
 void formatToModSu(c8p_mod* mod, int format, int mcs, int nss, int len);
+void vhtModMuToSu(c8p_mod* mod, int pos);
+void vhtModSuToMu(c8p_mod* mod, int pos);
+void formatToModMu(c8p_mod* mod, int mcs0, int nSS0, int len0, int mcs1, int nSS1, int len1);
 bool formatCheck(int format, int mcs, int nss);
 
 void legacySigBitsGen(uint8_t* sigbits, uint8_t* sigbitscoded, int mcs, int len);
-void vhtSigABitsGenSU(uint8_t* sigabits, uint8_t* sigabitscoded, c8p_mod* mod);
+void vhtSigABitsGen(uint8_t* sigabits, uint8_t* sigabitscoded, c8p_mod* mod);
 void vhtSigB20BitsGenSU(uint8_t* sigbbits, uint8_t* sigbbitscoded, uint8_t* sigbbitscrc, c8p_mod* mod);
+void vhtSigB20BitsGenMU(uint8_t* sigbbits0, uint8_t* sigbbitscoded0, uint8_t* sigbbitscrc0, uint8_t* sigbbits1, uint8_t* sigbbitscoded1, uint8_t* sigbbitscrc1, c8p_mod* mod);
 void htSigBitsGen(uint8_t* sigbits, uint8_t* sigbitscoded, c8p_mod* mod);
 
 #endif /* INCLUDED_IEEE80211_SIGNAL_IMPL_H */

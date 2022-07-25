@@ -50,15 +50,20 @@ namespace gr {
       std::vector<gr::tag_t> d_tags;
       std::vector<uint8_t> d_tagLegacyBits;
       std::vector<uint8_t> d_tagVhtABits;
-      std::vector<uint8_t> d_tagVhtB20Bits;
+      std::vector<uint8_t> d_tagVhtBBits;
+      std::vector<uint8_t> d_tagVhtBMu1Bits;
       std::vector<uint8_t> d_tagHtBits;
+      std::vector<gr_complex> d_tagBfQ;
       // modulation
       c8p_mod d_m;
       uint8_t d_legacySigInted[48];
       uint8_t d_htSigInted[96];
       uint8_t d_vhtSigAInted[96];
-      uint8_t d_vhtSigB20Inted[52];
+      uint8_t d_vhtSigBInted[52];
+      uint8_t d_vhtSigBMu1Inted[52];
+      gr_complex d_ifftShifted[64];
       fft::fft_complex_rev d_ofdm_ifft;
+      gr_complex d_vhtMuBfQ[256];
       // sig, ind 2 is with CSD
       gr_complex d_stf_l[160];
       gr_complex d_stf_l2[160];
@@ -84,6 +89,9 @@ namespace gr {
       gr_complex d_pilots1[4];
       gr_complex d_pilots2[4];
       gr_complex d_pilotsTmp[4];
+
+      // mu-mimo
+
 
      public:
       modulation_impl();

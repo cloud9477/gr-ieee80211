@@ -139,29 +139,48 @@ namespace gr {
         case MODUL_S_RD_TAG:
         {
           int tmpTagFormat, tmpTagMcs, tmpTagNss, tmpTagLen, tmpTagSeq;
+          int tmpTagMcs1, tmpTagLen1;
           pmt::pmt_t d_meta = pmt::make_dict();
           for (auto tag : d_tags){
             d_meta = pmt::dict_add(d_meta, tag.key, tag.value);
           }
           // basic
           tmpTagFormat = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("format"), pmt::from_long(9999)));
-          tmpTagMcs = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("mcs"), pmt::from_long(9999)));
-          tmpTagNss = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("nss"), pmt::from_long(9999)));
-          tmpTagLen = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len"), pmt::from_long(9999)));
           tmpTagSeq = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("seq"), pmt::from_long(9999)));
           d_nChipsTotal = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("total"), pmt::from_long(9999)));
-          formatToModSu(&d_m, tmpTagFormat, tmpTagMcs, tmpTagNss, tmpTagLen);
-          // sig
+          if(tmpTagFormat == C8P_F_VHT_MU)
+          {
+            tmpTagMcs = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("mcs0"), pmt::from_long(9999)));
+            tmpTagLen = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len0"), pmt::from_long(9999)));
+            tmpTagMcs1 = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("mcs1"), pmt::from_long(9999)));
+            tmpTagLen1 = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len1"), pmt::from_long(9999)));
+            formatToModMu(&d_m, tmpTagMcs, 1, tmpTagLen, tmpTagMcs1, 1, tmpTagLen1);
+          }
+          else
+          {
+            tmpTagMcs = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("mcs"), pmt::from_long(9999)));
+            tmpTagNss = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("nss"), pmt::from_long(9999)));
+            tmpTagLen = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len"), pmt::from_long(9999)));
+            formatToModSu(&d_m, tmpTagFormat, tmpTagMcs, tmpTagNss, tmpTagLen);
+          }
+          // sig part
           d_tagLegacyBits = pmt::u8vector_elements(pmt::dict_ref(d_meta, pmt::mp("lsig"), pmt::PMT_NIL));
           std::copy(d_tagLegacyBits.begin(), d_tagLegacyBits.end(), d_legacySigInted);
-          if(tmpTagFormat == C8P_F_VHT)
+          if(d_m.format == C8P_F_VHT)
           {
             d_tagVhtABits = pmt::u8vector_elements(pmt::dict_ref(d_meta, pmt::mp("vhtsiga"), pmt::PMT_NIL));
             std::copy(d_tagVhtABits.begin(), d_tagVhtABits.end(), d_vhtSigAInted);
-            d_tagVhtB20Bits = pmt::u8vector_elements(pmt::dict_ref(d_meta, pmt::mp("vhtsigb"), pmt::PMT_NIL));
-            std::copy(d_tagVhtB20Bits.begin(), d_tagVhtB20Bits.end(), d_vhtSigB20Inted);
+            d_tagVhtBBits = pmt::u8vector_elements(pmt::dict_ref(d_meta, pmt::mp("vhtsigb"), pmt::PMT_NIL));
+            std::copy(d_tagVhtBBits.begin(), d_tagVhtBBits.end(), d_vhtSigBInted);
+            if(d_m.sumu)
+            {
+              d_tagVhtBMu1Bits = pmt::u8vector_elements(pmt::dict_ref(d_meta, pmt::mp("vhtsigb1"), pmt::PMT_NIL));
+              std::copy(d_tagVhtBMu1Bits.begin(), d_tagVhtBMu1Bits.end(), d_vhtSigBMu1Inted);
+              d_tagBfQ = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("vhtbfq"), pmt::PMT_NIL));
+              std::copy(d_tagBfQ.begin(), d_tagBfQ.end(), d_vhtMuBfQ);
+            }
           }
-          else if(tmpTagFormat == C8P_F_HT)
+          else if(d_m.format == C8P_F_HT)
           {
             d_tagHtBits = pmt::u8vector_elements(pmt::dict_ref(d_meta, pmt::mp("htsig"), pmt::PMT_NIL));
             std::copy(d_tagHtBits.begin(), d_tagHtBits.end(), d_htSigInted);
@@ -301,34 +320,38 @@ namespace gr {
             }
             d_pilotP = 3;
           }
-          // non-legacy stf
-          memcpy(d_sigPtr1, d_stf_nl, sizeof(gr_complex) * 80);
-          procToneScaling(d_sigPtr1, 12, d_m.nSS, 80);
-          d_sigPtr1 += 80;
-          // non-legacy ltf
-          memcpy(d_sigPtr1, d_ltf_nl, sizeof(gr_complex) * 80);
-          procToneScaling(d_sigPtr1, 56, d_m.nSS, 80);
-          d_sigPtr1 += 80;
-          if(d_m.nSS == 2)
+          if(d_m.sumu)
+          {}
+          else
           {
-            memcpy(d_sigPtr1, d_ltf_nl_n, sizeof(gr_complex) * 80);
+            // non-legacy stf
+            memcpy(d_sigPtr1, d_stf_nl, sizeof(gr_complex) * 80);
+            procToneScaling(d_sigPtr1, 12, d_m.nSS, 80);
+            d_sigPtr1 += 80;
+            // non-legacy ltf
+            memcpy(d_sigPtr1, d_ltf_nl, sizeof(gr_complex) * 80);
             procToneScaling(d_sigPtr1, 56, d_m.nSS, 80);
             d_sigPtr1 += 80;
+            if(d_m.nSS == 2)
+            {
+              memcpy(d_sigPtr1, d_ltf_nl_n, sizeof(gr_complex) * 80);
+              procToneScaling(d_sigPtr1, 56, d_m.nSS, 80);
+              d_sigPtr1 += 80;
+            }
+            // vht sig b
+            if(d_m.format == C8P_F_VHT)
+            {
+              procChipsToQam(d_vhtSigBInted, tmpSig1, C8P_QAM_BPSK, 52);
+              procInsertPilotsDc(tmpSig1, tmpSig2, tmpSigPilots, C8P_F_VHT);
+              procNonDataSc(tmpSig2, tmpSig1, C8P_F_VHT);
+              ifft(tmpSig1, tmpSig2);
+              procToneScaling(tmpSig2, 56, d_m.nSS, 64);
+              memcpy(d_sigPtr1, &tmpSig2[48], sizeof(gr_complex) * 16);
+              d_sigPtr1 += 16;
+              memcpy(d_sigPtr1, tmpSig2, sizeof(gr_complex) * 64);
+              d_sigPtr1 += 64;
+            }
           }
-          // vht sig b
-          if(d_m.format == C8P_F_VHT)
-          {
-            procChipsToQam(d_vhtSigB20Inted, tmpSig1, C8P_QAM_BPSK, 52);
-            procInsertPilotsDc(tmpSig1, tmpSig2, tmpSigPilots, C8P_F_VHT);
-            procNonDataSc(tmpSig2, tmpSig1, C8P_F_VHT);
-            ifft(tmpSig1, tmpSig2);
-            procToneScaling(tmpSig2, 56, d_m.nSS, 64);
-            memcpy(d_sigPtr1, &tmpSig2[48], sizeof(gr_complex) * 16);
-            d_sigPtr1 += 16;
-            memcpy(d_sigPtr1, tmpSig2, sizeof(gr_complex) * 64);
-            d_sigPtr1 += 64;
-          }
-
 
           // ss 2 part
           if(d_m.nSS == 2)
@@ -409,38 +432,117 @@ namespace gr {
               memcpy(d_sigPtr2, tmpSig2, sizeof(gr_complex) * 64);
               d_sigPtr2 += 64;
             }
-            // non-legacy stf
-            memcpy(d_sigPtr2, d_stf_nl2, sizeof(gr_complex) * 80);
-            procToneScaling(d_sigPtr2, 12, d_m.nSS, 80);
-            d_sigPtr2 += 80;
-            // non-legacy ltf
-            memcpy(d_sigPtr2, d_ltf_nl2, sizeof(gr_complex) * 80);
-            procToneScaling(d_sigPtr2, 56, d_m.nSS, 80);
-            d_sigPtr2 += 80;
-            // non-legacy ltf 2nd, VHT has different pilots polarity
-            if(d_m.format == C8P_F_VHT)
+            if(d_m.sumu)
             {
-              memcpy(d_sigPtr2, d_ltf_nl_vht22, sizeof(gr_complex) * 80);
+              gr_complex tmpSig3[64];
+              // mu-mimo vht STF
+              memcpy(tmpSig1, C8P_STF_F, 64*sizeof(gr_complex));
+              memcpy(tmpSig2, C8P_STF_F, 64*sizeof(gr_complex));
+              procCSD(tmpSig2, -400);
+              procNss2SymBfQ(tmpSig1, tmpSig2, d_vhtMuBfQ);
+              ifft(tmpSig1, tmpSig3);
+              procToneScaling(tmpSig3, 12, d_m.nSS, 64);
+              memcpy(d_sigPtr1, &tmpSig3[48], sizeof(gr_complex) * 16);
+              d_sigPtr1 += 16;
+              memcpy(d_sigPtr1, tmpSig3, sizeof(gr_complex) * 64);
+              d_sigPtr1 += 64;
+              ifft(tmpSig2, tmpSig3);
+              procToneScaling(tmpSig3, 12, d_m.nSS, 64);
+              memcpy(d_sigPtr2, &tmpSig3[48], sizeof(gr_complex) * 16);
+              d_sigPtr2 += 16;
+              memcpy(d_sigPtr2, tmpSig3, sizeof(gr_complex) * 64);
+              d_sigPtr2 += 64;
+              // mu-mimo vht LTF n=1
+              memcpy(tmpSig1, C8P_LTF_NL_F, 64*sizeof(gr_complex));
+              memcpy(tmpSig2, C8P_LTF_NL_F, 64*sizeof(gr_complex));
+              procCSD(tmpSig2, -400);
+              procNss2SymBfQ(tmpSig1, tmpSig2, d_vhtMuBfQ);
+              ifft(tmpSig1, tmpSig3);
+              procToneScaling(tmpSig3, 56, d_m.nSS, 64);
+              memcpy(d_sigPtr1, &tmpSig3[48], sizeof(gr_complex) * 16);
+              d_sigPtr1 += 16;
+              memcpy(d_sigPtr1, tmpSig3, sizeof(gr_complex) * 64);
+              d_sigPtr1 += 64;
+              ifft(tmpSig2, tmpSig3);
+              procToneScaling(tmpSig3, 56, d_m.nSS, 64);
+              memcpy(d_sigPtr2, &tmpSig3[48], sizeof(gr_complex) * 16);
+              d_sigPtr2 += 16;
+              memcpy(d_sigPtr2, tmpSig3, sizeof(gr_complex) * 64);
+              d_sigPtr2 += 64;
+              // mu-mimo vht LTF n=2
+              memcpy(tmpSig1, C8P_LTF_NL_F_N, 64*sizeof(gr_complex));
+              memcpy(tmpSig2, C8P_LTF_NL_F, 64*sizeof(gr_complex));
+              procCSD(tmpSig2, -400);
+              procNss2SymBfQ(tmpSig1, tmpSig2, d_vhtMuBfQ);
+              ifft(tmpSig1, tmpSig3);
+              procToneScaling(tmpSig3, 56, d_m.nSS, 64);
+              memcpy(d_sigPtr1, &tmpSig3[48], sizeof(gr_complex) * 16);
+              d_sigPtr1 += 16;
+              memcpy(d_sigPtr1, tmpSig3, sizeof(gr_complex) * 64);
+              d_sigPtr1 += 64;
+              ifft(tmpSig2, tmpSig3);
+              procToneScaling(tmpSig3, 56, d_m.nSS, 64);
+              memcpy(d_sigPtr2, &tmpSig3[48], sizeof(gr_complex) * 16);
+              d_sigPtr2 += 16;
+              memcpy(d_sigPtr2, tmpSig3, sizeof(gr_complex) * 64);
+              d_sigPtr2 += 64;
+              // mu-mimo vht sig b
+              procChipsToQam(d_vhtSigBInted, tmpSig1, C8P_QAM_BPSK, 52);
+              procInsertPilotsDc(tmpSig1, tmpSig3, tmpSigPilots, C8P_F_VHT);
+              procNonDataSc(tmpSig3, tmpSig1, C8P_F_VHT);
+              procChipsToQam(d_vhtSigBMu1Inted, tmpSig2, C8P_QAM_BPSK, 52);
+              procInsertPilotsDc(tmpSig2, tmpSig3, tmpSigPilots, C8P_F_VHT);
+              procNonDataSc(tmpSig3, tmpSig2, C8P_F_VHT);
+              procCSD(tmpSig2, -400);
+              procNss2SymBfQ(tmpSig1, tmpSig2, d_vhtMuBfQ);
+              ifft(tmpSig1, tmpSig3);
+              procToneScaling(tmpSig3, 56, d_m.nSS, 64);
+              memcpy(d_sigPtr1, &tmpSig3[48], sizeof(gr_complex) * 16);
+              d_sigPtr1 += 16;
+              memcpy(d_sigPtr1, tmpSig3, sizeof(gr_complex) * 64);
+              d_sigPtr1 += 64;
+              ifft(tmpSig2, tmpSig3);
+              procToneScaling(tmpSig3, 56, d_m.nSS, 64);
+              memcpy(d_sigPtr2, &tmpSig3[48], sizeof(gr_complex) * 16);
+              d_sigPtr2 += 16;
+              memcpy(d_sigPtr2, tmpSig3, sizeof(gr_complex) * 64);
+              d_sigPtr2 += 64;
             }
             else
             {
+              // non-legacy stf
+              memcpy(d_sigPtr2, d_stf_nl2, sizeof(gr_complex) * 80);
+              procToneScaling(d_sigPtr2, 12, d_m.nSS, 80);
+              d_sigPtr2 += 80;
+              // non-legacy ltf
               memcpy(d_sigPtr2, d_ltf_nl2, sizeof(gr_complex) * 80);
-            }
-            procToneScaling(d_sigPtr2, 56, d_m.nSS, 80);
-            d_sigPtr2 += 80;
-            // vht sig b
-            if(d_m.format == C8P_F_VHT)
-            {
-              procChipsToQam(d_vhtSigB20Inted, tmpSig1, C8P_QAM_BPSK, 52);
-              procInsertPilotsDc(tmpSig1, tmpSig2, tmpSigPilots, C8P_F_VHT);
-              procNonDataSc(tmpSig2, tmpSig1, C8P_F_VHT);
-              procCSD(tmpSig1, -400);
-              ifft(tmpSig1, tmpSig2);
-              procToneScaling(tmpSig2, 56, d_m.nSS, 64);
-              memcpy(d_sigPtr2, &tmpSig2[48], sizeof(gr_complex) * 16);
-              d_sigPtr2 += 16;
-              memcpy(d_sigPtr2, tmpSig2, sizeof(gr_complex) * 64);
-              d_sigPtr2 += 64;
+              procToneScaling(d_sigPtr2, 56, d_m.nSS, 80);
+              d_sigPtr2 += 80;
+              // non-legacy ltf 2nd, VHT has different pilots polarity
+              if(d_m.format == C8P_F_VHT)
+              {
+                memcpy(d_sigPtr2, d_ltf_nl_vht22, sizeof(gr_complex) * 80);
+              }
+              else
+              {
+                memcpy(d_sigPtr2, d_ltf_nl2, sizeof(gr_complex) * 80);
+              }
+              procToneScaling(d_sigPtr2, 56, d_m.nSS, 80);
+              d_sigPtr2 += 80;
+              // vht sig b
+              if(d_m.format == C8P_F_VHT)
+              {
+                procChipsToQam(d_vhtSigBInted, tmpSig1, C8P_QAM_BPSK, 52);
+                procInsertPilotsDc(tmpSig1, tmpSig2, tmpSigPilots, C8P_F_VHT);
+                procNonDataSc(tmpSig2, tmpSig1, C8P_F_VHT);
+                procCSD(tmpSig1, -400);
+                ifft(tmpSig1, tmpSig2);
+                procToneScaling(tmpSig2, 56, d_m.nSS, 64);
+                memcpy(d_sigPtr2, &tmpSig2[48], sizeof(gr_complex) * 16);
+                d_sigPtr2 += 16;
+                memcpy(d_sigPtr2, tmpSig2, sizeof(gr_complex) * 64);
+                d_sigPtr2 += 64;
+              }
             }
           }
 
@@ -452,10 +554,11 @@ namespace gr {
         {
           gr_complex tmpSig1[64];
           gr_complex tmpSig2[64];
+          gr_complex tmpSig3[64];
           int i1 = 0;
           while((i1 + d_m.nSD) <= d_nProc)
           {
-            if(d_m.len > 0)
+            if(d_m.nSym > 0)
             {
               if(d_m.format == C8P_F_L)
               {
@@ -475,6 +578,48 @@ namespace gr {
                 memcpy(d_sigPtr1, tmpSig2, sizeof(gr_complex) * 64);
                 d_sigPtr1 += 64;
                 dout<<"ieee80211 modulation, gen legacy data sym: "<<d_nSymRd<<", total: "<<d_m.nSym<<std::endl;
+              }
+              else if(d_m.sumu)
+              {
+                d_pilotsTmp[0] = d_pilots1[0] * PILOT_P[d_pilotP];
+                d_pilotsTmp[1] = d_pilots1[1] * PILOT_P[d_pilotP];
+                d_pilotsTmp[2] = d_pilots1[2] * PILOT_P[d_pilotP];
+                d_pilotsTmp[3] = d_pilots1[3] * PILOT_P[d_pilotP];
+                procChipsToQam(&inBits1[i1], tmpSig1, d_m.mod, 52);
+                procInsertPilotsDc(tmpSig1, tmpSig3, d_pilotsTmp, d_m.format);
+                procNonDataSc(tmpSig3, tmpSig1, d_m.format);
+                
+                d_pilotsTmp[0] = d_pilots2[0] * PILOT_P[d_pilotP];
+                d_pilotsTmp[1] = d_pilots2[1] * PILOT_P[d_pilotP];
+                d_pilotsTmp[2] = d_pilots2[2] * PILOT_P[d_pilotP];
+                d_pilotsTmp[3] = d_pilots2[3] * PILOT_P[d_pilotP];
+                procChipsToQam(&inBits2[i1], tmpSig2, d_m.mod, 52);
+                procInsertPilotsDc(tmpSig2, tmpSig3, d_pilotsTmp, d_m.format);
+                procNonDataSc(tmpSig3, tmpSig2, d_m.format);
+                procCSD(tmpSig2, -400);
+
+                procNss2SymBfQ(tmpSig1, tmpSig2, d_vhtMuBfQ);
+
+                ifft(tmpSig1, tmpSig3);
+                procToneScaling(tmpSig3, 56, d_m.nSS, 64);
+                memcpy(d_sigPtr1, &tmpSig3[48], sizeof(gr_complex) * 16);
+                d_sigPtr1 += 16;
+                memcpy(d_sigPtr1, tmpSig3, sizeof(gr_complex) * 64);
+                d_sigPtr1 += 64;
+
+                ifft(tmpSig2, tmpSig3);
+                procToneScaling(tmpSig3, 56, d_m.nSS, 64);
+                memcpy(d_sigPtr2, &tmpSig3[48], sizeof(gr_complex) * 16);
+                d_sigPtr2 += 16;
+                memcpy(d_sigPtr2, tmpSig3, sizeof(gr_complex) * 64);
+                d_sigPtr2 += 64;
+
+                dout<<"ieee80211 modulation, gen mu-mimo data sym: "<<d_nSymRd<<", total: "<<d_m.nSym<<std::endl;
+
+                pilotShift(d_pilots1);
+                pilotShift(d_pilots2);
+                d_pilotP = (d_pilotP + 1) % 127;
+
               }
               else
               {
@@ -622,7 +767,9 @@ namespace gr {
     void
     modulation_impl::ifft(const gr_complex* sig, gr_complex* res)
     {
-      memcpy(d_ofdm_ifft.get_inbuf(), sig, sizeof(gr_complex)*64);
+      memcpy(&d_ifftShifted[0], &sig[32], sizeof(gr_complex)*32);
+      memcpy(&d_ifftShifted[32], &sig[0], sizeof(gr_complex)*32);
+      memcpy(d_ofdm_ifft.get_inbuf(), d_ifftShifted, sizeof(gr_complex)*64);
       d_ofdm_ifft.execute();
       memcpy(res, d_ofdm_ifft.get_outbuf(), sizeof(gr_complex)*64);
     }

@@ -40,6 +40,7 @@ namespace gr {
               d_ofdm_fft(64,1)
     {
       d_nProc = 0;
+      d_muPos = 1;
       d_sDemod = DEMOD_S_SYNC;
       set_tag_propagation_policy(block::TPP_DONT);
     }
@@ -171,10 +172,18 @@ namespace gr {
             procDeintLegacyBpsk(d_sigVhtAIntedLlr, d_sigVhtACodedLlr);
             procDeintLegacyBpsk(&d_sigVhtAIntedLlr[48], &d_sigVhtACodedLlr[48]);
             SV_Decode_Sig(d_sigVhtACodedLlr, d_sigVhtABits, 48);
+            dout<<"sig vht a bits"<<std::endl;
+            for(int i=0;i<48;i++)
+            {
+              dout<<(int)d_sigVhtABits[i]<<" ";
+            }
+            dout<<std::endl;
             if(signalCheckVhtA(d_sigVhtABits))
             {
+              dout<<"sig vht a bits check passed"<<std::endl;
               // go to vht
               signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
+              dout<<"sig vht a bits parser done"<<std::endl;
               d_sDemod = DEMOD_S_VHT;
               consume_each(160);
               return 0;
@@ -322,6 +331,24 @@ namespace gr {
             if(d_m.nSS == 1)
             {
               procSymQamToLlr(d_qam[0], d_llrInted[0], &d_m);
+              dout<<"nsym "<<d_nSymProcd<<std::endl;
+              for(int i=0;i<d_m.nCBPS;i++)
+              {
+                if(d_llrInted[0][i] > 0)
+                {
+                  dout<<1<<" ";
+                }
+                else
+                {
+                  dout<<0<<" ";
+                }
+              }
+              dout<<std::endl;
+              for(int i=0;i<d_m.nCBPS;i++)
+              {
+                dout<<d_llrInted[0][i]<<" ";
+              }
+              dout<<std::endl;
             }
             else
             {
@@ -383,14 +410,42 @@ namespace gr {
     {
       if(d_m.nSS == 1)
       {
-        fft(&sig1[8], d_fftLtfOut1);
-        for(int i=0;i<64;i++)
+        if(d_m.nLTF == 1)
         {
-          if(i==0 || (i>=29 && i<=35))
-          {}
-          else
+          fft(&sig1[8], d_fftLtfOut1);
+          for(int i=0;i<64;i++)
           {
-            d_H_NL[i][0] = d_fftLtfOut1[i] / LTF_NL_28_F_FLOAT[i];
+            if(i==0 || (i>=29 && i<=35))
+            {}
+            else
+            {
+              d_H_NL[i][0] = d_fftLtfOut1[i] / LTF_NL_28_F_FLOAT[i];
+            }
+          }
+        }
+        else
+        {
+          // mu-mimo 2x2
+          fft(&sig1[8], d_fftLtfOut1);
+          fft(&sig1[8+80], d_fftLtfOut2);
+          for(int i=0;i<64;i++)
+          {
+            if(i==0 || (i>=29 && i<=35))
+            {}
+            else
+            {
+              if(d_muPos == 0)
+              {
+                // ss0 LTF and LTF_N
+                d_H_NL[i][0] = (d_fftLtfOut1[i] - d_fftLtfOut2[i]) / LTF_NL_28_F_FLOAT[i] / 2.0f;
+              }
+              else
+              {
+                // ss1 LTF and LTF
+                //d_H_NL[i][0] = (d_fftLtfOut1[i] + d_fftLtfOut2[i]) / LTF_NL_28_F_FLOAT[i] / 2.0f;
+                d_H_NL[i][0] = d_fftLtfOut1[i] / LTF_NL_28_F_FLOAT[i];
+              }
+            }
           }
         }
       }
@@ -590,6 +645,7 @@ namespace gr {
           else
           {
             d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i][0];
+            dout<<"sig b qam "<<i<<", "<<d_sig1[i]<<std::endl;
           }
         }
       }

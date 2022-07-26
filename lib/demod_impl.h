@@ -73,6 +73,7 @@ namespace gr {
       gr_complex d_fftLtfOut12[64];
       gr_complex d_fftLtfOut22[64];
       // packet info
+      int d_muPos;
       c8p_mod d_m;
       c8p_sigHt d_sigHt;
       c8p_sigVhtA d_sigVhtA;

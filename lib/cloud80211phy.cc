@@ -861,6 +861,7 @@ void signalParserVhtA(uint8_t* inBits, c8p_mod* outMod, c8p_sigVhtA* outSigVhtA)
 	// 4-9 group ID, group ID is used to judge su or mu and filter the packet, only 0 and 63 used for su
 	outSigVhtA->groupId = 0;
 	for(int i=0;i<6;i++){outSigVhtA->groupId |= (((int)inBits[i+4])<<i);}
+	std::cout<<"vht sig a parser, group ID:"<<outSigVhtA->groupId<<std::endl;
 	if(outSigVhtA->groupId == 0 || outSigVhtA->groupId == 63)	// su
 	{
 		// 10-12 nSTS
@@ -931,11 +932,11 @@ void signalParserVhtA(uint8_t* inBits, c8p_mod* outMod, c8p_sigVhtA* outSigVhtA)
 	}
 	else
 	{
-		outMod->sumu = 1;	// mu
-		// needs the position in this group, currently set 0
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		outMod->nSS = outSigVhtA->mu_nSTS[0];
-		// still need the packet len and mcs in sig b
+		outMod->sumu = 1;	// mu flag, mod is parsed after sig b
+		outMod->nLTF = 2;
+		outMod->nSS = 1;
+		outMod->nSD = 52;
+		outMod->nSP = 4;
 	}
 }
 
@@ -943,10 +944,18 @@ void signalParserVhtB(uint8_t* inBits, c8p_mod* outMod)
 {
 	int tmpLen = 0;
 	int tmpMcs = 0;
-	for(int i=0;i<16;i++){tmpLen |= (((int)inBits[i])<<i);}
-	for(int i=0;i<4;i++){tmpMcs |= (((int)inBits[i+16])<<i);}
+	if(outMod->sumu)
+	{
+		for(int i=0;i<16;i++){tmpLen |= (((int)inBits[i])<<i);}
+		for(int i=0;i<4;i++){tmpMcs |= (((int)inBits[i+16])<<i);}
+		modParserVht(tmpMcs, outMod);
+		outMod->nLTF = 2;
+	}
+	else
+	{
+		for(int i=0;i<17;i++){tmpLen |= (((int)inBits[i])<<i);}
+	}
 	outMod->len = tmpLen * 4;
-	modParserVht(tmpMcs, outMod);
 	outMod->nSym = (outMod->len*8 + 16 + 6) / outMod->nDBPS + (((outMod->len*8 + 16 + 6) % outMod->nDBPS) != 0);
 }
 

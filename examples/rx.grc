@@ -121,7 +121,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/sig80211VhtGen_2x2_0.bin
+    file: /home/cloud/sdr/sig80211VhtGenMu_2x2_1.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -143,7 +143,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/sig80211VhtGen_2x2_1.bin
+    file: /home/cloud/sdr/sig80211VhtGenMu_2x2_1.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'

@@ -36,7 +36,7 @@ namespace gr {
               gr::io_signature::makev(4, 4, std::vector<int>{sizeof(uint8_t), sizeof(float), sizeof(gr_complex), sizeof(gr_complex)}),
               gr::io_signature::make(2, 2, sizeof(gr_complex))),
               d_nStream(nss),
-              d_debug(0),
+              d_debug(1),
               d_ofdm_fft(64,1)
     {
       if(d_nStream < 1 || d_nStream > 3)

@@ -45,6 +45,23 @@ blocks:
     coordinate: [184, 12]
     rotation: 0
     state: enabled
+- name: analog_const_source_x_0
+  id: analog_const_source_x
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    const: '0'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: complex
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1264, 212.0]
+    rotation: 0
+    state: true
 - name: blocks_complex_to_mag_0
   id: blocks_complex_to_mag
   parameters:
@@ -121,7 +138,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/sig80211VhtGenMu_2x2_1.bin
+    file: /home/cloud/sdr/sig80211VhtGenNdp_0.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -134,28 +151,6 @@ blocks:
     bus_source: false
     bus_structure: null
     coordinate: [64, 460.0]
-    rotation: 0
-    state: enabled
-- name: blocks_file_source_0_0
-  id: blocks_file_source
-  parameters:
-    affinity: ''
-    alias: ''
-    begin_tag: pmt.PMT_NIL
-    comment: ''
-    file: /home/cloud/sdr/sig80211VhtGenMu_2x2_1.bin
-    length: '0'
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    offset: '0'
-    repeat: 'False'
-    type: complex
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [64, 316.0]
     rotation: 0
     state: enabled
 - name: blocks_message_debug_0
@@ -264,48 +259,6 @@ blocks:
     coordinate: [120, 148.0]
     rotation: 0
     state: true
-- name: channels_channel_model_0
-  id: channels_channel_model
-  parameters:
-    affinity: ''
-    alias: ''
-    block_tags: 'False'
-    comment: ''
-    epsilon: '1.0'
-    freq_offset: '0.0'
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    noise_voltage: '0.000001'
-    seed: '0'
-    taps: '1.0'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [296, 452.0]
-    rotation: 0
-    state: true
-- name: channels_channel_model_0_0
-  id: channels_channel_model
-  parameters:
-    affinity: ''
-    alias: ''
-    block_tags: 'False'
-    comment: ''
-    epsilon: '1.0'
-    freq_offset: '0.0'
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    noise_voltage: '0.000001'
-    seed: '0'
-    taps: 1.0j
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [296, 308.0]
-    rotation: 0
-    state: true
 - name: ieee80211_decode_0
   id: ieee80211_decode
   parameters:
@@ -405,12 +358,12 @@ blocks:
     state: enabled
 
 connections:
+- [analog_const_source_x_0, '0', ieee80211_signal_0, '3']
 - [blocks_complex_to_mag_0, '0', blocks_divide_xx_0, '0']
 - [blocks_complex_to_mag_squared_0, '0', blocks_moving_average_xx_1, '0']
 - [blocks_delay_0, '0', blocks_multiply_conjugate_cc_0, '0']
 - [blocks_divide_xx_0, '0', ieee80211_trigger_0, '0']
-- [blocks_file_source_0, '0', channels_channel_model_0, '0']
-- [blocks_file_source_0_0, '0', channels_channel_model_0_0, '0']
+- [blocks_file_source_0, '0', blocks_throttle_0, '0']
 - [blocks_moving_average_xx_0, '0', blocks_complex_to_mag_0, '0']
 - [blocks_moving_average_xx_0, '0', ieee80211_sync_0, '2']
 - [blocks_moving_average_xx_1, '0', blocks_divide_xx_0, '1']
@@ -421,8 +374,6 @@ connections:
 - [blocks_throttle_0, '0', blocks_multiply_conjugate_cc_0, '1']
 - [blocks_throttle_0, '0', ieee80211_signal_0, '2']
 - [blocks_throttle_0, '0', ieee80211_sync_0, '1']
-- [channels_channel_model_0, '0', blocks_throttle_0, '0']
-- [channels_channel_model_0_0, '0', ieee80211_signal_0, '3']
 - [ieee80211_decode_0, out, blocks_message_debug_0, print]
 - [ieee80211_decode_0, out, blocks_pdu_to_tagged_stream_0, pdus]
 - [ieee80211_demod_0, '0', ieee80211_decode_0, '0']

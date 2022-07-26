@@ -25,17 +25,19 @@ namespace gr {
   namespace ieee80211 {
 
     demod::sptr
-    demod::make(int nss)
+    demod::make(int nrx, int mupos, int mugid)
     {
-      return gnuradio::make_block_sptr<demod_impl>(nss
+      return gnuradio::make_block_sptr<demod_impl>(nrx, mupos, mugid
         );
     }
 
-    demod_impl::demod_impl(int nss)
+    demod_impl::demod_impl(int nrx, int mupos, int mugid)
       : gr::block("demod",
               gr::io_signature::makev(3, 3, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex), sizeof(gr_complex)}),
               gr::io_signature::make(1, 1, sizeof(float))),
-              d_nStream(nss),
+              d_nRxAnt(nrx),
+              d_muPos(mupos),
+              d_muGroupId(mugid),
               d_debug(1),
               d_ofdm_fft(64,1)
     {
@@ -183,7 +185,7 @@ namespace gr {
               dout<<"sig vht a bits check passed"<<std::endl;
               // go to vht
               signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
-              dout<<"sig vht a bits parser done"<<std::endl;
+              dout<<"sig vht a bits parser done, nLTF:"<<d_m.nLTF<<std::endl;
               d_sDemod = DEMOD_S_VHT;
               consume_each(160);
               return 0;

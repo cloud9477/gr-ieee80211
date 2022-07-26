@@ -32,6 +32,8 @@
 #define MODUL_S_CLEAN 4
 #define MODUL_S_COPY 5
 
+#define MODUL_N_GAP 10000
+
 #define dout d_debug&&std::cout
 
 namespace gr {
@@ -76,8 +78,8 @@ namespace gr {
       gr_complex d_ltf_nl_n[80];
       gr_complex d_ltf_nl_vht22[80];
 
-      gr_complex d_sig1[53000];
-      gr_complex d_sig2[53000];
+      gr_complex d_sig1[53000 + MODUL_N_GAP + MODUL_N_GAP];
+      gr_complex d_sig2[53000 + MODUL_N_GAP + MODUL_N_GAP];
       gr_complex* d_sigPtr1;
       gr_complex* d_sigPtr2;
 

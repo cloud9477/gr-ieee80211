@@ -41,7 +41,11 @@ namespace gr {
     {
       if(d_nStream < 1 || d_nStream > 3)
       {
-        std::cout<<"ieee80211 signal, number of stream error:"<<d_nStream<<std::endl;
+        std::cout<<"ieee80211 signal, block nss error:"<<d_nStream<<std::endl;
+      }
+      else
+      {
+        std::cout<<"ieee80211 signal, block nss:"<<d_nStream<<std::endl;
       }
       d_nProc = 0;
       d_nSigPktSeq = 0;
@@ -196,22 +200,6 @@ namespace gr {
       }
       else if(d_sSignal == S_COPY)
       {
-        // int i=0;
-        // while(i<d_nGen)
-        // {
-        //   // add cfo compensate later
-        //   outSig[i] = inSig1[i];
-        //   i++;
-        //   d_nSampleCopied++;
-        //   if(d_nSampleCopied >= d_nSample)
-        //   {
-        //     d_sSignal = S_TRIGGER;
-        //     break;
-        //   }
-        // }
-        // consume_each(i);
-        // return i;
-
         float tmpRadStep;
         if(d_nGen < (d_nSample - d_nSampleCopied))
         {

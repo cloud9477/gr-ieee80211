@@ -205,8 +205,8 @@ namespace gr {
           // ss 1 part
           dout<<"ieee80211 modulation, ss 1 signal prepare."<<std::endl;
           // sig gap at begining
-          memset(d_sigPtr1, 0, sizeof(gr_complex) * 1000);
-          d_sigPtr1 += 1000;
+          memset(d_sigPtr1, 0, sizeof(gr_complex) * MODUL_N_GAP);
+          d_sigPtr1 += MODUL_N_GAP;
           // legacy training
           memcpy(d_sigPtr1, d_stf_l, sizeof(gr_complex) * 160);
           procToneScaling(d_sigPtr1, 12, d_m.nSS, 160);
@@ -236,7 +236,7 @@ namespace gr {
             d_pilots1[3] = gr_complex(-1.0f, 0.0f);
             d_pilotP = 1;
             // tail pad
-            memset(d_sigPtr1, 0, 1000 * sizeof(gr_complex));
+            memset(d_sigPtr1, 0, MODUL_N_GAP * sizeof(gr_complex));
             consume_each(0);
             return 0;
           }
@@ -358,8 +358,8 @@ namespace gr {
           {
             dout<<"ieee80211 modulation, ss 2 signal prepare."<<std::endl;
             // sig gap at begining
-            memset(d_sigPtr2, 0, sizeof(gr_complex) * 1000);
-            d_sigPtr2 += 1000;
+            memset(d_sigPtr2, 0, sizeof(gr_complex) * MODUL_N_GAP);
+            d_sigPtr2 += MODUL_N_GAP;
             // legacy training
             memcpy(d_sigPtr2, d_stf_l2, sizeof(gr_complex) * 160);
             procToneScaling(d_sigPtr2, 12, d_m.nSS, 160);
@@ -669,8 +669,8 @@ namespace gr {
             if(d_nSymRd >= d_m.nSym)
             {
               // tail pad
-              memset(d_sigPtr1, 0, 1000 * sizeof(gr_complex));
-              memset(d_sigPtr2, 0, 1000 * sizeof(gr_complex));
+              memset(d_sigPtr1, 0, MODUL_N_GAP * sizeof(gr_complex));
+              memset(d_sigPtr2, 0, MODUL_N_GAP * sizeof(gr_complex));
               d_sigPtr1 = d_sig1;
               d_sigPtr2 = d_sig2;
               if((d_m.nSym * d_m.nSD) < d_nChipsTotal)
@@ -685,17 +685,17 @@ namespace gr {
               if(d_m.format == C8P_F_L)
               {
                 // total num of sym to be output
-                d_nSampWrTotal = 1000 + (5 + d_m.nSym)*80 + 1000;   // begining gap, packet, end gap
+                d_nSampWrTotal = MODUL_N_GAP + (5 + d_m.nSym)*80 + MODUL_N_GAP;   // begining gap, packet, end gap
                 d_nSampWr = 0;
               }
               else if(d_m.format == C8P_F_VHT)
               {
-                d_nSampWrTotal = 1000 + (5 + 4 + d_m.nLTF + d_m.nSym)*80 + 1000;
+                d_nSampWrTotal = MODUL_N_GAP + (5 + 4 + d_m.nLTF + d_m.nSym)*80 + MODUL_N_GAP;
                 d_nSampWr = 0;
               }
               else
               {
-                d_nSampWrTotal = 1000 + (5 + 3 + d_m.nLTF + d_m.nSym)*80 + 1000;
+                d_nSampWrTotal = MODUL_N_GAP + (5 + 3 + d_m.nLTF + d_m.nSym)*80 + MODUL_N_GAP;
                 d_nSampWr = 0;
               }
               break;

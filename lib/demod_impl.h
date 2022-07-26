@@ -48,7 +48,10 @@ namespace gr {
       int d_nProc;
       int d_nGen;
       int d_sDemod;
+      // parameters
       int d_nStream;
+      int d_muPos;
+      int d_muGroupId;
       // received info from tag
       std::vector<gr::tag_t> tags;
       int d_nSigLMcs;
@@ -73,7 +76,6 @@ namespace gr {
       gr_complex d_fftLtfOut12[64];
       gr_complex d_fftLtfOut22[64];
       // packet info
-      int d_muPos;
       c8p_mod d_m;
       c8p_sigHt d_sigHt;
       c8p_sigVhtA d_sigVhtA;
@@ -101,7 +103,7 @@ namespace gr {
       float d_llrSpasd[C8P_MAX_N_SS][C8P_MAX_N_CBPSS];     // stream parsered LLR
 
      public:
-      demod_impl(int nss);
+      demod_impl(int nrx, int mupos, int mugid);
       ~demod_impl();
 
       // Where all the action really happens

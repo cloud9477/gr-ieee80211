@@ -54,6 +54,10 @@ namespace gr {
       int t_nUnCoded;
       int t_nTotal;
       int t_nProcd;
+      // NDP channel
+      gr_complex d_mu2x1Chan[128];
+      uint8_t d_mu2x1ChanFloatBytes[1025];
+      std::vector<gr_complex> d_tagMu2x1Chan;
       // viterbi
       float v_accum_err0[64];
 	    float v_accum_err1[64];

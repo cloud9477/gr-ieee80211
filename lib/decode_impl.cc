@@ -82,6 +82,25 @@ namespace gr {
           d_sDecode = DECODE_S_DECODE;
           t_nProcd = 0;
           dout<<"ieee80211 decode, tag f:"<<t_format<<", ampdu:"<<t_ampdu<<", len:"<<t_len<<", total:"<<t_nTotal<<", cr:"<<t_cr<<", tr:"<<v_trellis<<std::endl;
+          if(v_trellis == 0)
+          {
+            d_sDecode = DECODE_S_CLEAN;
+            d_tagMu2x1Chan = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("mu2x1chan"), pmt::PMT_NIL));
+            std::copy(d_tagMu2x1Chan.begin(), d_tagMu2x1Chan.end(), d_mu2x1Chan);
+            d_mu2x1ChanFloatBytes[0] = C8P_F_VHT_NDP;
+            float* tmpFloatPointer = (float*)&d_mu2x1ChanFloatBytes[1];
+            for(int i=0;i<128;i++)
+            {
+              tmpFloatPointer[i] = d_mu2x1Chan[i].real();
+              tmpFloatPointer[i+128] = d_mu2x1Chan[i].imag();
+            }
+            int tmpLen = (sizeof(float)*256 + 1);
+            dout<<"ieee80211 decode, vht NDP 2x1 channel report:"<<tmpLen<<std::endl;
+            pmt::pmt_t tmpMeta = pmt::make_dict();
+            tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(tmpLen));
+            pmt::pmt_t tmpPayload = pmt::make_blob((uint8_t*)d_mu2x1ChanFloatBytes, tmpLen);
+            message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
+          }
           vstb_init();
         }
         consume_each(0);
@@ -312,15 +331,18 @@ namespace gr {
               break;
             }
             tmpBitP += 32;
+            d_dataBytes[0] = t_format;
             for(int i=0;i<tmpLen;i++)
             {
-              d_dataBytes[i] = 0;
+              d_dataBytes[i+1] = 0;
               for(int j=0;j<8;j++)
               {
-                d_dataBytes[i] |= (tmpBitP[i*8+j]<<j);
+                d_dataBytes[i+1] |= (tmpBitP[i*8+j]<<j);
               }
             }
             tmpBitP += ((tmpLen/4 + ((tmpLen%4)!=0))*4*8);
+            // 1 byte packet format
+            tmpLen += 1;
             dout<<"ieee80211 decode, vht ampdu subf len:"<<tmpLen<<std::endl;
             pmt::pmt_t tmpMeta = pmt::make_dict();
             tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(tmpLen));
@@ -344,23 +366,24 @@ namespace gr {
         else
         {
           uint8_t* tmpBitP = &v_unCodedBits[16];
+          d_dataBytes[0] = t_format;
           for(int i=0;i<t_len;i++)
           {
-            d_dataBytes[i] = 0;
+            d_dataBytes[i+1] = 0;
             for(int j=0;j<8;j++)
             {
-              d_dataBytes[i] |= (tmpBitP[i*8+j]<<j);
+              d_dataBytes[i+1] |= (tmpBitP[i*8+j]<<j);
             }
           }
           if(t_format == C8P_F_L){
-            dout<<"ieee80211 decode, legacy len:"<<t_len<<std::endl;
+            dout<<"ieee80211 decode, legacy len:"<<t_len + 1<<std::endl;
           }
           else{
-            dout<<"ieee80211 decode, ht len:"<<t_len<<std::endl;
+            dout<<"ieee80211 decode, ht len:"<<t_len + 1<<std::endl;
           }
           pmt::pmt_t tmpMeta = pmt::make_dict();
-          tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(t_len));
-          pmt::pmt_t tmpPayload = pmt::make_blob(d_dataBytes, t_len);
+          tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(t_len+1));
+          pmt::pmt_t tmpPayload = pmt::make_blob(d_dataBytes, t_len+1);
           message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
         }
       }

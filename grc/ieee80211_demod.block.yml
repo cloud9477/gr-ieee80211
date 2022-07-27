@@ -4,7 +4,7 @@ category: '[ieee80211]'
 
 templates:
   imports: import ieee80211
-  make: ieee80211.demod(${nss})
+  make: ieee80211.demod(${nrx}, ${mupos}, ${mugid})
 
 parameters:
 - id: nrx

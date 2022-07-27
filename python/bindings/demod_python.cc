@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(demod.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(a4265d766b8ad13a683b1c3ff2eea898)                     */
+/* BINDTOOL_HEADER_FILE_HASH(e404c5740937c1265bbb3f64229d6190)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -37,7 +37,9 @@ void bind_demod(py::module& m)
         std::shared_ptr<demod>>(m, "demod", D(demod))
 
         .def(py::init(&demod::make),
-           py::arg("nss"),
+           py::arg("nrx"),
+           py::arg("mupos"),
+           py::arg("mugid"),
            D(demod,make)
         )
         

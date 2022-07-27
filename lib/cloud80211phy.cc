@@ -953,10 +953,35 @@ void signalParserVhtB(uint8_t* inBits, c8p_mod* outMod)
 	}
 	else
 	{
-		for(int i=0;i<17;i++){tmpLen |= (((int)inBits[i])<<i);}
+		if((inBits[17] + inBits[18] + inBits[19]) == 3)
+		{
+			std::cout<<"sig b parser, single user"<<std::endl;
+			for(int i=0;i<17;i++){tmpLen |= (((int)inBits[i])<<i);}
+			outMod->len = tmpLen * 4;
+			outMod->nSym = (outMod->len*8 + 16 + 6) / outMod->nDBPS + (((outMod->len*8 + 16 + 6) % outMod->nDBPS) != 0);
+		}
+		else
+		{
+			uint32_t tmpRxPattern = 0;
+			uint32_t tmpEachBit;
+			for(int i=0;i<20;i++)
+			{
+				tmpEachBit = inBits[i];
+				tmpRxPattern |= (tmpEachBit << i);
+			}
+			if(tmpRxPattern == 0b01000010001011100000)
+			{
+				outMod->len = 0;
+				outMod->nSym = 0;
+			}
+			else
+			{
+				outMod->len = -1;
+				outMod->nSym = -1;
+			}
+			std::cout<<"sig b parser, NDP check "<<outMod->len<<" "<<outMod->nSym<<", pattern:"<<tmpRxPattern<<std::endl;
+		}
 	}
-	outMod->len = tmpLen * 4;
-	outMod->nSym = (outMod->len*8 + 16 + 6) / outMod->nDBPS + (((outMod->len*8 + 16 + 6) % outMod->nDBPS) != 0);
 }
 
 void modParserVht(int mcs, c8p_mod* outMod)

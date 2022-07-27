@@ -222,6 +222,12 @@ namespace gr {
           {
             nonLegacyChanEstimate(&inSig1[80], &inSig2[80]);
             vhtSigBDemod(&inSig1[80 + d_m.nLTF*80], &inSig2[80 + d_m.nLTF*80]);
+            dout<<"sig b bits:";
+            for(int i=0;i<26;i++)
+            {
+              dout<<(int)d_sigVhtB20Bits[i]<<" ";
+            }
+            dout<<std::endl;
             signalParserVhtB(d_sigVhtB20Bits, &d_m);
             int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
             if((tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80))
@@ -291,10 +297,26 @@ namespace gr {
           pmt::pmt_t dict = pmt::make_dict();
           dict = pmt::dict_add(dict, pmt::mp("format"), pmt::from_long(d_m.format));
           dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_m.len));
-          dict = pmt::dict_add(dict, pmt::mp("total"), pmt::from_long(d_m.nSym * d_m.nCBPS));
           dict = pmt::dict_add(dict, pmt::mp("cr"), pmt::from_long(d_m.cr));
           dict = pmt::dict_add(dict, pmt::mp("ampdu"), pmt::from_long(d_m.ampdu));
           dict = pmt::dict_add(dict, pmt::mp("trellis"), pmt::from_long(d_nTrellis));
+          if(d_m.nSym == 0)
+          {
+            d_tagMu2x1Chan.clear();
+            d_tagMu2x1Chan.reserve(128);
+            for(int i=0;i<128;i++)
+            {
+              d_tagMu2x1Chan.push_back(d_mu2x1Chan[i]);
+            }
+            dict = pmt::dict_add(dict, pmt::mp("mu2x1chan"), pmt::init_c32vector(d_tagMu2x1Chan.size(), d_tagMu2x1Chan));
+            dict = pmt::dict_add(dict, pmt::mp("total"), pmt::from_long(1024));
+          }
+          else
+          {
+            dict = pmt::dict_add(dict, pmt::mp("total"), pmt::from_long(d_m.nSym * d_m.nCBPS));
+          }
+          
+
           pmt::pmt_t pairs = pmt::dict_items(dict);
           for (int i = 0; i < pmt::length(pairs); i++) {
               pmt::pmt_t pair = pmt::nth(i, pairs);
@@ -304,6 +326,15 @@ namespace gr {
                             pmt::cdr(pair),
                             alias_pmt());
           }
+
+          if(d_m.nSym == 0)
+          {
+            // NDP
+            d_sDemod = DEMOD_S_SYNC;
+            consume_each(0);
+            return 1024;
+          }
+
           d_nSymProcd = 0;
           d_sDemod = DEMOD_S_DEMOD;
           consume_each(0);
@@ -453,33 +484,55 @@ namespace gr {
       }
       else
       {
-        fft(&sig1[8], d_fftLtfOut1);
-        fft(&sig2[8], d_fftLtfOut2);
-        fft(&sig1[8+80], d_fftLtfOut12);
-        fft(&sig2[8+80], d_fftLtfOut22);
-        gr_complex tmpadbc;
-        for(int i=0;i<64;i++)
+        if(d_nRxAnt < d_m.nSS)
         {
-          if(i==0 || (i>=29 && i<=35))
+          dout<<"chan est nAnt:"<<d_nRxAnt<<" < nSS:"<<d_m.nSS<<std::endl;
+          // 1 ant, ant number and nss not corresponding, only check if NDP, keep LTF and only use first LTF to demod sig b
+          memcpy(&d_mu2x1Chan[0], &sig1[8], sizeof(gr_complex) * 64);
+          memcpy(&d_mu2x1Chan[64], &sig1[8+80], sizeof(gr_complex) * 64);
+          fft(&sig1[8], d_fftLtfOut1);
+          for(int i=0;i<64;i++)
           {
+            if(i==0 || (i>=29 && i<=35))
+            {
+            }
+            else
+            {
+              d_H_NL[i][0] = d_fftLtfOut1[i] / LTF_NL_28_F_FLOAT[i];
+            }
           }
-          else
+        }
+        else
+        {
+          // 2 ant
+          fft(&sig1[8], d_fftLtfOut1);
+          fft(&sig2[8], d_fftLtfOut2);
+          fft(&sig1[8+80], d_fftLtfOut12);
+          fft(&sig2[8+80], d_fftLtfOut22);
+          gr_complex tmpadbc;
+          for(int i=0;i<64;i++)
           {
-            d_H_NL[i][0] = (d_fftLtfOut1[i] - d_fftLtfOut12[i])*LTF_NL_28_F_FLOAT2[i];
-            d_H_NL[i][1] = (d_fftLtfOut2[i] - d_fftLtfOut22[i])*LTF_NL_28_F_FLOAT2[i];
-            d_H_NL[i][2] = (d_fftLtfOut1[i] + d_fftLtfOut12[i])*LTF_NL_28_F_FLOAT2[i];
-            d_H_NL[i][3] = (d_fftLtfOut2[i] + d_fftLtfOut22[i])*LTF_NL_28_F_FLOAT2[i];
+            if(i==0 || (i>=29 && i<=35))
+            {
+            }
+            else
+            {
+              d_H_NL[i][0] = (d_fftLtfOut1[i] - d_fftLtfOut12[i])*LTF_NL_28_F_FLOAT2[i];
+              d_H_NL[i][1] = (d_fftLtfOut2[i] - d_fftLtfOut22[i])*LTF_NL_28_F_FLOAT2[i];
+              d_H_NL[i][2] = (d_fftLtfOut1[i] + d_fftLtfOut12[i])*LTF_NL_28_F_FLOAT2[i];
+              d_H_NL[i][3] = (d_fftLtfOut2[i] + d_fftLtfOut22[i])*LTF_NL_28_F_FLOAT2[i];
 
-            gr_complex a = d_H_NL[i][0] * std::conj(d_H_NL[i][0]) + d_H_NL[i][1] * std::conj(d_H_NL[i][1]);
-            gr_complex b = d_H_NL[i][0] * std::conj(d_H_NL[i][2]) + d_H_NL[i][1] * std::conj(d_H_NL[i][3]);
-            gr_complex c = d_H_NL[i][2] * std::conj(d_H_NL[i][0]) + d_H_NL[i][3] * std::conj(d_H_NL[i][1]);
-            gr_complex d = d_H_NL[i][2] * std::conj(d_H_NL[i][2]) + d_H_NL[i][3] * std::conj(d_H_NL[i][3]);
-            tmpadbc = 1.0f/(a*d - b*c);
+              gr_complex a = d_H_NL[i][0] * std::conj(d_H_NL[i][0]) + d_H_NL[i][1] * std::conj(d_H_NL[i][1]);
+              gr_complex b = d_H_NL[i][0] * std::conj(d_H_NL[i][2]) + d_H_NL[i][1] * std::conj(d_H_NL[i][3]);
+              gr_complex c = d_H_NL[i][2] * std::conj(d_H_NL[i][0]) + d_H_NL[i][3] * std::conj(d_H_NL[i][1]);
+              gr_complex d = d_H_NL[i][2] * std::conj(d_H_NL[i][2]) + d_H_NL[i][3] * std::conj(d_H_NL[i][3]);
+              tmpadbc = 1.0f/(a*d - b*c);
 
-            d_H_NL_INV[i][0] = tmpadbc*d;
-            d_H_NL_INV[i][1] = -tmpadbc*b;
-            d_H_NL_INV[i][2] = -tmpadbc*c;
-            d_H_NL_INV[i][3] = tmpadbc*a;
+              d_H_NL_INV[i][0] = tmpadbc*d;
+              d_H_NL_INV[i][1] = -tmpadbc*b;
+              d_H_NL_INV[i][2] = -tmpadbc*c;
+              d_H_NL_INV[i][3] = tmpadbc*a;
+            }
           }
         }
       }
@@ -653,18 +706,36 @@ namespace gr {
       }
       else
       {
-        fft(&sig1[8], d_fftLtfOut1);
-        fft(&sig2[8], d_fftLtfOut2);
-        for(int i=0;i<64;i++)
+        if(d_nRxAnt < d_m.nSS)
         {
-          if(i==0 || (i>=29 && i<=35))
-          {}
-          else
+          dout<<"demod sig b check if NDP"<<std::endl;
+          fft(&sig1[8], d_fftLtfOut1);
+          for(int i=0;i<64;i++)
           {
-            gr_complex tmp1 = d_fftLtfOut1[i] * std::conj(d_H_NL[i][0]) + d_fftLtfOut2[i] * std::conj(d_H_NL[i][1]);
-            gr_complex tmp2 = d_fftLtfOut1[i] * std::conj(d_H_NL[i][2]) + d_fftLtfOut2[i] * std::conj(d_H_NL[i][3]);
-            d_sig1[i] = tmp1 * d_H_NL_INV[i][0] + tmp2 * d_H_NL_INV[i][2];
-            d_sig2[i] = tmp1 * d_H_NL_INV[i][1] + tmp2 * d_H_NL_INV[i][3];
+            if(i==0 || (i>=29 && i<=35))
+            {}
+            else
+            {
+              d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i][0];
+              dout<<"sig b qam "<<i<<", "<<d_sig1[i]<<std::endl;
+            }
+          }
+        }
+        else
+        {
+          fft(&sig1[8], d_fftLtfOut1);
+          fft(&sig2[8], d_fftLtfOut2);
+          for(int i=0;i<64;i++)
+          {
+            if(i==0 || (i>=29 && i<=35))
+            {}
+            else
+            {
+              gr_complex tmp1 = d_fftLtfOut1[i] * std::conj(d_H_NL[i][0]) + d_fftLtfOut2[i] * std::conj(d_H_NL[i][1]);
+              gr_complex tmp2 = d_fftLtfOut1[i] * std::conj(d_H_NL[i][2]) + d_fftLtfOut2[i] * std::conj(d_H_NL[i][3]);
+              d_sig1[i] = tmp1 * d_H_NL_INV[i][0] + tmp2 * d_H_NL_INV[i][2];
+              d_sig2[i] = tmp1 * d_H_NL_INV[i][1] + tmp2 * d_H_NL_INV[i][3];
+            }
           }
         }
       }

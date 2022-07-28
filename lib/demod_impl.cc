@@ -488,8 +488,10 @@ namespace gr {
         {
           dout<<"chan est nAnt:"<<d_nRxAnt<<" < nSS:"<<d_m.nSS<<std::endl;
           // 1 ant, ant number and nss not corresponding, only check if NDP, keep LTF and only use first LTF to demod sig b
-          memcpy(&d_mu2x1Chan[0], &sig1[8], sizeof(gr_complex) * 64);
-          memcpy(&d_mu2x1Chan[64], &sig1[8+80], sizeof(gr_complex) * 64);
+          memcpy(&d_mu2x1Chan[0], &sig1[14], sizeof(gr_complex) * 64);
+          memcpy(&d_mu2x1Chan[64], &sig1[14+80], sizeof(gr_complex) * 64);
+          // memcpy(&d_mu2x1Chan[0], &sig1[8], sizeof(gr_complex) * 64);
+          // memcpy(&d_mu2x1Chan[64], &sig1[8+80], sizeof(gr_complex) * 64);
           fft(&sig1[8], d_fftLtfOut1);
           for(int i=0;i<64;i++)
           {

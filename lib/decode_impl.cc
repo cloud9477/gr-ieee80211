@@ -87,18 +87,21 @@ namespace gr {
             d_sDecode = DECODE_S_CLEAN;
             d_tagMu2x1Chan = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("mu2x1chan"), pmt::PMT_NIL));
             std::copy(d_tagMu2x1Chan.begin(), d_tagMu2x1Chan.end(), d_mu2x1Chan);
+            int tmpLen = sizeof(float)*256;
             d_mu2x1ChanFloatBytes[0] = C8P_F_VHT_NDP;
-            float* tmpFloatPointer = (float*)&d_mu2x1ChanFloatBytes[1];
+            d_mu2x1ChanFloatBytes[1] = tmpLen%256;  // byte 1-2 packet len
+            d_mu2x1ChanFloatBytes[2] = tmpLen/256;
+            float* tmpFloatPointer = (float*)&d_mu2x1ChanFloatBytes[3];
             for(int i=0;i<128;i++)
             {
-              tmpFloatPointer[i] = d_mu2x1Chan[i].real();
-              tmpFloatPointer[i+128] = d_mu2x1Chan[i].imag();
+              dout<<"chan "<<i<<" "<<d_mu2x1Chan[i]<<std::endl;
+              tmpFloatPointer[i*2] = d_mu2x1Chan[i].real();
+              tmpFloatPointer[i*2+1] = d_mu2x1Chan[i].imag();
             }
-            int tmpLen = (sizeof(float)*256 + 1);
             dout<<"ieee80211 decode, vht NDP 2x1 channel report:"<<tmpLen<<std::endl;
             pmt::pmt_t tmpMeta = pmt::make_dict();
             tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(tmpLen));
-            pmt::pmt_t tmpPayload = pmt::make_blob((uint8_t*)d_mu2x1ChanFloatBytes, tmpLen);
+            pmt::pmt_t tmpPayload = pmt::make_blob((uint8_t*)d_mu2x1ChanFloatBytes, DECODE_UDP_LEN);
             message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
           }
           vstb_init();
@@ -331,22 +334,25 @@ namespace gr {
               break;
             }
             tmpBitP += 32;
-            d_dataBytes[0] = t_format;
+            d_dataBytes[0] = t_format;    // byte 0 format
+            d_dataBytes[1] = tmpLen%256;  // byte 1-2 packet len
+            d_dataBytes[2] = tmpLen/256;
             for(int i=0;i<tmpLen;i++)
             {
-              d_dataBytes[i+1] = 0;
+              d_dataBytes[i+3] = 0;
               for(int j=0;j<8;j++)
               {
-                d_dataBytes[i+1] |= (tmpBitP[i*8+j]<<j);
+                d_dataBytes[i+3] |= (tmpBitP[i*8+j]<<j);
               }
             }
             tmpBitP += ((tmpLen/4 + ((tmpLen%4)!=0))*4*8);
             // 1 byte packet format
-            tmpLen += 1;
             dout<<"ieee80211 decode, vht ampdu subf len:"<<tmpLen<<std::endl;
+            tmpLen += 3;
+            memset(&d_dataBytes[tmpLen], 0, (DECODE_UDP_LEN - tmpLen));
             pmt::pmt_t tmpMeta = pmt::make_dict();
-            tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(tmpLen));
-            pmt::pmt_t tmpPayload = pmt::make_blob(d_dataBytes, tmpLen);
+            tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(DECODE_UDP_LEN));
+            pmt::pmt_t tmpPayload = pmt::make_blob(d_dataBytes, DECODE_UDP_LEN);
             message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
 
             if(tmpEof)

@@ -45,23 +45,6 @@ blocks:
     coordinate: [184, 12]
     rotation: 0
     state: enabled
-- name: analog_const_source_x_0
-  id: analog_const_source_x
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    const: '0'
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    type: complex
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [1264, 212.0]
-    rotation: 0
-    state: true
 - name: blocks_complex_to_mag_0
   id: blocks_complex_to_mag
   parameters:
@@ -75,7 +58,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [848, 168.0]
+    coordinate: [736, 168.0]
     rotation: 0
     state: true
 - name: blocks_complex_to_mag_squared_0
@@ -91,7 +74,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [384, 256.0]
+    coordinate: [344, 256.0]
     rotation: 0
     state: true
 - name: blocks_delay_0
@@ -110,7 +93,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [360, 56.0]
+    coordinate: [336, 40.0]
     rotation: 0
     state: true
 - name: blocks_divide_xx_0
@@ -128,7 +111,43 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1024, 168.0]
+    coordinate: [912, 168.0]
+    rotation: 0
+    state: true
+- name: blocks_file_sink_0
+  id: blocks_file_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    append: 'False'
+    comment: ''
+    file: /home/cloud/sdr/sig80211Gr0.bin
+    type: complex
+    unbuffered: 'False'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1320, 500.0]
+    rotation: 0
+    state: true
+- name: blocks_file_sink_0_0
+  id: blocks_file_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    append: 'False'
+    comment: ''
+    file: /home/cloud/sdr/sig80211Gr1.bin
+    type: complex
+    unbuffered: 'False'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1320, 580.0]
     rotation: 0
     state: true
 - name: blocks_file_source_0
@@ -138,7 +157,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/sig80211VhtGenNdp_0.bin
+    file: /home/cloud/sdr/sig80211VhtGenMu_2x2_0.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -150,7 +169,29 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [64, 460.0]
+    coordinate: [64, 252.0]
+    rotation: 0
+    state: enabled
+- name: blocks_file_source_0_0
+  id: blocks_file_source
+  parameters:
+    affinity: ''
+    alias: ''
+    begin_tag: pmt.PMT_NIL
+    comment: ''
+    file: /home/cloud/sdr/sig80211VhtGenMu_2x2_1.bin
+    length: '0'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    offset: '0'
+    repeat: 'False'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [64, 372.0]
     rotation: 0
     state: enabled
 - name: blocks_message_debug_0
@@ -164,9 +205,26 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1216, 392.0]
+    coordinate: [1224, 392.0]
     rotation: 0
     state: enabled
+- name: blocks_message_strobe_0
+  id: blocks_message_strobe
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    msg: pmt.intern("TEST")
+    period: '2000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [352, 524.0]
+    rotation: 0
+    state: true
 - name: blocks_moving_average_xx_0
   id: blocks_moving_average_xx
   parameters:
@@ -184,7 +242,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [656, 140.0]
+    coordinate: [544, 140.0]
     rotation: 0
     state: true
 - name: blocks_moving_average_xx_1
@@ -204,7 +262,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [656, 228.0]
+    coordinate: [544, 228.0]
     rotation: 0
     state: true
 - name: blocks_multiply_conjugate_cc_0
@@ -220,7 +278,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [464, 152.0]
+    coordinate: [352, 152.0]
     rotation: 0
     state: true
 - name: blocks_pdu_to_tagged_stream_0
@@ -237,7 +295,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1248, 324.0]
+    coordinate: [1192, 348.0]
     rotation: 0
     state: enabled
 - name: blocks_throttle_0
@@ -271,7 +329,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1080, 336.0]
+    coordinate: [992, 352.0]
     rotation: 0
     state: enabled
 - name: ieee80211_demod_0
@@ -289,9 +347,40 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1688, 120.0]
+    coordinate: [1464, 128.0]
     rotation: 0
     state: enabled
+- name: ieee80211_encode_0
+  id: ieee80211_encode
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    tag: packet_len
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [600, 520.0]
+    rotation: 0
+    state: true
+- name: ieee80211_modulation_0
+  id: ieee80211_modulation
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [976, 520.0]
+    rotation: 0
+    state: true
 - name: ieee80211_signal_0
   id: ieee80211_signal
   parameters:
@@ -305,7 +394,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1504, 120.0]
+    coordinate: [1280, 128.0]
     rotation: 0
     state: true
 - name: ieee80211_sync_0
@@ -320,7 +409,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1304, 120.0]
+    coordinate: [1080, 128.0]
     rotation: 0
     state: true
 - name: ieee80211_trigger_0
@@ -335,7 +424,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1136, 120.0]
+    coordinate: [912, 128.0]
     rotation: 0
     state: true
 - name: network_udp_sink_0
@@ -355,17 +444,18 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1480, 292.0]
+    coordinate: [1440, 316.0]
     rotation: 0
     state: enabled
 
 connections:
-- [analog_const_source_x_0, '0', ieee80211_signal_0, '3']
 - [blocks_complex_to_mag_0, '0', blocks_divide_xx_0, '0']
 - [blocks_complex_to_mag_squared_0, '0', blocks_moving_average_xx_1, '0']
 - [blocks_delay_0, '0', blocks_multiply_conjugate_cc_0, '0']
 - [blocks_divide_xx_0, '0', ieee80211_trigger_0, '0']
 - [blocks_file_source_0, '0', blocks_throttle_0, '0']
+- [blocks_file_source_0_0, '0', ieee80211_signal_0, '3']
+- [blocks_message_strobe_0, strobe, ieee80211_encode_0, pdus]
 - [blocks_moving_average_xx_0, '0', blocks_complex_to_mag_0, '0']
 - [blocks_moving_average_xx_0, '0', ieee80211_sync_0, '2']
 - [blocks_moving_average_xx_1, '0', blocks_divide_xx_0, '1']
@@ -379,6 +469,10 @@ connections:
 - [ieee80211_decode_0, out, blocks_message_debug_0, print]
 - [ieee80211_decode_0, out, blocks_pdu_to_tagged_stream_0, pdus]
 - [ieee80211_demod_0, '0', ieee80211_decode_0, '0']
+- [ieee80211_encode_0, '0', ieee80211_modulation_0, '0']
+- [ieee80211_encode_0, '1', ieee80211_modulation_0, '1']
+- [ieee80211_modulation_0, '0', blocks_file_sink_0, '0']
+- [ieee80211_modulation_0, '1', blocks_file_sink_0_0, '0']
 - [ieee80211_signal_0, '0', ieee80211_demod_0, '1']
 - [ieee80211_signal_0, '1', ieee80211_demod_0, '2']
 - [ieee80211_sync_0, '0', ieee80211_demod_0, '0']

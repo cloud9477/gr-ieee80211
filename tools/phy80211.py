@@ -971,7 +971,7 @@ if __name__ == "__main__":
     print("pkt 2 byte numbers:", len(pkt2))
     print([int(each) for each in pkt2])
     sigg = phy80211Ins.genVhtMu([pkt1, pkt2], [p8h.phy80211format('vht', mcs=0, bw=h.BW_20, nSTS=1, pktLen=len(pkt1), shortGi=False), p8h.phy80211format('vht', mcs=0, bw=h.BW_20, nSTS=1, pktLen=len(pkt2), shortGi=False)], bfQ = bfQForFftNormdForFft, groupId=2)
-    phy80211Ins.genSigBinFile("e:/sig80211VhtGen", False)
+    phy80211Ins.genSigBinFile("sig80211VhtGenMu", False)
 
 
 

@@ -14,6 +14,14 @@ from matplotlib import pyplot as plt
     PHY             |   IEEE80211n
 """
 
+def procCheckCrc32(inBytesPayload, inBytesCrc32):
+    tmpRxCrc32 = zlib.crc32(inBytesPayload)
+    if(tmpRxCrc32 == struct.unpack('<L',inBytesCrc32)):
+        print("cloud80211 mac crc32 check pass")
+    else:
+        print("cloud80211 mac crc32 check fail")
+
+
 # udp generator, input: ip, port and payload
 class udp():
     def __init__(self, sIp, dIp, sPort, dPort, payloadBytes):

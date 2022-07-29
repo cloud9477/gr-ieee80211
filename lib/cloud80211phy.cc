@@ -948,7 +948,10 @@ void signalParserVhtB(uint8_t* inBits, c8p_mod* outMod)
 	{
 		for(int i=0;i<16;i++){tmpLen |= (((int)inBits[i])<<i);}
 		for(int i=0;i<4;i++){tmpMcs |= (((int)inBits[i+16])<<i);}
+		std::cout<<"sig b parser, mu-mimo, len: "<<tmpLen<<", mcs: "<<tmpMcs<<std::endl;
 		modParserVht(tmpMcs, outMod);
+		outMod->len = tmpLen * 4;
+		outMod->nSym = (outMod->len*8 + 16 + 6) / outMod->nDBPS + (((outMod->len*8 + 16 + 6) % outMod->nDBPS) != 0);
 		outMod->nLTF = 2;
 	}
 	else

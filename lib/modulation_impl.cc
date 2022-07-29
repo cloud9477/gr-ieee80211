@@ -637,7 +637,7 @@ namespace gr {
                 d_sigPtr1 += 16;
                 memcpy(d_sigPtr1, tmpSig2, sizeof(gr_complex) * 64);
                 d_sigPtr1 += 64;
-                dout<<"ieee80211 modulation, gen non-legacy data sym: "<<d_nSymRd<<", total: "<<d_m.nSym<<std::endl;
+                // dout<<"ieee80211 modulation, gen non-legacy data sym: "<<d_nSymRd<<", total: "<<d_m.nSym<<std::endl;
                 if(d_m.nSS == 2)
                 {
                   d_pilotsTmp[0] = d_pilots2[0] * PILOT_P[d_pilotP];
@@ -655,7 +655,7 @@ namespace gr {
                   d_sigPtr2 += 16;
                   memcpy(d_sigPtr2, tmpSig2, sizeof(gr_complex) * 64);
                   d_sigPtr2 += 64;
-                  dout<<"ieee80211 modulation, gen non-legacy data sym ss 2: "<<d_nSymRd<<", total: "<<d_m.nSym<<std::endl;
+                  // dout<<"ieee80211 modulation, gen non-legacy data sym ss 2: "<<d_nSymRd<<", total: "<<d_m.nSym<<std::endl;
                 }
                 pilotShift(d_pilots1);
                 pilotShift(d_pilots2);

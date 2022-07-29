@@ -373,23 +373,25 @@ namespace gr {
         {
           uint8_t* tmpBitP = &v_unCodedBits[16];
           d_dataBytes[0] = t_format;
+          d_dataBytes[1] = t_len%256;  // byte 1-2 packet len
+          d_dataBytes[2] = t_len/256;
           for(int i=0;i<t_len;i++)
           {
-            d_dataBytes[i+1] = 0;
+            d_dataBytes[i+3] = 0;
             for(int j=0;j<8;j++)
             {
-              d_dataBytes[i+1] |= (tmpBitP[i*8+j]<<j);
+              d_dataBytes[i+3] |= (tmpBitP[i*8+j]<<j);
             }
           }
           if(t_format == C8P_F_L){
-            dout<<"ieee80211 decode, legacy len:"<<t_len + 1<<std::endl;
+            dout<<"ieee80211 decode, legacy len:"<<t_len<<std::endl;
           }
           else{
-            dout<<"ieee80211 decode, ht len:"<<t_len + 1<<std::endl;
+            dout<<"ieee80211 decode, ht len:"<<t_len<<std::endl;
           }
           pmt::pmt_t tmpMeta = pmt::make_dict();
-          tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(t_len+1));
-          pmt::pmt_t tmpPayload = pmt::make_blob(d_dataBytes, t_len+1);
+          tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(t_len));
+          pmt::pmt_t tmpPayload = pmt::make_blob(d_dataBytes, DECODE_UDP_LEN);
           message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
         }
       }

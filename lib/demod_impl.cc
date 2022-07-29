@@ -364,24 +364,24 @@ namespace gr {
             if(d_m.nSS == 1)
             {
               procSymQamToLlr(d_qam[0], d_llrInted[0], &d_m);
-              dout<<"nsym "<<d_nSymProcd<<std::endl;
-              for(int i=0;i<d_m.nCBPS;i++)
-              {
-                if(d_llrInted[0][i] > 0)
-                {
-                  dout<<1<<" ";
-                }
-                else
-                {
-                  dout<<0<<" ";
-                }
-              }
-              dout<<std::endl;
-              for(int i=0;i<d_m.nCBPS;i++)
-              {
-                dout<<d_llrInted[0][i]<<" ";
-              }
-              dout<<std::endl;
+              // dout<<"nsym "<<d_nSymProcd<<std::endl;
+              // for(int i=0;i<d_m.nCBPS;i++)
+              // {
+              //   if(d_llrInted[0][i] > 0)
+              //   {
+              //     dout<<1<<" ";
+              //   }
+              //   else
+              //   {
+              //     dout<<0<<" ";
+              //   }
+              // }
+              // dout<<std::endl;
+              // for(int i=0;i<d_m.nCBPS;i++)
+              // {
+              //   dout<<d_llrInted[0][i]<<" ";
+              // }
+              // dout<<std::endl;
             }
             else
             {
@@ -441,7 +441,33 @@ namespace gr {
     void
     demod_impl::nonLegacyChanEstimate(const gr_complex* sig1, const gr_complex* sig2)
     {
-      if(d_m.nSS == 1)
+      if(d_m.sumu)
+      {
+        // mu-mimo 2x2
+        dout<<"MU-MIMO 2x1 channel est"<<std::endl;
+        fft(&sig1[8], d_fftLtfOut1);
+        fft(&sig1[8+80], d_fftLtfOut2);
+        for(int i=0;i<64;i++)
+        {
+          if(i==0 || (i>=29 && i<=35))
+          {}
+          else
+          {
+            if(d_muPos == 0)
+            {
+              // ss0 LTF and LTF_N
+              d_H_NL[i][0] = (d_fftLtfOut1[i] - d_fftLtfOut2[i]) / LTF_NL_28_F_FLOAT[i] / 2.0f;
+            }
+            else
+            {
+              // ss1 LTF and LTF
+              //d_H_NL[i][0] = (d_fftLtfOut1[i] + d_fftLtfOut2[i]) / LTF_NL_28_F_FLOAT[i] / 2.0f;
+              d_H_NL[i][0] = d_fftLtfOut1[i] / LTF_NL_28_F_FLOAT[i];
+            }
+          }
+        }
+      }
+      else if(d_m.nSS == 1)
       {
         if(d_m.nLTF == 1)
         {
@@ -456,37 +482,12 @@ namespace gr {
             }
           }
         }
-        else
-        {
-          // mu-mimo 2x2
-          fft(&sig1[8], d_fftLtfOut1);
-          fft(&sig1[8+80], d_fftLtfOut2);
-          for(int i=0;i<64;i++)
-          {
-            if(i==0 || (i>=29 && i<=35))
-            {}
-            else
-            {
-              if(d_muPos == 0)
-              {
-                // ss0 LTF and LTF_N
-                d_H_NL[i][0] = (d_fftLtfOut1[i] - d_fftLtfOut2[i]) / LTF_NL_28_F_FLOAT[i] / 2.0f;
-              }
-              else
-              {
-                // ss1 LTF and LTF
-                //d_H_NL[i][0] = (d_fftLtfOut1[i] + d_fftLtfOut2[i]) / LTF_NL_28_F_FLOAT[i] / 2.0f;
-                d_H_NL[i][0] = d_fftLtfOut1[i] / LTF_NL_28_F_FLOAT[i];
-              }
-            }
-          }
-        }
       }
       else
       {
         if(d_nRxAnt < d_m.nSS)
         {
-          dout<<"chan est nAnt:"<<d_nRxAnt<<" < nSS:"<<d_m.nSS<<std::endl;
+          dout<<"ieee80211 demod chan est nAnt:"<<d_nRxAnt<<" < nSS:"<<d_m.nSS<<std::endl;
           // 1 ant, ant number and nss not corresponding, only check if NDP, keep LTF and only use first LTF to demod sig b
           memcpy(&d_mu2x1Chan[0], &sig1[14], sizeof(gr_complex) * 64);
           memcpy(&d_mu2x1Chan[64], &sig1[14+80], sizeof(gr_complex) * 64);
@@ -619,7 +620,7 @@ namespace gr {
     void
     demod_impl::vhtChanUpdate(const gr_complex* sig1, const gr_complex* sig2)
     {
-      if(d_m.nSS == 1)
+      if(d_nRxAnt == 1)
       {
         fft(&sig1[8], d_fftLtfOut1);
         for(int i=0;i<64;i++)
@@ -702,7 +703,7 @@ namespace gr {
           else
           {
             d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i][0];
-            dout<<"sig b qam "<<i<<", "<<d_sig1[i]<<std::endl;
+            // dout<<"demod nss 1 sig b qam "<<i<<", "<<d_sig1[i]<<std::endl;
           }
         }
       }
@@ -719,7 +720,7 @@ namespace gr {
             else
             {
               d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i][0];
-              dout<<"sig b qam "<<i<<", "<<d_sig1[i]<<std::endl;
+              // dout<<"sig b qam "<<i<<", "<<d_sig1[i]<<std::endl;
             }
           }
         }
@@ -751,9 +752,18 @@ namespace gr {
         {}
         else
         {
-          gr_complex tmpSig1 = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
-          gr_complex tmpSig2 = d_sig2[i] * tmpPilotSum / tmpPilotSumAbs;
-          d_sigVhtB20IntedLlr[j] = ((tmpSig1 + tmpSig2)/2.0f).real();
+          if(d_nRxAnt == 1)
+          {
+            gr_complex tmpSig1 = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
+            // dout<<"sig b LLR "<<i<<" "<<tmpSig1.real()<<std::endl;
+            d_sigVhtB20IntedLlr[j] = tmpSig1.real();
+          }
+          else
+          {
+            gr_complex tmpSig1 = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
+            gr_complex tmpSig2 = d_sig2[i] * tmpPilotSum / tmpPilotSumAbs;
+            d_sigVhtB20IntedLlr[j] = ((tmpSig1 + tmpSig2)/2.0f).real();
+          }
           j++;
           if(j >= 52){j = 0;}
         }

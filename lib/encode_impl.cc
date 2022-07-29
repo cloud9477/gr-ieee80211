@@ -119,16 +119,16 @@ namespace gr {
     void
     encode_impl::msgRead(pmt::pmt_t msg)
     {
-      // pmt::pmt_t vector = pmt::cdr(msg);
-      // int tmpMsgLen = pmt::blob_length(vector);
-      // size_t tmpOffset(0);
-      // const uint8_t *tmpPkt = (const uint8_t *)pmt::uniform_vector_elements(vector, tmpOffset);
-      // 1B format, 1B mcs, 1B nss, 2B len, total 5B, len is 0 then NDP
-      // if((tmpMsgLen < 5) || (tmpMsgLen > DECODE_D_MAX)){
-      //   return;
-      // }
+      /* 1B format, 1B mcs, 1B nss, 2B len, total 5B, len is 0 then NDP*/
+      pmt::pmt_t vector = pmt::cdr(msg);
+      int tmpMsgLen = pmt::blob_length(vector);
+      size_t tmpOffset(0);
+      const uint8_t *tmpPkt = (const uint8_t *)pmt::uniform_vector_elements(vector, tmpOffset);
+      if((tmpMsgLen < 5) || (tmpMsgLen > DECODE_D_MAX)){
+        return;
+      }
 
-      uint8_t* tmpPkt = test_vhtPktMu;
+      // uint8_t* tmpPkt = test_vhtPktMu;
 
       // if(tmpPkt[0] == C8P_F_VHT_BFQ_R)
       // {
@@ -611,19 +611,21 @@ namespace gr {
           {
             memcpy(&outChips1[o1], &d_qamChips1[d_nChipsGenProcd], d_m.nSD);
             memcpy(&outChips2[o1], &d_qamChips2[d_nChipsGenProcd], d_m.nSD);
-            dout<<"gen: "<<d_nChipsGenProcd<<std::endl;
-            dout<<"ss1: ";
-            for(int j=0;j<d_m.nSD;j++)
-            {
-              dout<<(int)outChips1[o1+j]<<" ";
-            }
-            dout<<std::endl;
-            dout<<"ss2: ";
-            for(int j=0;j<d_m.nSD;j++)
-            {
-              dout<<(int)outChips2[o1+j]<<" ";
-            }
-            dout<<std::endl;
+
+            // dout<<"gen: "<<d_nChipsGenProcd<<std::endl;
+            // dout<<"ss1: ";
+            // for(int j=0;j<d_m.nSD;j++)
+            // {
+            //   dout<<(int)outChips1[o1+j]<<" ";
+            // }
+            // dout<<std::endl;
+            // dout<<"ss2: ";
+            // for(int j=0;j<d_m.nSD;j++)
+            // {
+            //   dout<<(int)outChips2[o1+j]<<" ";
+            // }
+            // dout<<std::endl;
+
             o1 += d_m.nSD;
             d_nChipsGenProcd += d_m.nSD;
             if(d_nChipsGenProcd >= d_nChipsGen)

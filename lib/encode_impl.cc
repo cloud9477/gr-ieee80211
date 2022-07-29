@@ -175,7 +175,7 @@ namespace gr {
           tmpQValue = gr_complex(*tmpFloatPR, *tmpFloatPI);
           tmpFloatPR += 1;
           tmpFloatPI += 1;
-          // dout<<tmpQValue<<std::endl;
+          dout<<"bfQ"<<i<<" "<<tmpQValue<<std::endl;
           d_tagBfQ.push_back(tmpQValue);
         }
       }

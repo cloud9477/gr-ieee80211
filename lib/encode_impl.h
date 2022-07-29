@@ -49,7 +49,7 @@ namespace gr {
       int d_nChipsGen;
       int d_nChipsGenProcd;
       bool d_debug;
-      int d_nChipsWithPadded;
+      int d_nChipsPadded;
       // msg
       void msgRead(pmt::pmt_t msg);
       uint8_t d_dataBits[DECODE_B_MAX];

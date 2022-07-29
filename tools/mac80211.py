@@ -15,11 +15,15 @@ from matplotlib import pyplot as plt
 """
 
 def procCheckCrc32(inBytesPayload, inBytesCrc32):
-    tmpRxCrc32 = zlib.crc32(inBytesPayload)
-    if(tmpRxCrc32 == struct.unpack('<L',inBytesCrc32)):
+    tmpPayloadCrc32 = zlib.crc32(inBytesPayload)
+    print(tmpPayloadCrc32)
+    tmpTailCrc32, =struct.unpack('<L',inBytesCrc32)
+    if(tmpPayloadCrc32 == tmpTailCrc32):
         print("cloud80211 mac crc32 check pass")
+        return True
     else:
         print("cloud80211 mac crc32 check fail")
+        return False
 
 
 # udp generator, input: ip, port and payload
@@ -197,7 +201,7 @@ class mac80211():
         tmpPacket += self.payloadBytes
         tmpPacket += struct.pack('<L',zlib.crc32(tmpPacket))
         print("mac mpdu length: %d" % len(tmpPacket))
-        print(tmpPacket.hex())
+        # print(tmpPacket.hex())
         if(self.ifAmpdu):
             # ampdu for vht, single packet
             delimiterEof = 1
@@ -227,6 +231,45 @@ class mac80211():
             print("padding byte number: %d" % nBytePadding)
             tmpPacket += b'\x00'*nBytePadding
             print("mac a-mpdu length: %d" % len(tmpPacket))
-            print(tmpPacket.hex())
+            # print(tmpPacket.hex())
 
         return tmpPacket
+
+if __name__ == "__main__":
+    udpPayload  = "123456789012345678901234567890"
+    udpIns = udp("10.10.0.6",  # sour ip
+                          "10.10.0.1",  # dest ip
+                          39379,  # sour port
+                          8889,  # dest port
+                          bytearray(udpPayload, 'utf-8'))  # bytes payload
+    udpPacket = udpIns.genPacket()
+    print("udp packet")
+    print(udpPacket.hex())
+    ipv4Ins = ipv4(43778,  # identification
+                            64,  # TTL
+                            "10.10.0.6",
+                            "10.10.0.1",
+                            udpPacket)
+    ipv4Packet = ipv4Ins.genPacket()
+    print("ipv4 packet")
+    print(ipv4Packet.hex())
+    llcIns = llc()
+    llcPacket = llcIns.genPacket() + ipv4Packet
+    print("llc packet")
+    print(llcPacket.hex())
+    mac80211nIns = mac80211(2,  # type
+                                     8,  # sub type, 8 = QoS Data
+                                     1,  # to DS, station to AP
+                                     0,  # from DS
+                                     0,  # retry
+                                     0,  # protected
+                                     'f4:69:d5:80:0f:a0',  # dest add
+                                     '00:c0:ca:b1:5b:e1',  # sour add
+                                     'f4:69:d5:80:0f:a0',  # recv add
+                                     2704,  # sequence
+                                     llcPacket, False)
+    mac80211Packet = mac80211nIns.genPacket()
+    print("mac packet: ", len(mac80211Packet))
+    print(mac80211Packet.hex())
+    procCheckCrc32(mac80211Packet[:-4], mac80211Packet[-4:])
+    

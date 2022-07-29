@@ -104,8 +104,10 @@ namespace gr {
     void
     modulation_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
     {
-      ninput_items_required[0] = noutput_items + 160;
-      ninput_items_required[1] = noutput_items + 160;
+      // ninput_items_required[0] = noutput_items + 160;
+      // ninput_items_required[1] = noutput_items + 160;
+      ninput_items_required[0] = noutput_items;
+      ninput_items_required[1] = noutput_items;
     }
 
     int
@@ -121,6 +123,8 @@ namespace gr {
 
       d_nProc = std::min(ninput_items[0], ninput_items[1]);
       d_nGen = noutput_items;
+
+      dout<<"ieee80211 modulation work, state:"<<d_sModul<<std::endl;
 
       switch(d_sModul)
       {
@@ -145,22 +149,22 @@ namespace gr {
             d_meta = pmt::dict_add(d_meta, tag.key, tag.value);
           }
           // basic
-          tmpTagFormat = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("format"), pmt::from_long(9999)));
-          tmpTagSeq = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("seq"), pmt::from_long(9999)));
-          d_nChipsTotal = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("total"), pmt::from_long(9999)));
+          tmpTagFormat = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("format"), pmt::from_long(999999)));
+          tmpTagSeq = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("seq"), pmt::from_long(999999)));
+          d_nChipsTotal = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("total"), pmt::from_long(999999)));
           if(tmpTagFormat == C8P_F_VHT_MU)
           {
-            tmpTagMcs = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("mcs0"), pmt::from_long(9999)));
-            tmpTagLen = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len0"), pmt::from_long(9999)));
-            tmpTagMcs1 = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("mcs1"), pmt::from_long(9999)));
-            tmpTagLen1 = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len1"), pmt::from_long(9999)));
+            tmpTagMcs = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("mcs0"), pmt::from_long(999999)));
+            tmpTagLen = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len0"), pmt::from_long(999999)));
+            tmpTagMcs1 = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("mcs1"), pmt::from_long(999999)));
+            tmpTagLen1 = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len1"), pmt::from_long(999999)));
             formatToModMu(&d_m, tmpTagMcs, 1, tmpTagLen, tmpTagMcs1, 1, tmpTagLen1);
           }
           else
           {
-            tmpTagMcs = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("mcs"), pmt::from_long(9999)));
-            tmpTagNss = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("nss"), pmt::from_long(9999)));
-            tmpTagLen = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len"), pmt::from_long(9999)));
+            tmpTagMcs = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("mcs"), pmt::from_long(999999)));
+            tmpTagNss = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("nss"), pmt::from_long(999999)));
+            tmpTagLen = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len"), pmt::from_long(999999)));
             formatToModSu(&d_m, tmpTagFormat, tmpTagMcs, tmpTagNss, tmpTagLen);
           }
           // sig part
@@ -556,7 +560,8 @@ namespace gr {
           gr_complex tmpSig2[64];
           gr_complex tmpSig3[64];
           int i1 = 0;
-          while((i1 + d_m.nSD) <= d_nProc)
+          dout<<"ieee80211 modulation, gen data. d_nProc:"<<d_nProc<<std::endl;
+          while(((i1 + d_m.nSD) <= d_nProc))
           {
             if(d_m.nSym > 0)
             {
@@ -637,7 +642,7 @@ namespace gr {
                 d_sigPtr1 += 16;
                 memcpy(d_sigPtr1, tmpSig2, sizeof(gr_complex) * 64);
                 d_sigPtr1 += 64;
-                // dout<<"ieee80211 modulation, gen non-legacy data sym: "<<d_nSymRd<<", total: "<<d_m.nSym<<std::endl;
+                dout<<"ieee80211 modulation, gen non-legacy data sym: "<<d_nSymRd<<", total: "<<d_m.nSym<<std::endl;
                 if(d_m.nSS == 2)
                 {
                   d_pilotsTmp[0] = d_pilots2[0] * PILOT_P[d_pilotP];
@@ -655,7 +660,7 @@ namespace gr {
                   d_sigPtr2 += 16;
                   memcpy(d_sigPtr2, tmpSig2, sizeof(gr_complex) * 64);
                   d_sigPtr2 += 64;
-                  // dout<<"ieee80211 modulation, gen non-legacy data sym ss 2: "<<d_nSymRd<<", total: "<<d_m.nSym<<std::endl;
+                  dout<<"ieee80211 modulation, gen non-legacy data sym ss 2: "<<d_nSymRd<<", total: "<<d_m.nSym<<std::endl;
                 }
                 pilotShift(d_pilots1);
                 pilotShift(d_pilots2);
@@ -673,14 +678,10 @@ namespace gr {
               memset(d_sigPtr2, 0, MODUL_N_GAP * sizeof(gr_complex));
               d_sigPtr1 = d_sig1;
               d_sigPtr2 = d_sig2;
-              if((d_m.nSym * d_m.nSD) < d_nChipsTotal)
-              {
-                d_sModul = MODUL_S_CLEAN;
-              }
-              else
-              {
-                d_sModul = MODUL_S_COPY;
-              }
+              dout<<"modulation check if padded needs to be consumed"<<std::endl;
+              dout<<"nsym "<<d_m.nSym<<", nSD"<<d_m.nSD<<", symbol total"<<(d_m.nSym * d_m.nSD)<<", passed total"<<d_nChipsTotal<<std::endl;
+              d_sModul = MODUL_S_COPY;
+              dout<<"go to copy"<<std::endl;
               
               if(d_m.format == C8P_F_L)
               {
@@ -690,6 +691,7 @@ namespace gr {
               }
               else if(d_m.format == C8P_F_VHT)
               {
+                dout<<"compute vht total sample"<<std::endl;
                 d_nSampWrTotal = MODUL_N_GAP + (5 + 4 + d_m.nLTF + d_m.nSym)*80 + MODUL_N_GAP;
                 d_nSampWr = 0;
               }
@@ -701,33 +703,20 @@ namespace gr {
               break;
             }
           }
+          dout<<"to comsume input chips "<<i1<<std::endl;
           consume_each(i1);
-          return 0;
-        }
-
-        case MODUL_S_CLEAN:
-        {
-          if(d_nProc >= (d_nChipsTotal - (d_m.nSym * d_m.nSD)))
-          {
-            dout<<"ieee80211 modulation, clean padded chips: "<<(d_nChipsTotal - (d_m.nSym * d_m.nSD))<<std::endl;
-            consume_each(d_nChipsTotal - (d_m.nSym * d_m.nSD));
-            d_sModul = MODUL_S_COPY;
-          }
-          else
-          {
-            consume_each(0);
-          }
           return 0;
         }
 
         case MODUL_S_COPY:
         {
           int o = 0;
-          
-          if(d_nGen <= (d_nSampWrTotal - d_nSampWr))
+          dout<<"ieee80211 copy, d_nGen:"<<d_nGen<<", wrtotal:"<<d_nSampWrTotal<<", sampwr:"<<d_nSampWr<<", "<<(d_nSampWrTotal - d_nSampWr)<<std::endl;
+          if(d_nGen >= (d_nSampWrTotal - d_nSampWr))
           {
             o = d_nSampWrTotal - d_nSampWr;
-            d_sModul = MODUL_S_IDLE;
+            d_sModul = MODUL_S_CLEAN;
+            dout<<"ieee80211 copy done"<<std::endl;
           }
           else
           {
@@ -751,6 +740,21 @@ namespace gr {
 
           consume_each(0);
           return o;
+        }
+
+        case MODUL_S_CLEAN:
+        {
+          if(d_nProc >= (d_nChipsTotal - (d_m.nSym * d_m.nSD)))
+          {
+            dout<<"ieee80211 modulation, clean padded chips: "<<(d_nChipsTotal - (d_m.nSym * d_m.nSD))<<std::endl;
+            consume_each(d_nChipsTotal - (d_m.nSym * d_m.nSD));
+            d_sModul = MODUL_S_IDLE;
+          }
+          else
+          {
+            consume_each(0);
+          }
+          return 0;
         }
 
       }

@@ -97,7 +97,7 @@ namespace gr {
       d_sEncode = ENCODE_S_IDLE;
       d_debug = true;
       d_pktSeq = 0;
-      d_nChipsWithPadded = 624;   // sometimes num of chips are too small which do not trigger the stream passing
+      d_nChipsPadded = 624;   // sometimes num of chips are too small which do not trigger the stream passing
 
       // memset(d_vhtBfQbytesR, 0, 1024);
       // memset(d_vhtBfQbytesI, 0, 1024);
@@ -128,24 +128,26 @@ namespace gr {
         return;
       }
 
-      // uint8_t* tmpPkt = test_vhtPktMu;
+      // const uint8_t *tmpPkt = test_vhtPkt;
 
-      // if(tmpPkt[0] == C8P_F_VHT_BFQ_R)
-      // {
-      //   memcpy(d_vhtBfQbytesR, &tmpPkt[1], 1024);
-      //   std::cout<<"beamforming Q real updated"<<std::endl;
-      //   return;
-      // }
+      int tmpFormat = (int)tmpPkt[0];
 
-      // if(tmpPkt[0] == C8P_F_VHT_BFQ_I)
-      // {
-      //   memcpy(d_vhtBfQbytesI, &tmpPkt[1], 1024);
-      //   std::cout<<"beamforming Q real updated"<<std::endl;
-      //   return;
-      // }
+      if(tmpFormat == C8P_F_VHT_BFQ_R)
+      {
+        memcpy(d_vhtBfQbytesR, &tmpPkt[1], 1024);
+        std::cout<<"beamforming Q real updated"<<std::endl;
+        return;
+      }
+
+      if(tmpFormat == C8P_F_VHT_BFQ_I)
+      {
+        memcpy(d_vhtBfQbytesI, &tmpPkt[1], 1024);
+        std::cout<<"beamforming Q real updated"<<std::endl;
+        return;
+      }
 
       int tmpHeaderShift;
-      int tmpFormat = (int)tmpPkt[0];
+      
       if(tmpFormat == C8P_F_VHT_MU)
       {
         // byte 0 format, user0 1-4, user1 5-8, group ID 9
@@ -381,14 +383,7 @@ namespace gr {
         d_nChipsGenProcd = 0;
         d_sEncode = ENCODE_S_ENCODE;
       }
-      if(d_nChipsGen < d_nChipsWithPadded)
-      {
-        return d_nChipsWithPadded;  // chips with padded
-      }
-      else
-      {
-        return d_nChipsGen;
-      }
+      return (d_nChipsGen + d_nChipsPadded);
     }
 
     int
@@ -532,14 +527,8 @@ namespace gr {
             dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_m.len));
           }
           dict = pmt::dict_add(dict, pmt::mp("seq"), pmt::from_long(d_pktSeq));
-          if(d_nChipsGen < d_nChipsWithPadded)
-          {
-            dict = pmt::dict_add(dict, pmt::mp("total"), pmt::from_long(d_nChipsWithPadded));   // chips with padded
-          }
-          else
-          {
-            dict = pmt::dict_add(dict, pmt::mp("total"), pmt::from_long(d_nChipsGen));
-          }
+          dout<<"encode total tag : "<<(d_nChipsGen + d_nChipsPadded)<<std::endl;
+          dict = pmt::dict_add(dict, pmt::mp("total"), pmt::from_long(d_nChipsGen + d_nChipsPadded));   // chips with padded
           dict = pmt::dict_add(dict, pmt::mp("lsig"), pmt::init_u8vector(d_tagLegacyBits.size(), d_tagLegacyBits));
           d_pktSeq++;
           if(d_m.format == C8P_F_HT)
@@ -630,15 +619,8 @@ namespace gr {
             d_nChipsGenProcd += d_m.nSD;
             if(d_nChipsGenProcd >= d_nChipsGen)
             {
-              dout<<"ieee80211 encode, copy done"<<std::endl;
-              if(d_nChipsGen < d_nChipsWithPadded)
-              {
-                d_sEncode = ENCODE_S_PAD;
-              }
-              else
-              {
-                d_sEncode = ENCODE_S_IDLE;
-              }
+              dout<<"ieee80211 encode, copy done, go to pad"<<std::endl;
+              d_sEncode = ENCODE_S_PAD;
               break;
             }
           }
@@ -647,19 +629,13 @@ namespace gr {
 
         case ENCODE_S_PAD:
         {
-          if(d_nGen >= (d_nChipsWithPadded - d_nChipsGenProcd))
+          if(d_nGen >= d_nChipsPadded)
           {
-            memset(outChips1, 0, (d_nChipsWithPadded - d_nChipsGenProcd));
-            memset(outChips2, 0, (d_nChipsWithPadded - d_nChipsGenProcd));
-            dout<<"ieee80211 encode, padding done"<<std::endl;
+            memset(outChips1, 0, d_nChipsPadded);
+            memset(outChips2, 0, d_nChipsPadded);
+            dout<<"ieee80211 encode, padding done:"<<d_nChipsPadded<<std::endl;
             d_sEncode = ENCODE_S_IDLE;
-            return (d_nChipsWithPadded - d_nChipsGenProcd);
-          }
-          else
-          {
-            memset(outChips1, 0, d_nGen);
-            memset(outChips2, 0, d_nGen);
-            d_nChipsGenProcd += d_nGen;
+            return d_nChipsPadded;
           }
           return 0;
         }

@@ -859,7 +859,7 @@ class phy80211():
             #plt.xlim([0, len(tmpSig)])
         plt.show()
 
-def tmpGenMac(udpPayload):
+def genMac80211UdpMPDU(udpPayload):
     udpIns = mac80211.udp("10.10.0.6",  # sour ip
                           "10.10.0.1",  # dest ip
                           39379,  # sour port
@@ -914,16 +914,30 @@ if __name__ == "__main__":
     # sigg = phy80211Ins.genVht(b'', phyFormat, partialAid=0)
 
     # mu-mimo
-    ndpRawDataR1 = p8h.readBinFileFromMatDouble("ndp1r.bin")
-    ndpRawDataI1 = p8h.readBinFileFromMatDouble("ndp1i.bin")
-    ndpRawDataR2 = p8h.readBinFileFromMatDouble("ndp2r.bin")
-    ndpRawDataI2 = p8h.readBinFileFromMatDouble("ndp2i.bin")
+    ndpRawDataR1 = p8h.readBinFileFromMatDouble("/home/cloud/sdr/gr-ieee80211/tools/ndp1r.bin")
+    ndpRawDataI1 = p8h.readBinFileFromMatDouble("/home/cloud/sdr/gr-ieee80211/tools/ndp1i.bin")
+    ndpRawDataR2 = p8h.readBinFileFromMatDouble("/home/cloud/sdr/gr-ieee80211/tools/ndp2r.bin")
+    ndpRawDataI2 = p8h.readBinFileFromMatDouble("/home/cloud/sdr/gr-ieee80211/tools/ndp2i.bin")
     ndpRx1 = []
     ndpRx2 = []
     for i in range(0, len(ndpRawDataR1)):
         ndpRx1.append(ndpRawDataR1[i] + ndpRawDataI1[i] * 1j)
         ndpRx2.append(ndpRawDataR2[i] + ndpRawDataI2[i] * 1j)
     ltfIndex = 640
+
+    # plt.figure(91)
+    # plt.plot(np.real(ndpRx1[ltfIndex + 16: ltfIndex + 80]))
+    # plt.plot(np.imag(ndpRx1[ltfIndex + 16: ltfIndex + 80]))
+    # plt.figure(92)
+    # plt.plot(np.real(ndpRx1[ltfIndex + 16+80: ltfIndex + 80+80]))
+    # plt.plot(np.imag(ndpRx1[ltfIndex + 16+80: ltfIndex + 80+80]))
+    # plt.figure(93)
+    # plt.plot(np.real(ndpRx2[ltfIndex + 16: ltfIndex + 80]))
+    # plt.plot(np.imag(ndpRx2[ltfIndex + 16: ltfIndex + 80]))
+    # plt.figure(94)
+    # plt.plot(np.real(ndpRx2[ltfIndex + 16+80: ltfIndex + 80+80]))
+    # plt.plot(np.imag(ndpRx2[ltfIndex + 16+80: ltfIndex + 80+80]))
+
     # get symbols
     nScDataPilot = 56
     nSts = 2
@@ -934,20 +948,52 @@ if __name__ == "__main__":
     # compute feedback
     vFb1 = p8h.procVhtChannelFeedback(ltfSym, nSts, nRx)
     print("feedback v 1")
-    #print(vFb1)
+    for each in vFb1:
+        print(each)
     ltfSym = []
     ltfSym.append(p8h.procRemovePilots(p8h.procFftDemod(ndpRx2[ltfIndex + 16: ltfIndex + 80], nScDataPilot, nSts)))
     ltfSym.append(p8h.procRemovePilots(p8h.procFftDemod(ndpRx2[ltfIndex + 16 + 80: ltfIndex + 80 + 80], nScDataPilot, nSts)))
+    plt.figure(121)
+    plt.plot(np.real(ndpRx2[ltfIndex + 16: ltfIndex + 80]))
+    plt.plot(np.imag(ndpRx2[ltfIndex + 16: ltfIndex + 80]))
+    plt.figure(122)
+    plt.plot(np.real(ndpRx2[ltfIndex + 16 + 80: ltfIndex + 80 + 80]))
+    plt.plot(np.imag(ndpRx2[ltfIndex + 16 + 80: ltfIndex + 80 + 80]))
     # compute feedback
     vFb2 = p8h.procVhtChannelFeedback(ltfSym, nSts, nRx)
     print("feedback v 2")
-    #print(vFb2)
+    for each in vFb2:
+        print(each)
     # combine the channel together
     bfH = []
     for k in range(0, nScDataPilot):
         print("bfH", k)
         bfH.append(np.concatenate((vFb1[k], vFb2[k]), axis=1))
         print(bfH[k])
+    # plt.figure(111)
+    # plt.plot(np.real([each[0][0] for each in bfH]))
+    # plt.plot(np.imag([each[0][0] for each in bfH]))
+    # plt.figure(112)
+    # plt.plot(np.real([each[0][1] for each in bfH]))
+    # plt.plot(np.imag([each[0][1] for each in bfH]))
+    # plt.figure(113)
+    # plt.plot(np.real([each[1][0] for each in bfH]))
+    # plt.plot(np.imag([each[1][0] for each in bfH]))
+    # plt.figure(114)
+    # plt.plot(np.real([each[1][1] for each in bfH]))
+    # plt.plot(np.imag([each[1][1] for each in bfH]))
+    plt.figure(111)
+    plt.plot(np.real([each[0][0] for each in vFb1]))
+    plt.plot(np.imag([each[0][0] for each in vFb1]))
+    plt.figure(112)
+    plt.plot(np.real([each[1][0] for each in vFb1]))
+    plt.plot(np.imag([each[1][0] for each in vFb1]))
+    plt.figure(113)
+    plt.plot(np.real([each[0][0] for each in vFb2]))
+    plt.plot(np.imag([each[0][0] for each in vFb2]))
+    plt.figure(114)
+    plt.plot(np.real([each[1][0] for each in vFb2]))
+    plt.plot(np.imag([each[1][0] for each in vFb2]))
     # compute spatial matrix Q, ZF
     bfQTmp = []
     for k in range(0, nScDataPilot):
@@ -964,14 +1010,29 @@ if __name__ == "__main__":
     bfQForFftNormdForFft = [np.ones_like(bfQForFftNormd[0])] * 3 + bfQForFftNormd[0:28] + [
         np.ones_like(bfQForFftNormd[0])] + bfQForFftNormd[28:56] + [np.ones_like(bfQForFftNormd[0])] * 4
 
-    pkt1 = tmpGenMac(udpPayload1)
-    pkt2 = tmpGenMac(udpPayload2)
+    # plt.figure(101)
+    # plt.plot(np.real([each[0][0] for each in bfQForFftNormdForFft]))
+    # plt.plot(np.imag([each[0][0] for each in bfQForFftNormdForFft]))
+    # plt.figure(102)
+    # plt.plot(np.real([each[0][1] for each in bfQForFftNormdForFft]))
+    # plt.plot(np.imag([each[0][1] for each in bfQForFftNormdForFft]))
+    # plt.figure(103)
+    # plt.plot(np.real([each[1][0] for each in bfQForFftNormdForFft]))
+    # plt.plot(np.imag([each[1][0] for each in bfQForFftNormdForFft]))
+    # plt.figure(104)
+    # plt.plot(np.real([each[1][1] for each in bfQForFftNormdForFft]))
+    # plt.plot(np.imag([each[1][1] for each in bfQForFftNormdForFft]))
+
+    pkt1 = genMac80211UdpMPDU(udpPayload1)
+    pkt2 = genMac80211UdpMPDU(udpPayload2)
     print("pkt 1 byte numbers:", len(pkt1))
     print([int(each) for each in pkt1])
     print("pkt 2 byte numbers:", len(pkt2))
     print([int(each) for each in pkt2])
     sigg = phy80211Ins.genVhtMu([pkt1, pkt2], [p8h.phy80211format('vht', mcs=0, bw=h.BW_20, nSTS=1, pktLen=len(pkt1), shortGi=False), p8h.phy80211format('vht', mcs=0, bw=h.BW_20, nSTS=1, pktLen=len(pkt2), shortGi=False)], bfQ = bfQForFftNormdForFft, groupId=2)
-    phy80211Ins.genSigBinFile("sig80211VhtGenMu", False)
+    # phy80211Ins.genSigBinFile("sig80211VhtGenMu", False)
+
+    plt.show()
 
 
 

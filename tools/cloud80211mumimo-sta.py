@@ -7,7 +7,7 @@ import time
 import struct
 
 # device info
-staID = 0
+staID = 1
 staChanRespTimeGap = 1
 
 # mac layer variables
@@ -76,7 +76,7 @@ while(True):
             macNdpChanFig.canvas.flush_events()
             print("send channel info directly to AP")
             tmpHeaderInfo = "CHAN" + str(staID)
-            print(tmpHeaderInfo)
+            print("header", tmpHeaderInfo)
             tmpChanPkt = bytearray(tmpHeaderInfo,'utf-8') + rxPkt[3:1024+3]
             print("chan packet len", len(tmpChanPkt))
 

@@ -32,7 +32,7 @@
 #define MODUL_S_CLEAN 4
 #define MODUL_S_COPY 5
 
-#define MODUL_N_GAP 10000
+#define MODUL_N_GAP 1000
 
 #define dout d_debug&&std::cout
 

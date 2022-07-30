@@ -908,8 +908,8 @@ def genMac80211UdpMPDU(udpPayload):
     return mac80211Packet
 
 udpPayload  = "123456789012345678901234567890"
-udpPayload1 = "This is packet for station 000"
-udpPayload2 = "This is packet for station 001"
+udpPayload1 = "1234567 packet for station 000"
+udpPayload2 = "7654321 packet for station 111"
 
 if __name__ == "__main__":
     h = p8h.phy80211header()

@@ -55,6 +55,7 @@ while(True):
                 if(int(tmpMacPaylaod[0]) == 170 and int(tmpMacPaylaod[1]) == 170):
                     print("udp data packet")
                     print(tmpMacPaylaod.hex())
+                    print(tmpMacPaylaod)
                 else:
                     print("other packets")
             else:

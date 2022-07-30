@@ -45,6 +45,18 @@ blocks:
     coordinate: [504, 20.0]
     rotation: 0
     state: enabled
+- name: rxp
+  id: variable
+  parameters:
+    comment: ''
+    value: '0.7'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [592, 20.0]
+    rotation: 0
+    state: enabled
 - name: samp_rate
   id: variable
   parameters:
@@ -514,7 +526,7 @@ blocks:
     dc_offs_enb9: default
     dev_addr: '""'
     dev_args: ''
-    gain0: '0.7'
+    gain0: rxp
     gain1: '0'
     gain10: '0'
     gain11: '0'

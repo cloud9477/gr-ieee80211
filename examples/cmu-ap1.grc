@@ -61,7 +61,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: '0.4'
+    value: '0.9'
   states:
     bus_sink: false
     bus_source: false
@@ -88,7 +88,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [720, 276.0]
+    coordinate: [520, 276.0]
     rotation: 0
     state: true
 - name: blocks_file_source_0_0
@@ -110,7 +110,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [720, 388.0]
+    coordinate: [520, 396.0]
     rotation: 0
     state: true
 - name: blocks_multiply_const_vxx_0

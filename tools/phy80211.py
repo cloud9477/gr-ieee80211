@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 import mac80211
 import phy80211header as p8h
 import random
+import time
 
 class phy80211():
     def __init__(self):
@@ -905,9 +906,10 @@ if __name__ == "__main__":
     phy80211Ins = phy80211()
 
     # data packet
-    # pkt = tmpGenMac(udpPayload)
-    # sigg = phy80211Ins.genVht(pkt, p8h.phy80211format('vht', mcs=0, bw=h.BW_20, nSTS=2, pktLen=len(pkt), shortGi=False))
-    # phy80211Ins.genSigBinFile("e:/sig80211VhtGen", True)
+    pkt = genMac80211UdpMPDU(udpPayload)
+    sigg = phy80211Ins.genVht(pkt, p8h.phy80211format('vht', mcs=0, bw=h.BW_20, nSTS=2, pktLen=len(pkt), shortGi=False))
+    phy80211Ins.genSigBinFile("/home/cloud/sdr/sig80211VhtGen", True)
+    time.sleep(10000)
 
     # NDP
     # phyFormat = p8h.phy80211format('vht', mcs = 0, bw = h.BW_20, nSTS = 2, shortGi = False)

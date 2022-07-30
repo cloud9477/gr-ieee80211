@@ -35,6 +35,7 @@ class sta1(gr.top_block):
         # Variables
         ##################################################
         self.samp_rate = samp_rate = 20e6
+        self.rxp = rxp = 0.7
         self.freq = freq = 5420e6
 
         ##################################################
@@ -54,7 +55,7 @@ class sta1(gr.top_block):
         self.uhd_usrp_source_0.set_center_freq(freq, 0)
         self.uhd_usrp_source_0.set_antenna("RX2", 0)
         self.uhd_usrp_source_0.set_bandwidth(20e6, 0)
-        self.uhd_usrp_source_0.set_normalized_gain(0.7, 0)
+        self.uhd_usrp_source_0.set_normalized_gain(rxp, 0)
         self.network_udp_sink_0 = network.udp_sink(gr.sizeof_char, 1, '127.0.0.1', 9527, 0, 1400, False)
         self.ieee80211_trigger_0 = ieee80211.trigger()
         self.ieee80211_sync_0 = ieee80211.sync()
@@ -87,8 +88,8 @@ class sta1(gr.top_block):
         self.connect((self.blocks_multiply_conjugate_cc_0, 0), (self.blocks_moving_average_xx_0, 0))
         self.connect((self.blocks_pdu_to_tagged_stream_0, 0), (self.network_udp_sink_0, 0))
         self.connect((self.ieee80211_demod_0, 0), (self.ieee80211_decode_0, 0))
-        self.connect((self.ieee80211_signal_0, 0), (self.ieee80211_demod_0, 1))
         self.connect((self.ieee80211_signal_0, 1), (self.ieee80211_demod_0, 2))
+        self.connect((self.ieee80211_signal_0, 0), (self.ieee80211_demod_0, 1))
         self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_demod_0, 0))
         self.connect((self.ieee80211_sync_0, 1), (self.ieee80211_signal_0, 1))
         self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_signal_0, 0))
@@ -106,6 +107,13 @@ class sta1(gr.top_block):
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
         self.uhd_usrp_source_0.set_samp_rate(self.samp_rate)
+
+    def get_rxp(self):
+        return self.rxp
+
+    def set_rxp(self, rxp):
+        self.rxp = rxp
+        self.uhd_usrp_source_0.set_normalized_gain(self.rxp, 0)
 
     def get_freq(self):
         return self.freq

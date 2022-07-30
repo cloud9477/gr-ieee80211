@@ -3,4 +3,3 @@
 *.pyo
 build*/
 .vscode*/
-examples/*.py

@@ -37,7 +37,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: 5030e6
+    value: 5420e6
   states:
     bus_sink: false
     bus_source: false
@@ -76,7 +76,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/gr-ieee80211/tools/sig80211MuNdp0.bin
+    file: /home/cloud/sdr/cmu-ndp0.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -98,7 +98,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/gr-ieee80211/tools/sig80211MuNdp1.bin
+    file: /home/cloud/sdr/cmu-ndp1.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'

@@ -9,7 +9,7 @@ options:
     description: ''
     gen_cmake: 'On'
     gen_linking: dynamic
-    generate_options: qt_gui
+    generate_options: no_gui
     hier_block_src_path: '.:'
     id: wifirx
     max_nouts: '0'
@@ -37,12 +37,24 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: 5420e6
+    value: 5030e6
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
     coordinate: [480, 12.0]
+    rotation: 0
+    state: enabled
+- name: rxp
+  id: variable
+  parameters:
+    comment: ''
+    value: '0.4'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [672, 12.0]
     rotation: 0
     state: enabled
 - name: samp_rate
@@ -55,6 +67,18 @@ blocks:
     bus_source: false
     bus_structure: null
     coordinate: [184, 12]
+    rotation: 0
+    state: enabled
+- name: txp
+  id: variable
+  parameters:
+    comment: ''
+    value: '0.4'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [576, 12.0]
     rotation: 0
     state: enabled
 - name: analog_const_source_x_0
@@ -532,8 +556,8 @@ blocks:
     comment: ''
     dev_addr: '""'
     dev_args: ''
-    gain0: '0.7'
-    gain1: '0.7'
+    gain0: rxp
+    gain1: rxp
     gain10: '0'
     gain11: '0'
     gain12: '0'
@@ -873,8 +897,8 @@ blocks:
     dc_offs_enb9: default
     dev_addr: '""'
     dev_args: ''
-    gain0: '0.7'
-    gain1: '0.7'
+    gain0: txp
+    gain1: txp
     gain10: '0'
     gain11: '0'
     gain12: '0'

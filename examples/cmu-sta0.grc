@@ -9,9 +9,9 @@ options:
     description: ''
     gen_cmake: 'On'
     gen_linking: dynamic
-    generate_options: qt_gui
+    generate_options: no_gui
     hier_block_src_path: '.:'
-    id: wifirx
+    id: sta0
     max_nouts: '0'
     output_language: python
     placement: (0,0)
@@ -164,7 +164,7 @@ blocks:
     bus_structure: null
     coordinate: [128, 308.0]
     rotation: 0
-    state: true
+    state: disabled
 - name: blocks_moving_average_xx_0
   id: blocks_moving_average_xx
   parameters:
@@ -262,7 +262,7 @@ blocks:
     maxoutbuf: '0'
     minoutbuf: '0'
     mugid: '2'
-    mupos: '1'
+    mupos: '0'
     nrx: '1'
   states:
     bus_sink: false
@@ -772,7 +772,7 @@ blocks:
     bus_structure: null
     coordinate: [64, 132.0]
     rotation: 0
-    state: disabled
+    state: enabled
 
 connections:
 - [analog_const_source_x_0, '0', ieee80211_signal_0, '3']

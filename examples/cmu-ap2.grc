@@ -37,7 +37,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: 5030e6
+    value: 5420e6
   states:
     bus_sink: false
     bus_source: false
@@ -61,7 +61,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: '0.4'
+    value: '0.98'
   states:
     bus_sink: false
     bus_source: false
@@ -88,7 +88,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [720, 276.0]
+    coordinate: [176, 172.0]
     rotation: 0
     state: true
 - name: blocks_file_source_0_0
@@ -110,96 +110,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [720, 388.0]
+    coordinate: [176, 284.0]
     rotation: 0
     state: true
-- name: blocks_multiply_const_vxx_0
-  id: blocks_multiply_const_vxx
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    const: '0.2'
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    type: complex
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [904, 188.0]
-    rotation: 0
-    state: disabled
-- name: blocks_multiply_const_vxx_0_0
-  id: blocks_multiply_const_vxx
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    const: '0.2'
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    type: complex
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [904, 228.0]
-    rotation: 0
-    state: disabled
-- name: blocks_socket_pdu_0
-  id: blocks_socket_pdu
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    host: 127.0.01
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    mtu: '1500'
-    port: '9528'
-    tcp_no_delay: 'False'
-    type: UDP_SERVER
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [168, 180.0]
-    rotation: 0
-    state: disabled
-- name: ieee80211_encode_0
-  id: ieee80211_encode
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    tag: packet_len
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [368, 192.0]
-    rotation: 0
-    state: disabled
-- name: ieee80211_modulation_0
-  id: ieee80211_modulation
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    maxoutbuf: '0'
-    minoutbuf: '0'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [704, 192.0]
-    rotation: 0
-    state: disabled
 - name: uhd_usrp_sink_0
   id: uhd_usrp_sink
   parameters:
@@ -474,20 +387,13 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1184, 156.0]
+    coordinate: [616, 140.0]
     rotation: 0
     state: true
 
 connections:
 - [blocks_file_source_0, '0', uhd_usrp_sink_0, '0']
 - [blocks_file_source_0_0, '0', uhd_usrp_sink_0, '1']
-- [blocks_multiply_const_vxx_0, '0', uhd_usrp_sink_0, '0']
-- [blocks_multiply_const_vxx_0_0, '0', uhd_usrp_sink_0, '1']
-- [blocks_socket_pdu_0, pdus, ieee80211_encode_0, pdus]
-- [ieee80211_encode_0, '0', ieee80211_modulation_0, '0']
-- [ieee80211_encode_0, '1', ieee80211_modulation_0, '1']
-- [ieee80211_modulation_0, '0', blocks_multiply_const_vxx_0, '0']
-- [ieee80211_modulation_0, '1', blocks_multiply_const_vxx_0_0, '0']
 
 metadata:
   file_format: 1

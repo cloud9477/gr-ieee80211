@@ -837,6 +837,17 @@ class phy80211():
             print("error: file address not given")
             return
 
+        print("increase amplitude")
+        tmpMaxAmp = []
+        for ssItr in range(0, self.m.nSS):
+            ssMaxAmp = max(np.abs(self.ssPhySig[ssItr]))
+            print("max ss amp ", ssItr, ", value: ", ssMaxAmp)
+            tmpMaxAmp.append(ssMaxAmp)
+        tmpEnlarge = 0.9/max(tmpMaxAmp)
+        for ssItr in range(0, self.m.nSS):
+            self.ssPhySig[ssItr] = [each * tmpEnlarge for each in self.ssPhySig[ssItr]]
+
+
         for ssItr in range(0, self.m.nSS):
             binF = open(fileAddr + "_" + str(self.f.nSTS) + "x" + str(self.f.nSTS) + "_" + str(ssItr) + ".bin", "wb")
             #textF = open(fileAddr + "_" + str(self.f.nSTS) + "x" + str(self.f.nSTS) + "_" + str(ssItr) + ".txt", "w")
@@ -856,7 +867,7 @@ class phy80211():
             plt.figure(100 + ssItr)
             plt.plot(np.real(tmpSig))
             plt.plot(np.imag(tmpSig))
-            #plt.xlim([0, len(tmpSig)])
+            plt.ylim([-1, 1])
         plt.show()
 
 def genMac80211UdpMPDU(udpPayload):
@@ -897,8 +908,8 @@ def genMac80211UdpMPDU(udpPayload):
     return mac80211Packet
 
 udpPayload  = "123456789012345678901234567890"
-udpPayload1 = "This is packet for station 001"
-udpPayload2 = "This is packet for station 002"
+udpPayload1 = "This is packet for station 000"
+udpPayload2 = "This is packet for station 001"
 
 if __name__ == "__main__":
     h = p8h.phy80211header()

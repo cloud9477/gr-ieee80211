@@ -364,24 +364,6 @@ namespace gr {
             if(d_m.nSS == 1)
             {
               procSymQamToLlr(d_qam[0], d_llrInted[0], &d_m);
-              // dout<<"nsym "<<d_nSymProcd<<std::endl;
-              // for(int i=0;i<d_m.nCBPS;i++)
-              // {
-              //   if(d_llrInted[0][i] > 0)
-              //   {
-              //     dout<<1<<" ";
-              //   }
-              //   else
-              //   {
-              //     dout<<0<<" ";
-              //   }
-              // }
-              // dout<<std::endl;
-              // for(int i=0;i<d_m.nCBPS;i++)
-              // {
-              //   dout<<d_llrInted[0][i]<<" ";
-              // }
-              // dout<<std::endl;
             }
             else
             {

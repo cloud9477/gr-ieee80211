@@ -33,6 +33,18 @@ options:
     state: enabled
 
 blocks:
+- name: freq
+  id: variable
+  parameters:
+    comment: ''
+    value: 5420e6
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [480, 12.0]
+    rotation: 0
+    state: enabled
 - name: samp_rate
   id: variable
   parameters:
@@ -45,6 +57,23 @@ blocks:
     coordinate: [184, 12]
     rotation: 0
     state: enabled
+- name: analog_const_source_x_0
+  id: analog_const_source_x
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    const: '0'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: complex
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1032, 220.0]
+    rotation: 0
+    state: true
 - name: blocks_complex_to_mag_0
   id: blocks_complex_to_mag
   parameters:
@@ -204,6 +233,23 @@ blocks:
     bus_source: false
     bus_structure: null
     coordinate: [800, 492.0]
+    rotation: 0
+    state: true
+- name: blocks_null_sink_0
+  id: blocks_null_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    bus_structure_sink: '[[0,],]'
+    comment: ''
+    num_inputs: '1'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [312, 312.0]
     rotation: 0
     state: true
 - name: blocks_pdu_to_tagged_stream_0
@@ -442,8 +488,8 @@ blocks:
     bw7: '0'
     bw8: '0'
     bw9: '0'
-    center_freq0: 5060e6
-    center_freq1: 5060e6
+    center_freq0: freq
+    center_freq1: freq
     center_freq10: '0'
     center_freq11: '0'
     center_freq12: '0'
@@ -719,8 +765,8 @@ blocks:
     bw7: '0'
     bw8: '0'
     bw9: '0'
-    center_freq0: 5060e6
-    center_freq1: 5060e6
+    center_freq0: freq
+    center_freq1: freq
     center_freq10: '0'
     center_freq11: '0'
     center_freq12: '0'
@@ -1088,6 +1134,7 @@ blocks:
     state: true
 
 connections:
+- [analog_const_source_x_0, '0', ieee80211_signal_0, '3']
 - [blocks_complex_to_mag_0, '0', blocks_divide_xx_0, '0']
 - [blocks_complex_to_mag_squared_0, '0', blocks_moving_average_xx_1, '0']
 - [blocks_delay_0, '0', blocks_multiply_conjugate_cc_0, '0']
@@ -1117,7 +1164,7 @@ connections:
 - [uhd_usrp_source_0, '0', blocks_multiply_conjugate_cc_0, '1']
 - [uhd_usrp_source_0, '0', ieee80211_signal_0, '2']
 - [uhd_usrp_source_0, '0', ieee80211_sync_0, '1']
-- [uhd_usrp_source_0, '1', ieee80211_signal_0, '3']
+- [uhd_usrp_source_0, '1', blocks_null_sink_0, '0']
 
 metadata:
   file_format: 1

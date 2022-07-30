@@ -33,6 +33,18 @@ options:
     state: enabled
 
 blocks:
+- name: freq
+  id: variable
+  parameters:
+    comment: ''
+    value: 5420e6
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [504, 20.0]
+    rotation: 0
+    state: enabled
 - name: samp_rate
   id: variable
   parameters:
@@ -458,7 +470,7 @@ blocks:
     bw7: '0'
     bw8: '0'
     bw9: '0'
-    center_freq0: 5060e6
+    center_freq0: freq
     center_freq1: '0'
     center_freq10: '0'
     center_freq11: '0'
@@ -735,7 +747,7 @@ blocks:
     bw7: '0'
     bw8: '0'
     bw9: '0'
-    center_freq0: 5060e6
+    center_freq0: freq
     center_freq1: '0'
     center_freq10: '0'
     center_freq11: '0'

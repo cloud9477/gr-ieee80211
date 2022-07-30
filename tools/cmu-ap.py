@@ -839,7 +839,7 @@ class phy80211():
 
         for ssItr in range(0, self.m.nSS):
             binF = open(fileAddr + "_" + str(self.f.nSTS) + "x" + str(self.f.nSTS) + "_" + str(ssItr) + ".bin", "wb")
-            textF = open(fileAddr + "_" + str(self.f.nSTS) + "x" + str(self.f.nSTS) + "_" + str(ssItr) + ".txt", "w")
+            #textF = open(fileAddr + "_" + str(self.f.nSTS) + "x" + str(self.f.nSTS) + "_" + str(ssItr) + ".txt", "w")
             if(ifAddPad):
                 # tmpSig = ([0] * 20000 + self.ssPhySig[ssItr]) * 10 + [0] * 20000
                 tmpSig = [0] * 1000 + self.ssPhySig[ssItr] + [0] * 1000
@@ -849,9 +849,9 @@ class phy80211():
             for i in range(0, len(tmpSig)):
                binF.write(struct.pack("f", np.real(tmpSig[i])))
                binF.write(struct.pack("f", np.imag(tmpSig[i])))
-               textF.write(str(np.real(tmpSig[i])) + " " + str(np.imag(tmpSig[i])) + "\n")
+               #textF.write(str(np.real(tmpSig[i])) + " " + str(np.imag(tmpSig[i])) + "\n")
             binF.close()
-            textF.close()
+            #textF.close()
             print("written in " + (fileAddr + "_" + str(ssItr)))
             plt.figure(100 + ssItr)
             plt.plot(np.real(tmpSig))
@@ -961,6 +961,19 @@ if __name__ == "__main__":
     bfQForFftNormdForFft = [np.ones_like(bfQForFftNormd[0])] * 3 + bfQForFftNormd[0:28] + [
         np.ones_like(bfQForFftNormd[0])] + bfQForFftNormd[28:56] + [np.ones_like(bfQForFftNormd[0])] * 4
 
+    plt.figure(11)
+    plt.plot(np.real([each[0][0] for each in bfQForFftNormdForFft]))
+    plt.plot(np.imag([each[0][0] for each in bfQForFftNormdForFft]))
+    plt.figure(12)
+    plt.plot(np.real([each[0][1] for each in bfQForFftNormdForFft]))
+    plt.plot(np.imag([each[0][1] for each in bfQForFftNormdForFft]))
+    plt.figure(13)
+    plt.plot(np.real([each[1][0] for each in bfQForFftNormdForFft]))
+    plt.plot(np.imag([each[1][0] for each in bfQForFftNormdForFft]))
+    plt.figure(14)
+    plt.plot(np.real([each[1][1] for each in bfQForFftNormdForFft]))
+    plt.plot(np.imag([each[1][1] for each in bfQForFftNormdForFft]))
+
     pkt1 = genMac80211UdpMPDU(udpPayload1)
     pkt2 = genMac80211UdpMPDU(udpPayload2)
     print("pkt 1 byte numbers:", len(pkt1))
@@ -968,7 +981,7 @@ if __name__ == "__main__":
     print("pkt 2 byte numbers:", len(pkt2))
     print([int(each) for each in pkt2])
     phy80211Ins.genVhtMu([pkt1, pkt2], [p8h.phy80211format('vht', mcs=0, bw=h.BW_20, nSTS=1, pktLen=len(pkt1), shortGi=False), p8h.phy80211format('vht', mcs=0, bw=h.BW_20, nSTS=1, pktLen=len(pkt2), shortGi=False)], bfQ = bfQForFftNormdForFft, groupId=2)
-    phy80211Ins.genSigBinFile("cmu-mupkt", True)
+    phy80211Ins.genSigBinFile("/home/cloud/sdr/cmu-mupkt", True)
 
     plt.show()
 

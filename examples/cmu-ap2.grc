@@ -76,7 +76,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/gr-ieee80211/tools/sig80211MuNdp0.bin
+    file: /home/cloud/sdr/cmu-mupkt_2x2_0.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -98,7 +98,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/gr-ieee80211/tools/sig80211MuNdp1.bin
+    file: /home/cloud/sdr/cmu-mupkt_2x2_1.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'

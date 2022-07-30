@@ -3,7 +3,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 import numpy as np
 
-fWaveComp = open("/home/cloud/sdr/sig80211GrMuSs0.bin",'rb')
+fWaveComp = open("/home/cloud/sdr/sig80211CfoGr.bin",'rb')
 
 index = 0
 fWaveComp.read(index * 8)

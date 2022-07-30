@@ -50,6 +50,7 @@ namespace gr {
       int d_nStream;
       // signal soft viterbi ver
       float d_cfoRad;
+      gr_complex d_sigAfterCfoComp[240];
       gr_complex d_H[64];
       gr_complex d_sig[64];
       float d_sigLegacyIntedLlr[48];

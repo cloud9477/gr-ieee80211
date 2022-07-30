@@ -92,6 +92,7 @@ namespace gr {
           {
             d_sSignal = S_DEMOD;
             d_cfoRad = inCfoRad[i];
+            dout<<"ieee80211 signal, total cfo:"<<(d_cfoRad) * 20000000.0f / 2.0f / M_PI<<std::endl;
             break;
           }
         }
@@ -104,13 +105,19 @@ namespace gr {
       {
         if(d_nProc > 240)
         {
-          memcpy(d_ofdm_fft.get_inbuf(), &inSig1[8], sizeof(gr_complex)*64);
+          float tmpRadStep;
+          for(int i=0;i<240;i++)
+          {
+            tmpRadStep = (float)i * d_cfoRad;
+            d_sigAfterCfoComp[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));
+          }
+          memcpy(d_ofdm_fft.get_inbuf(), &d_sigAfterCfoComp[8], sizeof(gr_complex)*64);
           d_ofdm_fft.execute();
           memcpy(d_fftLtfOut1, d_ofdm_fft.get_outbuf(), sizeof(gr_complex)*64);
-          memcpy(d_ofdm_fft.get_inbuf(), &inSig1[8+64], sizeof(gr_complex)*64);
+          memcpy(d_ofdm_fft.get_inbuf(), &d_sigAfterCfoComp[8+64], sizeof(gr_complex)*64);
           d_ofdm_fft.execute();
           memcpy(d_fftLtfOut2, d_ofdm_fft.get_outbuf(), sizeof(gr_complex)*64);
-          memcpy(d_ofdm_fft.get_inbuf(), &inSig1[8+64+80], sizeof(gr_complex)*64);
+          memcpy(d_ofdm_fft.get_inbuf(), &d_sigAfterCfoComp[8+64+80], sizeof(gr_complex)*64);
           d_ofdm_fft.execute();
           memcpy(d_fftSigOut, d_ofdm_fft.get_outbuf(), sizeof(gr_complex)*64);
 
@@ -207,7 +214,7 @@ namespace gr {
           {
             for(int i=0;i<d_nGen;i++)
             {
-              tmpRadStep = d_nSampleCopied * d_cfoRad;
+              tmpRadStep = (float)d_nSampleCopied * d_cfoRad;
               outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
               outSig2[i] = inSig2[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
               d_nSampleCopied++;
@@ -217,7 +224,7 @@ namespace gr {
           {
             for(int i=0;i<d_nGen;i++)
             {
-              tmpRadStep = d_nSampleCopied * d_cfoRad;
+              tmpRadStep = (float)d_nSampleCopied * d_cfoRad;
               outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
               outSig2[i] = gr_complex(0.0f, 0.0f);
               d_nSampleCopied++;
@@ -233,7 +240,7 @@ namespace gr {
           {
             for(int i=0;i<tmpNumGen;i++)
             {
-              tmpRadStep = d_nSampleCopied * d_cfoRad;
+              tmpRadStep = (float)d_nSampleCopied * d_cfoRad;
               outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
               outSig2[i] = inSig2[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
               d_nSampleCopied++;
@@ -243,7 +250,7 @@ namespace gr {
           {
             for(int i=0;i<tmpNumGen;i++)
             {
-              tmpRadStep = d_nSampleCopied * d_cfoRad;
+              tmpRadStep = (float)d_nSampleCopied * d_cfoRad;
               outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
               outSig2[i] = gr_complex(0.0f, 0.0f);   // * cfo
               d_nSampleCopied++;

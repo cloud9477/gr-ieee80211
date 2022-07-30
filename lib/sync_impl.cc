@@ -188,7 +188,7 @@ namespace gr {
       }
       float tmpRadStepLtf = atan2f((tmpConjSum/64.0f).imag(), (tmpConjSum/64.0f).real()) / 64.0f;
       dout<<"ieee80211 sync, stf cfo:"<<(tmpRadStepStf) * 20000000.0f / 2.0f / M_PI<<", ltf cfo:"<<(tmpRadStepLtf) * 20000000.0f / 2.0f / M_PI<<std::endl;
-      return tmpRadStepStf + tmpRadStepLtf;
+      return (tmpRadStepStf + tmpRadStepLtf);
     }
 
   } /* namespace ieee80211 */

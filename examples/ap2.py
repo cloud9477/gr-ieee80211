@@ -32,7 +32,7 @@ class ap2(gr.top_block):
         ##################################################
         # Variables
         ##################################################
-        self.txp = txp = 0.98
+        self.txp = txp = 0.96
         self.samp_rate = samp_rate = 20e6
         self.freq = freq = 5420e6
 

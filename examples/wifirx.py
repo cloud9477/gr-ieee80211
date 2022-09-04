@@ -76,7 +76,6 @@ class wifirx(gr.top_block, Qt.QWidget):
         # Variables
         ##################################################
         self.samp_rate = samp_rate = 20e6
-        self.freq = freq = 5420e6
 
         ##################################################
         # Blocks
@@ -85,14 +84,22 @@ class wifirx(gr.top_block, Qt.QWidget):
         self.ieee80211_trigger_0 = ieee80211.trigger()
         self.ieee80211_sync_0 = ieee80211.sync()
         self.ieee80211_signal_0 = ieee80211.signal(1)
-        self.ieee80211_demod_0 = ieee80211.demod(1, 1, 2)
+        self.ieee80211_modulation_0 = ieee80211.modulation()
+        self.ieee80211_encode_0 = ieee80211.encode('packet_len')
+        self.ieee80211_demod_0 = ieee80211.demod(1, 0, 2)
         self.ieee80211_decode_0 = ieee80211.decode()
+        self.blocks_throttle_0 = blocks.throttle(gr.sizeof_gr_complex*1, samp_rate,True)
+        self.blocks_socket_pdu_0 = blocks.socket_pdu('UDP_SERVER', '127.0.01', '9528', 1500, False)
         self.blocks_pdu_to_tagged_stream_0 = blocks.pdu_to_tagged_stream(blocks.byte_t, 'packet_len')
+        self.blocks_null_sink_0_0 = blocks.null_sink(gr.sizeof_gr_complex*1)
+        self.blocks_null_sink_0 = blocks.null_sink(gr.sizeof_gr_complex*1)
         self.blocks_multiply_conjugate_cc_0 = blocks.multiply_conjugate_cc(1)
         self.blocks_moving_average_xx_1 = blocks.moving_average_ff(64, 1, 4000, 1)
         self.blocks_moving_average_xx_0 = blocks.moving_average_cc(48, 1, 4000, 1)
-        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/cmu-mupkt_2x2_1.bin', False, 0, 0)
+        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211VhtGen_1x1_0.bin', False, 0, 0)
         self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
+        self.blocks_file_sink_1 = blocks.file_sink(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211CfoGr.bin', False)
+        self.blocks_file_sink_1.set_unbuffered(False)
         self.blocks_divide_xx_0 = blocks.divide_ff(1)
         self.blocks_delay_0 = blocks.delay(gr.sizeof_gr_complex*1, 16)
         self.blocks_complex_to_mag_squared_0 = blocks.complex_to_mag_squared(1)
@@ -103,28 +110,35 @@ class wifirx(gr.top_block, Qt.QWidget):
         ##################################################
         # Connections
         ##################################################
+        self.msg_connect((self.blocks_socket_pdu_0, 'pdus'), (self.ieee80211_encode_0, 'pdus'))
         self.msg_connect((self.ieee80211_decode_0, 'out'), (self.blocks_pdu_to_tagged_stream_0, 'pdus'))
         self.connect((self.analog_const_source_x_0, 0), (self.ieee80211_signal_0, 3))
         self.connect((self.blocks_complex_to_mag_0, 0), (self.blocks_divide_xx_0, 0))
         self.connect((self.blocks_complex_to_mag_squared_0, 0), (self.blocks_moving_average_xx_1, 0))
         self.connect((self.blocks_delay_0, 0), (self.blocks_multiply_conjugate_cc_0, 0))
         self.connect((self.blocks_divide_xx_0, 0), (self.ieee80211_trigger_0, 0))
-        self.connect((self.blocks_file_source_0, 0), (self.blocks_complex_to_mag_squared_0, 0))
-        self.connect((self.blocks_file_source_0, 0), (self.blocks_delay_0, 0))
-        self.connect((self.blocks_file_source_0, 0), (self.blocks_multiply_conjugate_cc_0, 1))
-        self.connect((self.blocks_file_source_0, 0), (self.ieee80211_signal_0, 2))
-        self.connect((self.blocks_file_source_0, 0), (self.ieee80211_sync_0, 1))
+        self.connect((self.blocks_file_source_0, 0), (self.blocks_throttle_0, 0))
         self.connect((self.blocks_moving_average_xx_0, 0), (self.blocks_complex_to_mag_0, 0))
         self.connect((self.blocks_moving_average_xx_0, 0), (self.ieee80211_sync_0, 2))
         self.connect((self.blocks_moving_average_xx_1, 0), (self.blocks_divide_xx_0, 1))
         self.connect((self.blocks_multiply_conjugate_cc_0, 0), (self.blocks_moving_average_xx_0, 0))
         self.connect((self.blocks_pdu_to_tagged_stream_0, 0), (self.network_udp_sink_0, 0))
+        self.connect((self.blocks_throttle_0, 0), (self.blocks_complex_to_mag_squared_0, 0))
+        self.connect((self.blocks_throttle_0, 0), (self.blocks_delay_0, 0))
+        self.connect((self.blocks_throttle_0, 0), (self.blocks_multiply_conjugate_cc_0, 1))
+        self.connect((self.blocks_throttle_0, 0), (self.ieee80211_signal_0, 2))
+        self.connect((self.blocks_throttle_0, 0), (self.ieee80211_sync_0, 1))
         self.connect((self.ieee80211_demod_0, 0), (self.ieee80211_decode_0, 0))
+        self.connect((self.ieee80211_encode_0, 1), (self.ieee80211_modulation_0, 1))
+        self.connect((self.ieee80211_encode_0, 0), (self.ieee80211_modulation_0, 0))
+        self.connect((self.ieee80211_modulation_0, 1), (self.blocks_null_sink_0, 0))
+        self.connect((self.ieee80211_modulation_0, 0), (self.blocks_null_sink_0_0, 0))
+        self.connect((self.ieee80211_signal_0, 0), (self.blocks_file_sink_1, 0))
         self.connect((self.ieee80211_signal_0, 0), (self.ieee80211_demod_0, 1))
         self.connect((self.ieee80211_signal_0, 1), (self.ieee80211_demod_0, 2))
         self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_demod_0, 0))
-        self.connect((self.ieee80211_sync_0, 1), (self.ieee80211_signal_0, 1))
         self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_signal_0, 0))
+        self.connect((self.ieee80211_sync_0, 1), (self.ieee80211_signal_0, 1))
         self.connect((self.ieee80211_trigger_0, 0), (self.ieee80211_sync_0, 0))
 
 
@@ -141,12 +155,7 @@ class wifirx(gr.top_block, Qt.QWidget):
 
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
-
-    def get_freq(self):
-        return self.freq
-
-    def set_freq(self, freq):
-        self.freq = freq
+        self.blocks_throttle_0.set_sample_rate(self.samp_rate)
 
 
 

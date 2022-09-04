@@ -174,7 +174,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/sig80211VhtGenCfo_1x1_0.bin
+    file: /home/cloud/sdr/sig80211VhtGen_1x1_0.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -186,7 +186,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [24, 212.0]
+    coordinate: [0, 220.0]
     rotation: 0
     state: enabled
 - name: blocks_file_source_0_0

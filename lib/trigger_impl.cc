@@ -34,7 +34,7 @@ namespace gr {
     trigger_impl::trigger_impl()
       : gr::block("trigger",
               gr::io_signature::make(1, 1, sizeof(float)),
-              gr::io_signature::make(1, 1, sizeof(unsigned char))),
+              gr::io_signature::make(1, 1, sizeof(uint8_t))),
               d_debug(0)
     {
       d_nProc = 0;

@@ -21,7 +21,7 @@
 #ifndef INCLUDED_IEEE80211_SIGNAL_IMPL_H
 #define INCLUDED_IEEE80211_SIGNAL_IMPL_H
 
-#include <ieee80211/signal.h>
+#include <gnuradio/ieee80211/signal.h>
 #include <gnuradio/fft/fft.h>
 #include <volk/volk.h>
 #include "cloud80211phy.h"

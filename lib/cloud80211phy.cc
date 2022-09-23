@@ -1511,28 +1511,28 @@ void procSymDeintL2(float* in, float* out, c8p_mod* mod)
 		{
 			for(int i=0; i<48; i++)
 			{
-				outBits[mapDeintLegacyBpsk[i]] = inBits[i];
+				out[mapDeintLegacyBpsk[i]] = in[i];
 			}
 		}
 		case 96:
 		{
 			for(int i=0; i<96; i++)
 			{
-				outBits[mapDeintLegacyQpsk[i]] = inBits[i];
+				out[mapDeintLegacyQpsk[i]] = in[i];
 			}
 		}
 		case 192:
 		{
 			for(int i=0; i<192; i++)
 			{
-				outBits[mapDeintLegacy16Qam[i]] = inBits[i];
+				out[mapDeintLegacy16Qam[i]] = in[i];
 			}
 		}
 		case 288:
 		{
 			for(int i=0; i<288; i++)
 			{
-				outBits[mapDeintLegacy64Qam[i]] = inBits[i];
+				out[mapDeintLegacy64Qam[i]] = in[i];
 			}
 		}
 		default:

@@ -15,11 +15,11 @@ list(APPEND ieee80211_sources
     trigger_impl.cc
     sync_impl.cc
     signal_impl.cc
-    cloud80211phy.cc
+    modulation_impl.cc
     demod_impl.cc
     decode_impl.cc
     encode_impl.cc
-    modulation_impl.cc
+    cloud80211phy.cc
 )
 
 set(ieee80211_sources "${ieee80211_sources}" PARENT_SCOPE)

@@ -6,6 +6,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+# Select the release build type by default to get optimization flags.
+# This has to come before project() which otherwise initializes it.
+# Build type can still be overridden by setting -DCMAKE_BUILD_TYPE=
+set(CMAKE_BUILD_TYPE "Release" CACHE STRING "")
+
 ########################################################################
 # Project setup
 ########################################################################
@@ -19,21 +24,18 @@ if(DEFINED ENV{PYBOMBS_PREFIX})
     message(STATUS "PyBOMBS installed GNU Radio. Setting CMAKE_INSTALL_PREFIX to $ENV{PYBOMBS_PREFIX}")
 endif()
 
-# Select the release build type by default to get optimization flags
-if(NOT CMAKE_BUILD_TYPE)
-   set(CMAKE_BUILD_TYPE "Release")
-   message(STATUS "Build type not specified: defaulting to release.")
-endif(NOT CMAKE_BUILD_TYPE)
-set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
-
 # Make sure our local CMake Modules path comes first
-list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake/Modules)
+list(INSERT CMAKE_MODULE_PATH 0 ${PROJECT_SOURCE_DIR}/cmake/Modules)
+# Find gnuradio to get access to the cmake modules
+find_package(Gnuradio "3.10" REQUIRED)
 
 # Set the version information here
+# cmake-format: off
 set(VERSION_MAJOR 1)
 set(VERSION_API   0)
 set(VERSION_ABI   0)
 set(VERSION_PATCH 0)
+# cmake-format: on
 
 cmake_policy(SET CMP0011 NEW)
 
@@ -41,40 +43,22 @@ cmake_policy(SET CMP0011 NEW)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ########################################################################
-# Compiler specific setup
+# Minimum Version Requirements
 ########################################################################
-if((CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
-    CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    AND NOT WIN32)
-    #http://gcc.gnu.org/wiki/Visibility
-    add_definitions(-fvisibility=hidden)
-endif()
 
-IF(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    SET(CMAKE_CXX_STANDARD 14)
-ELSEIF(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    SET(CMAKE_CXX_STANDARD 14)
-ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    SET(CMAKE_CXX_STANDARD 14)
-ELSE()
-    message(WARNING "C++ standard could not be set because compiler is not GNU, Clang or MSVC.")
-ENDIF()
+include(GrMinReq)
 
-IF(CMAKE_C_COMPILER_ID STREQUAL "GNU")
-    SET(CMAKE_C_STANDARD 11)
-ELSEIF(CMAKE_C_COMPILER_ID MATCHES "Clang")
-    SET(CMAKE_C_STANDARD 11)
-ELSEIF(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
-    SET(CMAKE_C_STANDARD 11)
-ELSE()
-    message(WARNING "C standard could not be set because compiler is not GNU, Clang or MSVC.")
-ENDIF()
+########################################################################
+# Compiler settings
+########################################################################
+
+include(GrCompilerSettings)
 
 ########################################################################
 # Install directories
 ########################################################################
-find_package(Gnuradio "3.9" REQUIRED)
 find_package(Gnuradio COMPONENTS fft)
+
 include(GrVersion)
 
 include(GrPlatform) #define LIB_SUFFIX
@@ -83,7 +67,7 @@ if(NOT CMAKE_MODULES_DIR)
   set(CMAKE_MODULES_DIR lib${LIB_SUFFIX}/cmake)
 endif(NOT CMAKE_MODULES_DIR)
 
-set(GR_INCLUDE_DIR      include/ieee80211)
+set(GR_INCLUDE_DIR      include/gnuradio/ieee80211)
 set(GR_CMAKE_DIR        ${CMAKE_MODULES_DIR}/gnuradio-ieee80211)
 set(GR_PKG_DATA_DIR     ${GR_DATA_DIR}/${CMAKE_PROJECT_NAME})
 set(GR_PKG_DOC_DIR      ${GR_DOC_DIR}/${CMAKE_PROJECT_NAME})
@@ -114,11 +98,6 @@ endif(APPLE)
 # Find gnuradio build dependencies
 ########################################################################
 find_package(Doxygen)
-# to link the fftw3 library
-find_package(PkgConfig REQUIRED)
-pkg_search_module(FFTW REQUIRED fftw3 IMPORTED_TARGET)
-include_directories(PkgConfig::FFTW)
-link_libraries     (PkgConfig::FFTW)
 
 ########################################################################
 # Setup doxygen option
@@ -133,7 +112,7 @@ endif(DOXYGEN_FOUND)
 # Create uninstall target
 ########################################################################
 configure_file(
-    ${CMAKE_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in
+    ${PROJECT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
 @ONLY)
 
@@ -144,15 +123,30 @@ add_custom_target(uninstall
 ########################################################################
 # Add subdirectories
 ########################################################################
-add_subdirectory(include/ieee80211)
+add_subdirectory(include/gnuradio/ieee80211)
 add_subdirectory(lib)
 add_subdirectory(apps)
 add_subdirectory(docs)
 # NOTE: manually update below to use GRC to generate C++ flowgraphs w/o python
 if(ENABLE_PYTHON)
   message(STATUS "PYTHON and GRC components are enabled")
-  add_subdirectory(python)
+  add_subdirectory(python/ieee80211)
   add_subdirectory(grc)
 else(ENABLE_PYTHON)
   message(STATUS "PYTHON and GRC components are disabled")
 endif(ENABLE_PYTHON)
+
+########################################################################
+# Install cmake search helper for this library
+########################################################################
+
+install(FILES cmake/Modules/gnuradio-ieee80211Config.cmake
+    DESTINATION ${GR_CMAKE_DIR}
+)
+
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+    ${PROJECT_SOURCE_DIR}/cmake/Modules/targetConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/cmake/Modules/${target}Config.cmake
+    INSTALL_DESTINATION ${GR_CMAKE_DIR}
+)

@@ -3,7 +3,7 @@ label: sync
 category: '[ieee80211]'
 
 templates:
-  imports: import ieee80211
+  imports: from gnuradio import ieee80211
   make: ieee80211.sync()
 
 inputs:

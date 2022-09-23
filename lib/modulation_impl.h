@@ -21,7 +21,7 @@
 #ifndef INCLUDED_IEEE80211_MODULATION_IMPL_H
 #define INCLUDED_IEEE80211_MODULATION_IMPL_H
 
-#include <ieee80211/modulation.h>
+#include <gnuradio/ieee80211/modulation.h>
 #include <gnuradio/fft/fft.h>
 #include "cloud80211phy.h"
 

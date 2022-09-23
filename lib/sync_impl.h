@@ -21,7 +21,7 @@
 #ifndef INCLUDED_IEEE80211_SYNC_IMPL_H
 #define INCLUDED_IEEE80211_SYNC_IMPL_H
 
-#include <ieee80211/sync.h>
+#include <gnuradio/ieee80211/sync.h>
 
 #define SYNC_S_IDLE 0
 #define SYNC_S_SYNC 1

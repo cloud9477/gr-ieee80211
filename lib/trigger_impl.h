@@ -21,7 +21,7 @@
 #ifndef INCLUDED_IEEE80211_TRIGGER_IMPL_H
 #define INCLUDED_IEEE80211_TRIGGER_IMPL_H
 
-#include <ieee80211/trigger.h>
+#include <gnuradio/ieee80211/trigger.h>
 
 #define dout d_debug&&std::cout
 

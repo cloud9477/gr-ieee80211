@@ -168,6 +168,7 @@ void procIntelVhtB20(uint8_t* inBits, uint8_t* outBits);
 void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits, int trellisLen);
 void procSymQamToLlr(gr_complex* inQam, float* outLlr, c8p_mod* mod);
 void procSymDeintL(float* in, float* out, c8p_mod* mod);
+void procSymDeintL2(float* in, float* out, c8p_mod* mod);
 void procSymDeintNL(float* in, float* out, c8p_mod* mod, int iSS_1);
 void procSymDepasNL(float in[C8P_MAX_N_SS][C8P_MAX_N_CBPSS], float* out, c8p_mod* mod);
 int nCodedToUncoded(int nCoded, c8p_mod* mod);

@@ -21,8 +21,8 @@
 #ifndef INCLUDED_IEEE80211_ENCODE_IMPL_H
 #define INCLUDED_IEEE80211_ENCODE_IMPL_H
 
-#include <ieee80211/encode.h>
-#include <gnuradio/blocks/pdu.h>
+#include <gnuradio/ieee80211/encode.h>
+#include <gnuradio/pdu.h>
 #include "cloud80211phy.h"
 
 #define ENCODE_S_IDLE 0

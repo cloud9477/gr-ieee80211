@@ -283,19 +283,20 @@ blocks:
     coordinate: [1472, 144.0]
     rotation: 0
     state: true
-- name: ieee80211_signal_0
-  id: ieee80211_signal
+- name: ieee80211_signal2_0
+  id: ieee80211_signal2
   parameters:
     affinity: ''
     alias: ''
     comment: ''
     maxoutbuf: '0'
     minoutbuf: '0'
+    nss: '1'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1264, 144.0]
+    coordinate: [1288, 144.0]
     rotation: 0
     state: true
 - name: ieee80211_sync_0
@@ -367,7 +368,7 @@ blocks:
     state: true
 
 connections:
-- [analog_const_source_x_0, '0', ieee80211_demod2_0, '2']
+- [analog_const_source_x_0, '0', ieee80211_signal2_0, '3']
 - [blocks_complex_to_mag_0, '0', blocks_divide_xx_0, '0']
 - [blocks_complex_to_mag_squared_0, '0', blocks_moving_average_xx_1, '0']
 - [blocks_delay_0, '0', blocks_multiply_conjugate_cc_0, '0']
@@ -381,14 +382,15 @@ connections:
 - [blocks_throttle_0, '0', blocks_complex_to_mag_squared_0, '0']
 - [blocks_throttle_0, '0', blocks_delay_0, '0']
 - [blocks_throttle_0, '0', blocks_multiply_conjugate_cc_0, '1']
-- [blocks_throttle_0, '0', ieee80211_signal_0, '2']
+- [blocks_throttle_0, '0', ieee80211_signal2_0, '2']
 - [blocks_throttle_0, '0', ieee80211_sync_0, '1']
 - [ieee80211_decode_0, out, pdu_pdu_to_tagged_stream_0, pdus]
 - [ieee80211_demod2_0, '0', ieee80211_decode_0, '0']
-- [ieee80211_signal_0, '0', ieee80211_demod2_0, '1']
+- [ieee80211_signal2_0, '0', ieee80211_demod2_0, '1']
+- [ieee80211_signal2_0, '1', ieee80211_demod2_0, '2']
 - [ieee80211_sync_0, '0', ieee80211_demod2_0, '0']
-- [ieee80211_sync_0, '0', ieee80211_signal_0, '0']
-- [ieee80211_sync_0, '1', ieee80211_signal_0, '1']
+- [ieee80211_sync_0, '0', ieee80211_signal2_0, '0']
+- [ieee80211_sync_0, '1', ieee80211_signal2_0, '1']
 - [ieee80211_trigger_0, '0', ieee80211_sync_0, '0']
 - [pdu_pdu_to_tagged_stream_0, '0', network_udp_sink_0, '0']
 

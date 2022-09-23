@@ -1,0 +1,48 @@
+id: ieee80211_demod2
+label: demod2
+category: '[ieee80211]'
+
+templates:
+  imports: from gnuradio import ieee80211
+  make: ieee80211.demod2(${nrx}, ${mupos}, ${mugid})
+
+parameters:
+- id: nrx
+  label: RX Num
+  dtype: int
+  default: '1'
+  options: ['1', '2']
+- id: mupos
+  label: MU-MIMO User Pos
+  dtype: int
+  default: '0'
+- id: mugid
+  label: MU-MIMO Group ID
+  dtype: int
+  default: '2'
+
+inputs:
+- label: sync
+  domain: stream
+  dtype: byte
+- label: inSig1
+  domain: stream
+  dtype: complex
+- label: inSig2
+  domain: stream
+  dtype: complex
+
+outputs:
+- label: outLlr
+  domain: stream
+  dtype: float
+
+asserts:
+- ${ mupos >= 0 }
+- ${ mupos <= 3 }
+- ${ mugid >= 1 }
+- ${ mugid <= 62 }
+
+#  'file_format' specifies the version of the GRC yml format used in the file
+#  and should usually not be changed.
+file_format: 1

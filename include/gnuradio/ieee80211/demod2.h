@@ -5,8 +5,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-#ifndef INCLUDED_IEEE80211_SIGNAL_H
-#define INCLUDED_IEEE80211_SIGNAL_H
+#ifndef INCLUDED_IEEE80211_DEMOD2_H
+#define INCLUDED_IEEE80211_DEMOD2_H
 
 #include <gnuradio/ieee80211/api.h>
 #include <gnuradio/block.h>
@@ -19,23 +19,23 @@ namespace gr {
      * \ingroup ieee80211
      *
      */
-    class IEEE80211_API signal : virtual public gr::block
+    class IEEE80211_API demod2 : virtual public gr::block
     {
      public:
-      typedef std::shared_ptr<signal> sptr;
+      typedef std::shared_ptr<demod2> sptr;
 
       /*!
-       * \brief Return a shared_ptr to a new instance of ieee80211::signal.
+       * \brief Return a shared_ptr to a new instance of ieee80211::demod2.
        *
-       * To avoid accidental use of raw pointers, ieee80211::signal's
+       * To avoid accidental use of raw pointers, ieee80211::demod2's
        * constructor is in a private implementation
-       * class. ieee80211::signal::make is the public interface for
+       * class. ieee80211::demod2::make is the public interface for
        * creating new instances.
        */
-      static sptr make();
+      static sptr make(int nrx, int mupos, int mugid);
     };
 
   } // namespace ieee80211
 } // namespace gr
 
-#endif /* INCLUDED_IEEE80211_SIGNAL_H */
+#endif /* INCLUDED_IEEE80211_DEMOD2_H */

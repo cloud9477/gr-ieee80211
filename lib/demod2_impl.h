@@ -1,6 +1,6 @@
 /*
  *
- *     GNU Radio IEEE 802.11a/g/n/ac 2x2, for SISO
+ *     GNU Radio IEEE 802.11a/g/n/ac 2x2
  *     Demodulation of 802.11a/g/n/ac 1x1 and 2x2 formats
  *     Copyright (C) June 1, 2022  Zelin Yun
  *
@@ -18,10 +18,10 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDED_IEEE80211_DEMOD_IMPL_H
-#define INCLUDED_IEEE80211_DEMOD_IMPL_H
+#ifndef INCLUDED_IEEE80211_DEMOD2_IMPL_H
+#define INCLUDED_IEEE80211_DEMOD2_IMPL_H
 
-#include <gnuradio/ieee80211/demod.h>
+#include <gnuradio/ieee80211/demod2.h>
 #include <gnuradio/fft/fft.h>
 #include "cloud80211phy.h"
 
@@ -39,10 +39,10 @@
 namespace gr {
   namespace ieee80211 {
 
-    class demod_impl : public demod
+    class demod2_impl : public demod2
     {
      private:
-     int d_testCount;
+      int d_testCount;
       // block
       bool d_debug;
       int d_nProc;
@@ -105,8 +105,8 @@ namespace gr {
       float d_llrSpasd[C8P_MAX_N_SS][C8P_MAX_N_CBPSS];     // stream parsered LLR
 
      public:
-      demod_impl(int nrx, int mupos, int mugid);
-      ~demod_impl();
+      demod2_impl(int nrx, int mupos, int mugid);
+      ~demod2_impl();
 
       // Where all the action really happens
       void forecast (int noutput_items, gr_vector_int &ninput_items_required);
@@ -122,9 +122,10 @@ namespace gr {
       void vhtSigBDemod(const gr_complex* sig1, const gr_complex* sig2);
       void fft(const gr_complex* sig, gr_complex* res);
       void pilotShift(float* pilots);
+
     };
 
   } // namespace ieee80211
 } // namespace gr
 
-#endif /* INCLUDED_IEEE80211_DEMOD_IMPL_H */
+#endif /* INCLUDED_IEEE80211_DEMOD2_IMPL_H */

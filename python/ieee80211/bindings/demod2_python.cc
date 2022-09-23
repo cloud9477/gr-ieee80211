@@ -13,8 +13,8 @@
 /* If manual edits are made, the following tags should be modified accordingly.    */
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
-/* BINDTOOL_HEADER_FILE(signal.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(4fcb5040ade87fd4cfb6e6a7c8ec4190)                     */
+/* BINDTOOL_HEADER_FILE(demod2.h)                                        */
+/* BINDTOOL_HEADER_FILE_HASH(35652199a13efd770378e925f69d44b5)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -23,21 +23,24 @@
 
 namespace py = pybind11;
 
-#include <gnuradio/ieee80211/signal.h>
+#include <gnuradio/ieee80211/demod2.h>
 // pydoc.h is automatically generated in the build directory
-#include <signal_pydoc.h>
+#include <demod2_pydoc.h>
 
-void bind_signal(py::module& m)
+void bind_demod2(py::module& m)
 {
 
-    using signal    = ::gr::ieee80211::signal;
+    using demod2    = ::gr::ieee80211::demod2;
 
 
-    py::class_<signal, gr::block, gr::basic_block,
-        std::shared_ptr<signal>>(m, "signal", D(signal))
+    py::class_<demod2, gr::block, gr::basic_block,
+        std::shared_ptr<demod2>>(m, "demod2", D(demod2))
 
-        .def(py::init(&signal::make),
-           D(signal,make)
+        .def(py::init(&demod2::make),
+           py::arg("nrx"),
+           py::arg("mupos"),
+           py::arg("mugid"),
+           D(demod2,make)
         )
         
 

@@ -1,6 +1,6 @@
 /*
  *
- *     GNU Radio IEEE 802.11a/g/n/ac 2x2, for SISO
+ *     GNU Radio IEEE 802.11a/g/n/ac 2x2
  *     Demodulation of 802.11a/g/n/ac 1x1 and 2x2 formats
  *     Copyright (C) June 1, 2022  Zelin Yun
  *
@@ -19,20 +19,24 @@
  */
 
 #include <gnuradio/io_signature.h>
-#include "demod_impl.h"
+#include "demod2_impl.h"
 
 namespace gr {
   namespace ieee80211 {
 
-    demod::sptr
-    demod::make(int nrx, int mupos, int mugid)
+    demod2::sptr
+    demod2::make(int nrx, int mupos, int mugid)
     {
-      return gnuradio::make_block_sptr<demod_impl>(nrx, mupos, mugid
+      return gnuradio::make_block_sptr<demod2_impl>(nrx, mupos, mugid
         );
     }
 
-    demod_impl::demod_impl(int nrx, int mupos, int mugid)
-      : gr::block("demod",
+
+    /*
+     * The private constructor
+     */
+    demod2_impl::demod2_impl(int nrx, int mupos, int mugid)
+      : gr::block("demod2",
               gr::io_signature::makev(3, 3, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex), sizeof(gr_complex)}),
               gr::io_signature::make(1, 1, sizeof(float))),
               d_nRxAnt(nrx),
@@ -47,13 +51,16 @@ namespace gr {
       set_tag_propagation_policy(block::TPP_DONT);
     }
 
-    demod_impl::~demod_impl()
+
+    /*
+     * Our virtual destructor.
+     */
+    demod2_impl::~demod2_impl()
     {
-      
     }
 
     void
-    demod_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
+    demod2_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
     {
       gr_vector_int::size_type ninputs = ninput_items_required.size();
       for(int i=0; i < ninputs; i++)
@@ -63,7 +70,7 @@ namespace gr {
     }
 
     int
-    demod_impl::general_work (int noutput_items,
+    demod2_impl::general_work (int noutput_items,
                        gr_vector_int &ninput_items,
                        gr_vector_const_void_star &input_items,
                        gr_vector_void_star &output_items)
@@ -421,7 +428,7 @@ namespace gr {
     }
 
     void
-    demod_impl::nonLegacyChanEstimate(const gr_complex* sig1, const gr_complex* sig2)
+    demod2_impl::nonLegacyChanEstimate(const gr_complex* sig1, const gr_complex* sig2)
     {
       if(d_m.sumu)
       {
@@ -529,7 +536,7 @@ namespace gr {
     }
 
     void
-    demod_impl::htChanUpdate(const gr_complex* sig1, const gr_complex* sig2)
+    demod2_impl::htChanUpdate(const gr_complex* sig1, const gr_complex* sig2)
     {
       if(d_m.nSS == 1)
       {
@@ -605,7 +612,7 @@ namespace gr {
     }
 
     void
-    demod_impl::vhtChanUpdate(const gr_complex* sig1, const gr_complex* sig2)
+    demod2_impl::vhtChanUpdate(const gr_complex* sig1, const gr_complex* sig2)
     {
       if(d_nRxAnt == 1)
       {
@@ -678,7 +685,7 @@ namespace gr {
     }
 
     void
-    demod_impl::vhtSigBDemod(const gr_complex* sig1, const gr_complex* sig2)
+    demod2_impl::vhtSigBDemod(const gr_complex* sig1, const gr_complex* sig2)
     {
       if(d_m.nSS == 1)
       {
@@ -764,7 +771,7 @@ namespace gr {
     }
 
     void
-    demod_impl::legacyChanUpdate(const gr_complex* sig1)
+    demod2_impl::legacyChanUpdate(const gr_complex* sig1)
     {
       fft(&sig1[8], d_fftLtfOut1);
       for(int i=0;i<64;i++)
@@ -794,7 +801,7 @@ namespace gr {
     }
 
     void
-    demod_impl::fft(const gr_complex* sig, gr_complex* res)
+    demod2_impl::fft(const gr_complex* sig, gr_complex* res)
     {
       memcpy(d_ofdm_fft.get_inbuf(), sig, sizeof(gr_complex)*64);
       d_ofdm_fft.execute();
@@ -802,7 +809,7 @@ namespace gr {
     }
 
     void
-    demod_impl::pilotShift(float* pilots)
+    demod2_impl::pilotShift(float* pilots)
     {
       float tmpPilot = pilots[0];
       pilots[0] = pilots[1];

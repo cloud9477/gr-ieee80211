@@ -1,6 +1,6 @@
 /*
  *
- *     GNU Radio IEEE 802.11a/g/n/ac 2x2, for SISO
+ *     GNU Radio IEEE 802.11a/g/n/ac 2x2
  *     Legacy Signal Field Information
  *     Copyright (C) June 1, 2022  Zelin Yun
  *
@@ -19,26 +19,38 @@
  */
 
 #include <gnuradio/io_signature.h>
-#include "signal_impl.h"
+#include "signal2_impl.h"
 
 namespace gr {
   namespace ieee80211 {
 
-    signal::sptr
-    signal::make()
+    signal2::sptr
+    signal2::make(int nss)
     {
-      return gnuradio::make_block_sptr<signal_impl>(
+      return gnuradio::make_block_sptr<signal2_impl>(nss
         );
     }
 
-    signal_impl::signal_impl()
-      : gr::block("signal",
-              gr::io_signature::makev(3, 3, std::vector<int>{sizeof(uint8_t), sizeof(float), sizeof(gr_complex)}),
-              gr::io_signature::make(1, 1, sizeof(gr_complex))),
+
+    /*
+     * The private constructor
+     */
+    signal2_impl::signal2_impl(int nss)
+      : gr::block("signal2",
+              gr::io_signature::makev(4, 4, std::vector<int>{sizeof(uint8_t), sizeof(float), sizeof(gr_complex), sizeof(gr_complex)}),
+              gr::io_signature::make(2, 2, sizeof(gr_complex))),
+              d_nStream(nss),
+              d_debug(0),
               d_ofdm_fft(64,1)
     {
-      d_debug = true;
-      d_nStream = 1;
+      if(d_nStream < 1 || d_nStream > 3)
+      {
+        std::cout<<"ieee80211 signal, block nss error:"<<d_nStream<<std::endl;
+      }
+      else
+      {
+        std::cout<<"ieee80211 signal, block nss:"<<d_nStream<<std::endl;
+      }
       d_nProc = 0;
       d_nSigPktSeq = 0;
       d_sSignal = S_TRIGGER;
@@ -46,20 +58,24 @@ namespace gr {
       set_tag_propagation_policy(block::TPP_DONT);
     }
 
-    signal_impl::~signal_impl()
+    /*
+     * Our virtual destructor.
+     */
+    signal2_impl::~signal2_impl()
     {
     }
 
     void
-    signal_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
+    signal2_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
     {
       ninput_items_required[0] = noutput_items + 160;
       ninput_items_required[1] = noutput_items + 160;
       ninput_items_required[2] = noutput_items + 160;
+      ninput_items_required[3] = noutput_items + 160;
     }
 
     int
-    signal_impl::general_work (int noutput_items,
+    signal2_impl::general_work (int noutput_items,
                        gr_vector_int &ninput_items,
                        gr_vector_const_void_star &input_items,
                        gr_vector_void_star &output_items)
@@ -67,11 +83,11 @@ namespace gr {
       const uint8_t* sync = static_cast<const uint8_t*>(input_items[0]);
       const float* inCfoRad = static_cast<const float*>(input_items[1]);
       const gr_complex* inSig1 = static_cast<const gr_complex*>(input_items[2]);
-      
+      const gr_complex* inSig2 = static_cast<const gr_complex*>(input_items[3]);
       gr_complex* outSig1 = static_cast<gr_complex*>(output_items[0]);
-      
+      gr_complex* outSig2 = static_cast<gr_complex*>(output_items[1]);
       // input and output not sync
-      d_nProc = std::min(std::min(ninput_items[0], ninput_items[1]), ninput_items[2]);
+      d_nProc = std::min(std::min(std::min(ninput_items[0], ninput_items[1]), ninput_items[2]), ninput_items[3]);
       d_nGen = std::min(noutput_items, d_nProc);
 
       if(d_sSignal == S_TRIGGER)
@@ -88,6 +104,7 @@ namespace gr {
           }
         }
         memset(outSig1, 0, sizeof(gr_complex) * i);  // maybe not needed to set, not used anyway
+        memset(outSig2, 0, sizeof(gr_complex) * i);
         consume_each(i);
         return i;
       }
@@ -176,7 +193,7 @@ namespace gr {
             }
             d_sSignal = S_COPY;
             memset(outSig1, 0, sizeof(gr_complex) * 224);  // maybe not needed to set, not used anyway
-            
+            memset(outSig2, 0, sizeof(gr_complex) * 224);
             consume_each(224);
             return 224;
           }
@@ -184,7 +201,7 @@ namespace gr {
           {
             d_sSignal = S_TRIGGER;
             memset(outSig1, 0, sizeof(gr_complex) * 80);  // maybe not needed to set, not used anyway
-            
+            memset(outSig2, 0, sizeof(gr_complex) * 80);
             consume_each(80);
             return 80;
           }
@@ -200,11 +217,25 @@ namespace gr {
         float tmpRadStep;
         if(d_nGen < (d_nSample - d_nSampleCopied))
         {
-          for(int i=0;i<d_nGen;i++)
+          if(d_nStream > 1)
           {
-            tmpRadStep = (float)d_nSampleCopied * d_cfoRad;
-            outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
-            d_nSampleCopied++;
+            for(int i=0;i<d_nGen;i++)
+            {
+              tmpRadStep = (float)d_nSampleCopied * d_cfoRad;
+              outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
+              outSig2[i] = inSig2[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
+              d_nSampleCopied++;
+            }
+          }
+          else
+          {
+            for(int i=0;i<d_nGen;i++)
+            {
+              tmpRadStep = (float)d_nSampleCopied * d_cfoRad;
+              outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
+              outSig2[i] = gr_complex(0.0f, 0.0f);
+              d_nSampleCopied++;
+            }
           }
           consume_each(d_nGen);
           return d_nGen;
@@ -212,11 +243,25 @@ namespace gr {
         else
         {
           int tmpNumGen = d_nSample - d_nSampleCopied;
-          for(int i=0;i<tmpNumGen;i++)
+          if(d_nStream > 1)
           {
-            tmpRadStep = (float)d_nSampleCopied * d_cfoRad;
-            outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
-            d_nSampleCopied++;
+            for(int i=0;i<tmpNumGen;i++)
+            {
+              tmpRadStep = (float)d_nSampleCopied * d_cfoRad;
+              outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
+              outSig2[i] = inSig2[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
+              d_nSampleCopied++;
+            }
+          }
+          else
+          {
+            for(int i=0;i<tmpNumGen;i++)
+            {
+              tmpRadStep = (float)d_nSampleCopied * d_cfoRad;
+              outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
+              outSig2[i] = gr_complex(0.0f, 0.0f);   // * cfo
+              d_nSampleCopied++;
+            }
           }
           d_sSignal = S_TRIGGER;
           consume_each(tmpNumGen);

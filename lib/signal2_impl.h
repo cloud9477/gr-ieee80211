@@ -1,6 +1,6 @@
 /*
  *
- *     GNU Radio IEEE 802.11a/g/n/ac 2x2, for SISO
+ *     GNU Radio IEEE 802.11a/g/n/ac 2x2
  *     Legacy Signal Field Information
  *     Copyright (C) June 1, 2022  Zelin Yun
  *
@@ -18,10 +18,10 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDED_IEEE80211_SIGNAL_IMPL_H
-#define INCLUDED_IEEE80211_SIGNAL_IMPL_H
+#ifndef INCLUDED_IEEE80211_SIGNAL2_IMPL_H
+#define INCLUDED_IEEE80211_SIGNAL2_IMPL_H
 
-#include <gnuradio/ieee80211/signal.h>
+#include <gnuradio/ieee80211/signal2.h>
 #include <gnuradio/fft/fft.h>
 #include <volk/volk.h>
 #include "cloud80211phy.h"
@@ -39,9 +39,9 @@
 namespace gr {
   namespace ieee80211 {
 
-    class signal_impl : public signal
+    class signal2_impl : public signal2
     {
-    private:
+     private:
       // for block
       int d_nProc;
       int d_nGen;
@@ -70,8 +70,8 @@ namespace gr {
       gr_complex d_fftSigOut[64];
 
      public:
-      signal_impl();
-      ~signal_impl();
+      signal2_impl(int nss);
+      ~signal2_impl();
 
       // Where all the action really happens
       void forecast (int noutput_items, gr_vector_int &ninput_items_required);
@@ -86,4 +86,4 @@ namespace gr {
   } // namespace ieee80211
 } // namespace gr
 
-#endif /* INCLUDED_IEEE80211_SIGNAL_IMPL_H */
+#endif /* INCLUDED_IEEE80211_SIGNAL2_IMPL_H */

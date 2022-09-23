@@ -1,24 +1,37 @@
-id: ieee80211_signal
-label: signal
+id: ieee80211_signal2
+label: signal2
 category: '[ieee80211]'
 
 templates:
   imports: from gnuradio import ieee80211
-  make: ieee80211.signal()
+  make: ieee80211.signal2(${nss})
+
+parameters:
+- id: nss
+  label: SS Num
+  dtype: int
+  default: '1'
+  options: ['1', '2']
 
 inputs:
 - label: sync
   domain: stream
   dtype: byte
-- label: cfo
+- label: inCfoRad
   domain: stream
   dtype: float
-- label: sig
+- label: inSig1
+  domain: stream
+  dtype: complex
+- label: inSig2
   domain: stream
   dtype: complex
 
 outputs:
-- label: sig
+- label: outSig1
+  domain: stream
+  dtype: complex
+- label: outSig2
   domain: stream
   dtype: complex
 

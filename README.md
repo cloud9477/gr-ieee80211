@@ -1,6 +1,7 @@
 # gr-ieee80211
 GNU Radio IEEE 802.11a/g/n/ac transmitter and receiver.
 Supports upto 2x2 SU-MIMO and MU-MIMO.
+Main branch is GR3.10 version
 
 Receiver Design
 ----------

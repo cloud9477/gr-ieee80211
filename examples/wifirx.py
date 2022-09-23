@@ -92,7 +92,7 @@ class wifirx(gr.top_block, Qt.QWidget):
         self.blocks_multiply_conjugate_cc_0 = blocks.multiply_conjugate_cc(1)
         self.blocks_moving_average_xx_1 = blocks.moving_average_ff(64, 1, 4000, 1)
         self.blocks_moving_average_xx_0 = blocks.moving_average_cc(48, 1, 4000, 1)
-        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211VhtGen_1x1_0.bin', False, 0, 0)
+        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211VhtGenCfo_1x1_0.bin', False, 0, 0)
         self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
         self.blocks_file_sink_1 = blocks.file_sink(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211CfoGr.bin', False)
         self.blocks_file_sink_1.set_unbuffered(False)

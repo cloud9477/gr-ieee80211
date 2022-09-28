@@ -20,7 +20,6 @@ if __name__ == '__main__':
         except:
             print("Warning: failed to XInitThreads()")
 
-from gnuradio import analog
 from gnuradio import blocks
 import pmt
 from gnuradio import gr
@@ -86,7 +85,7 @@ class wifirx(gr.top_block, Qt.QWidget):
         self.ieee80211_trigger_0 = ieee80211.trigger()
         self.ieee80211_sync_0 = ieee80211.sync()
         self.ieee80211_signal_0 = ieee80211.signal()
-        self.ieee80211_demod2_0 = ieee80211.demod2(1, 0, 2)
+        self.ieee80211_demod_0 = ieee80211.demod(0, 2)
         self.ieee80211_decode_0 = ieee80211.decode()
         self.blocks_throttle_0 = blocks.throttle(gr.sizeof_gr_complex*1, samp_rate,True)
         self.blocks_multiply_conjugate_cc_0 = blocks.multiply_conjugate_cc(1)
@@ -98,14 +97,12 @@ class wifirx(gr.top_block, Qt.QWidget):
         self.blocks_delay_0 = blocks.delay(gr.sizeof_gr_complex*1, 16)
         self.blocks_complex_to_mag_squared_0 = blocks.complex_to_mag_squared(1)
         self.blocks_complex_to_mag_0 = blocks.complex_to_mag(1)
-        self.analog_const_source_x_0 = analog.sig_source_c(0, analog.GR_CONST_WAVE, 0, 0, 0)
 
 
         ##################################################
         # Connections
         ##################################################
         self.msg_connect((self.ieee80211_decode_0, 'out'), (self.pdu_pdu_to_tagged_stream_0, 'pdus'))
-        self.connect((self.analog_const_source_x_0, 0), (self.ieee80211_demod2_0, 2))
         self.connect((self.blocks_complex_to_mag_0, 0), (self.blocks_divide_xx_0, 0))
         self.connect((self.blocks_complex_to_mag_squared_0, 0), (self.blocks_moving_average_xx_1, 0))
         self.connect((self.blocks_delay_0, 0), (self.blocks_multiply_conjugate_cc_0, 0))
@@ -120,11 +117,11 @@ class wifirx(gr.top_block, Qt.QWidget):
         self.connect((self.blocks_throttle_0, 0), (self.blocks_multiply_conjugate_cc_0, 1))
         self.connect((self.blocks_throttle_0, 0), (self.ieee80211_signal_0, 2))
         self.connect((self.blocks_throttle_0, 0), (self.ieee80211_sync_0, 1))
-        self.connect((self.ieee80211_demod2_0, 0), (self.ieee80211_decode_0, 0))
-        self.connect((self.ieee80211_signal_0, 0), (self.ieee80211_demod2_0, 1))
-        self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_demod2_0, 0))
-        self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_signal_0, 0))
+        self.connect((self.ieee80211_demod_0, 0), (self.ieee80211_decode_0, 0))
+        self.connect((self.ieee80211_signal_0, 0), (self.ieee80211_demod_0, 1))
+        self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_demod_0, 0))
         self.connect((self.ieee80211_sync_0, 1), (self.ieee80211_signal_0, 1))
+        self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_signal_0, 0))
         self.connect((self.ieee80211_trigger_0, 0), (self.ieee80211_sync_0, 0))
         self.connect((self.pdu_pdu_to_tagged_stream_0, 0), (self.network_udp_sink_0, 0))
 

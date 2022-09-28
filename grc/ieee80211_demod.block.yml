@@ -4,14 +4,9 @@ category: '[ieee80211]'
 
 templates:
   imports: from gnuradio import ieee80211
-  make: ieee80211.demod(${nrx}, ${mupos}, ${mugid})
+  make: ieee80211.demod(${mupos}, ${mugid})
 
 parameters:
-- id: nrx
-  label: RX Num
-  dtype: int
-  default: '1'
-  options: ['1', '2']
 - id: mupos
   label: MU-MIMO User Pos
   dtype: int
@@ -25,10 +20,7 @@ inputs:
 - label: sync
   domain: stream
   dtype: byte
-- label: inSig1
-  domain: stream
-  dtype: complex
-- label: inSig2
+- label: sig
   domain: stream
   dtype: complex
 

@@ -45,23 +45,6 @@ blocks:
     coordinate: [184, 12]
     rotation: 0
     state: enabled
-- name: analog_const_source_x_0
-  id: analog_const_source_x
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    const: '0'
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    type: complex
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [1032, 236.0]
-    rotation: 0
-    state: true
 - name: blocks_complex_to_mag_0
   id: blocks_complex_to_mag
   parameters:
@@ -75,7 +58,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [736, 168.0]
+    coordinate: [640, 16.0]
     rotation: 0
     state: true
 - name: blocks_complex_to_mag_squared_0
@@ -91,7 +74,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [344, 256.0]
+    coordinate: [408, 224.0]
     rotation: 0
     state: true
 - name: blocks_delay_0
@@ -110,7 +93,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [336, 40.0]
+    coordinate: [312, 64.0]
     rotation: 0
     state: true
 - name: blocks_divide_xx_0
@@ -128,7 +111,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [912, 168.0]
+    coordinate: [864, 16.0]
     rotation: 0
     state: true
 - name: blocks_file_source_0
@@ -153,28 +136,6 @@ blocks:
     coordinate: [0, 220.0]
     rotation: 0
     state: enabled
-- name: blocks_file_source_0_0
-  id: blocks_file_source
-  parameters:
-    affinity: ''
-    alias: ''
-    begin_tag: pmt.PMT_NIL
-    comment: ''
-    file: /home/cloud/sdr/sig80211GrSta1.bin
-    length: '0'
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    offset: '0'
-    repeat: 'False'
-    type: complex
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [8, 332.0]
-    rotation: 0
-    state: disabled
 - name: blocks_moving_average_xx_0
   id: blocks_moving_average_xx
   parameters:
@@ -192,7 +153,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [544, 140.0]
+    coordinate: [624, 108.0]
     rotation: 0
     state: true
 - name: blocks_moving_average_xx_1
@@ -212,7 +173,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [544, 228.0]
+    coordinate: [624, 196.0]
     rotation: 0
     state: true
 - name: blocks_multiply_conjugate_cc_0
@@ -228,7 +189,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [352, 152.0]
+    coordinate: [432, 120.0]
     rotation: 0
     state: true
 - name: blocks_throttle_0
@@ -265,8 +226,8 @@ blocks:
     coordinate: [1016, 352.0]
     rotation: 0
     state: enabled
-- name: ieee80211_demod2_0
-  id: ieee80211_demod2
+- name: ieee80211_demod_0
+  id: ieee80211_demod
   parameters:
     affinity: ''
     alias: ''
@@ -275,12 +236,11 @@ blocks:
     minoutbuf: '0'
     mugid: '2'
     mupos: '0'
-    nrx: '1'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1472, 144.0]
+    coordinate: [1416, 144.0]
     rotation: 0
     state: true
 - name: ieee80211_signal_0
@@ -325,7 +285,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [912, 128.0]
+    coordinate: [992, 32.0]
     rotation: 0
     state: true
 - name: network_udp_sink_0
@@ -367,13 +327,11 @@ blocks:
     state: true
 
 connections:
-- [analog_const_source_x_0, '0', ieee80211_demod2_0, '2']
 - [blocks_complex_to_mag_0, '0', blocks_divide_xx_0, '0']
 - [blocks_complex_to_mag_squared_0, '0', blocks_moving_average_xx_1, '0']
 - [blocks_delay_0, '0', blocks_multiply_conjugate_cc_0, '0']
 - [blocks_divide_xx_0, '0', ieee80211_trigger_0, '0']
 - [blocks_file_source_0, '0', blocks_throttle_0, '0']
-- [blocks_file_source_0_0, '0', blocks_throttle_0, '0']
 - [blocks_moving_average_xx_0, '0', blocks_complex_to_mag_0, '0']
 - [blocks_moving_average_xx_0, '0', ieee80211_sync_0, '2']
 - [blocks_moving_average_xx_1, '0', blocks_divide_xx_0, '1']
@@ -384,9 +342,9 @@ connections:
 - [blocks_throttle_0, '0', ieee80211_signal_0, '2']
 - [blocks_throttle_0, '0', ieee80211_sync_0, '1']
 - [ieee80211_decode_0, out, pdu_pdu_to_tagged_stream_0, pdus]
-- [ieee80211_demod2_0, '0', ieee80211_decode_0, '0']
-- [ieee80211_signal_0, '0', ieee80211_demod2_0, '1']
-- [ieee80211_sync_0, '0', ieee80211_demod2_0, '0']
+- [ieee80211_demod_0, '0', ieee80211_decode_0, '0']
+- [ieee80211_signal_0, '0', ieee80211_demod_0, '1']
+- [ieee80211_sync_0, '0', ieee80211_demod_0, '0']
 - [ieee80211_sync_0, '0', ieee80211_signal_0, '0']
 - [ieee80211_sync_0, '1', ieee80211_signal_0, '1']
 - [ieee80211_trigger_0, '0', ieee80211_sync_0, '0']

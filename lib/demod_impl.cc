@@ -25,24 +25,23 @@ namespace gr {
   namespace ieee80211 {
 
     demod::sptr
-    demod::make(int nrx, int mupos, int mugid)
+    demod::make(int mupos, int mugid)
     {
-      return gnuradio::make_block_sptr<demod_impl>(nrx, mupos, mugid
+      return gnuradio::make_block_sptr<demod_impl>(mupos, mugid
         );
     }
 
-    demod_impl::demod_impl(int nrx, int mupos, int mugid)
+    demod_impl::demod_impl(int mupos, int mugid)
       : gr::block("demod",
-              gr::io_signature::makev(3, 3, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex), sizeof(gr_complex)}),
+              gr::io_signature::makev(2, 2, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex)}),
               gr::io_signature::make(1, 1, sizeof(float))),
-              d_nRxAnt(nrx),
               d_muPos(mupos),
               d_muGroupId(mugid),
-              d_debug(1),
               d_ofdm_fft(64,1)
     {
       d_nProc = 0;
       d_muPos = 1;
+      d_debug = true;
       d_sDemod = DEMOD_S_SYNC;
       set_tag_propagation_policy(block::TPP_DONT);
     }
@@ -70,10 +69,9 @@ namespace gr {
     {
       const uint8_t* sync = static_cast<const uint8_t*>(input_items[0]);
       const gr_complex* inSig1 = static_cast<const gr_complex*>(input_items[1]);
-      const gr_complex* inSig2 = static_cast<const gr_complex*>(input_items[2]);
       float* outLlrs = static_cast<float*>(output_items[0]);
 
-      d_nProc = std::min(std::min(ninput_items[0], ninput_items[1]), ninput_items[2]);
+      d_nProc = std::min(ninput_items[0], ninput_items[1]);
       d_nGen = noutput_items;
 
       switch(d_sDemod)
@@ -221,8 +219,8 @@ namespace gr {
           if(d_nProc >= (80 + d_m.nLTF*80 + 80)) // STF, LTF, sig b
           {
             // start from here to diff siso and mimo
-            nonLegacyChanEstimate(&inSig1[80], &inSig2[80]);
-            vhtSigBDemod(&inSig1[80 + d_m.nLTF*80], &inSig2[80 + d_m.nLTF*80]);
+            nonLegacyChanEstimate(&inSig1[80]);
+            vhtSigBDemod(&inSig1[80 + d_m.nLTF*80]);
 
             dout<<"sig b bits:";
             for(int i=0;i<26;i++)
@@ -257,14 +255,13 @@ namespace gr {
         {
           if(d_nProc >= (80 + d_m.nLTF*80)) // STF, LTF, sig b
           {
-            nonLegacyChanEstimate(&inSig1[80], &inSig2[80]);
+            nonLegacyChanEstimate(&inSig1[80]);
             int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
             if((tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80))
             {
               d_unCoded = d_m.len * 8 + 22;
               d_nTrellis = d_m.len * 8 + 22;
               memcpy(d_pilot, PILOT_HT_2_1, sizeof(float)*4);
-              memcpy(d_pilot2, PILOT_HT_2_2, sizeof(float)*4);
               d_pilotP = 3;
               dout<<"ieee80211 demod, ht packet"<<std::endl;
               d_sDemod = DEMOD_S_WRTAG;
@@ -354,43 +351,16 @@ namespace gr {
             if(d_m.format == C8P_F_L)
             {
               legacyChanUpdate(&inSig1[o1]);
-            }
-            else if(d_m.format == C8P_F_VHT)
-            {
-              vhtChanUpdate(&inSig1[o1], &inSig2[o1]);
+              procSymQamToLlr(d_qam[0], d_llrInted[0], &d_m);         // qam disassemble to llr
+              procSymDeintL(d_llrInted[0], &outLlrs[o2], &d_m);       // deint and deparse
             }
             else
             {
-              htChanUpdate(&inSig1[o1], &inSig2[o1]);
+              nonLegacyChanUpdate(&inSig1[o1]);
+              procSymQamToLlr(d_qam[0], d_llrInted[0], &d_m);         // qam disassemble to llr
+              procSymDeintNL(d_llrInted[0], &outLlrs[o2], &d_m, 0);   // deint and deparse
             }
-            // qam disassemble to llr
-            if(d_m.nSS == 1)
-            {
-              procSymQamToLlr(d_qam[0], d_llrInted[0], &d_m);
-            }
-            else
-            {
-              procSymQamToLlr(d_qam[0], d_llrInted[0], &d_m);
-              procSymQamToLlr(d_qam[1], d_llrInted[1], &d_m);
-            }
-            // deint and deparse
-            if(d_m.format == C8P_F_L)
-            {
-              procSymDeintL(d_llrInted[0], &outLlrs[o2], &d_m);
-            }
-            else
-            {
-              if(d_m.nSS == 1)
-              {
-                procSymDeintNL(d_llrInted[0], &outLlrs[o2], &d_m, 0);
-              }
-              else
-              {
-                procSymDeintNL(d_llrInted[0], d_llrSpasd[0], &d_m, 0);
-                procSymDeintNL(d_llrInted[1], d_llrSpasd[1], &d_m, 1);
-                procSymDepasNL(d_llrSpasd, &outLlrs[o2], &d_m);
-              }
-            }
+
             d_nSymProcd += 1;
             o1 += d_m.nSymSamp;
             o2 += d_m.nCBPS;
@@ -424,7 +394,7 @@ namespace gr {
     }
 
     void
-    demod_impl::nonLegacyChanEstimate(const gr_complex* sig1, const gr_complex* sig2)
+    demod_impl::nonLegacyChanEstimate(const gr_complex* sig1)
     {
       if(d_m.sumu)
       {
@@ -489,7 +459,7 @@ namespace gr {
     }
 
     void
-    demod_impl::htChanUpdate(const gr_complex* sig1, const gr_complex* sig2)
+    demod_impl::nonLegacyChanUpdate(const gr_complex* sig1)
     {
       fft(&sig1[8], d_fftLtfOut1);
       for(int i=0;i<64;i++)
@@ -521,39 +491,7 @@ namespace gr {
     }
 
     void
-    demod_impl::vhtChanUpdate(const gr_complex* sig1, const gr_complex* sig2)
-    {
-      fft(&sig1[8], d_fftLtfOut1);
-      for(int i=0;i<64;i++)
-      {
-        if(i==0 || (i>=29 && i<=35))
-        {}
-        else
-        {
-          d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i][0];
-        }
-      }
-      gr_complex tmpPilotSum = std::conj(d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP] + d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP] + d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP] + d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]);
-      pilotShift(d_pilot);
-      d_pilotP = (d_pilotP + 1) % 127;
-      float tmpPilotSumAbs = std::abs(tmpPilotSum);
-      int j=26;
-      for(int i=0;i<64;i++)
-      {
-        if(i==0 || (i>=29 && i<=35) || i==7 || i==21 || i==43 || i==57)
-        {
-        }
-        else
-        {
-          d_qam[0][j] = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
-          j++;
-          if(j >= 52){j = 0;}
-        }
-      }
-    }
-
-    void
-    demod_impl::vhtSigBDemod(const gr_complex* sig1, const gr_complex* sig2)
+    demod_impl::vhtSigBDemod(const gr_complex* sig1)
     {
       if(d_m.nSS > 1)
       {

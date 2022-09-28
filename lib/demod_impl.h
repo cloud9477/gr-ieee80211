@@ -49,7 +49,6 @@ namespace gr {
       int d_nGen;
       int d_sDemod;
       // parameters
-      int d_nRxAnt;
       int d_muPos;
       int d_muGroupId;
       // received info from tag
@@ -73,8 +72,6 @@ namespace gr {
       fft::fft_complex_fwd d_ofdm_fft;
       gr_complex d_fftLtfOut1[64];
       gr_complex d_fftLtfOut2[64];
-      gr_complex d_fftLtfOut12[64];
-      gr_complex d_fftLtfOut22[64];
       // packet info
       c8p_mod d_m;
       c8p_sigHt d_sigHt;
@@ -88,7 +85,6 @@ namespace gr {
       // pilot
       int d_pilotP;
       float d_pilot[4];
-      float d_pilot2[4];
       // non-legacy channel
       /*      P_LTF 4x4
       | 1 -1  1  1 |
@@ -105,7 +101,7 @@ namespace gr {
       float d_llrSpasd[C8P_MAX_N_SS][C8P_MAX_N_CBPSS];     // stream parsered LLR
 
      public:
-      demod_impl(int nrx, int mupos, int mugid);
+      demod_impl(int mupos, int mugid);
       ~demod_impl();
 
       // Where all the action really happens
@@ -115,11 +111,11 @@ namespace gr {
            gr_vector_int &ninput_items,
            gr_vector_const_void_star &input_items,
            gr_vector_void_star &output_items);
-      void nonLegacyChanEstimate(const gr_complex* sig1, const gr_complex* sig2);
-      void vhtChanUpdate(const gr_complex* sig1, const gr_complex* sig2);
-      void htChanUpdate(const gr_complex* sig1, const gr_complex* sig2);
+
+      void nonLegacyChanEstimate(const gr_complex* sig1);
+      void nonLegacyChanUpdate(const gr_complex* sig1);
       void legacyChanUpdate(const gr_complex* sig1);
-      void vhtSigBDemod(const gr_complex* sig1, const gr_complex* sig2);
+      void vhtSigBDemod(const gr_complex* sig1);
       void fft(const gr_complex* sig, gr_complex* res);
       void pilotShift(float* pilots);
     };

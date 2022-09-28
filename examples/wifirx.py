@@ -123,8 +123,8 @@ class wifirx(gr.top_block, Qt.QWidget):
         self.connect((self.ieee80211_demod2_0, 0), (self.ieee80211_decode_0, 0))
         self.connect((self.ieee80211_signal_0, 0), (self.ieee80211_demod2_0, 1))
         self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_demod2_0, 0))
-        self.connect((self.ieee80211_sync_0, 1), (self.ieee80211_signal_0, 1))
         self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_signal_0, 0))
+        self.connect((self.ieee80211_sync_0, 1), (self.ieee80211_signal_0, 1))
         self.connect((self.ieee80211_trigger_0, 0), (self.ieee80211_sync_0, 0))
         self.connect((self.pdu_pdu_to_tagged_stream_0, 0), (self.network_udp_sink_0, 0))
 

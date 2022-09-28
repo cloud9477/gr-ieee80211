@@ -1,3 +1,4 @@
+
 /*
  *
  *     GNU Radio IEEE 802.11a/g/n/ac 2x2, for SISO
@@ -47,7 +48,6 @@ namespace gr {
       int d_nGen;
       int d_sSignal;
       bool d_debug;
-      int d_nStream;
       // signal soft viterbi ver
       float d_cfoRad;
       gr_complex d_sigAfterCfoComp[240];

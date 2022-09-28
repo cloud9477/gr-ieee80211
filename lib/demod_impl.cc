@@ -220,14 +220,17 @@ namespace gr {
         {
           if(d_nProc >= (80 + d_m.nLTF*80 + 80)) // STF, LTF, sig b
           {
+            // start from here to diff siso and mimo
             nonLegacyChanEstimate(&inSig1[80], &inSig2[80]);
             vhtSigBDemod(&inSig1[80 + d_m.nLTF*80], &inSig2[80 + d_m.nLTF*80]);
+
             dout<<"sig b bits:";
             for(int i=0;i<26;i++)
             {
               dout<<(int)d_sigVhtB20Bits[i]<<" ";
             }
             dout<<std::endl;
+
             signalParserVhtB(d_sigVhtB20Bits, &d_m);
             int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
             if((tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80))
@@ -467,62 +470,19 @@ namespace gr {
       }
       else
       {
-        if(d_nRxAnt < d_m.nSS)
+        dout<<"ieee80211 demod, 1 ant chan est nSS:"<<d_m.nSS<<std::endl;
+        // 1 ant, ant number and nss not corresponding, only check if NDP, keep LTF and only use first LTF to demod sig b
+        memcpy(&d_mu2x1Chan[0], &sig1[8], sizeof(gr_complex) * 64);
+        memcpy(&d_mu2x1Chan[64], &sig1[8+80], sizeof(gr_complex) * 64);
+        fft(&sig1[8], d_fftLtfOut1);
+        for(int i=0;i<64;i++)
         {
-          dout<<"ieee80211 demod chan est nAnt:"<<d_nRxAnt<<" < nSS:"<<d_m.nSS<<std::endl;
-          // 1 ant, ant number and nss not corresponding, only check if NDP, keep LTF and only use first LTF to demod sig b
-          // test ndp 0 14
-          // memcpy(&d_mu2x1Chan[0], &sig1[14], sizeof(gr_complex) * 64);
-          // memcpy(&d_mu2x1Chan[64], &sig1[14+80], sizeof(gr_complex) * 64);
-          // test ndp 1 15
-          // memcpy(&d_mu2x1Chan[0], &sig1[13], sizeof(gr_complex) * 64);
-          // memcpy(&d_mu2x1Chan[64], &sig1[13+80], sizeof(gr_complex) * 64);
-          // general 8
-          memcpy(&d_mu2x1Chan[0], &sig1[8], sizeof(gr_complex) * 64);
-          memcpy(&d_mu2x1Chan[64], &sig1[8+80], sizeof(gr_complex) * 64);
-          fft(&sig1[8], d_fftLtfOut1);
-          for(int i=0;i<64;i++)
+          if(i==0 || (i>=29 && i<=35))
           {
-            if(i==0 || (i>=29 && i<=35))
-            {
-            }
-            else
-            {
-              d_H_NL[i][0] = d_fftLtfOut1[i] / LTF_NL_28_F_FLOAT[i];
-            }
           }
-        }
-        else
-        {
-          // 2 ant
-          fft(&sig1[8], d_fftLtfOut1);
-          fft(&sig2[8], d_fftLtfOut2);
-          fft(&sig1[8+80], d_fftLtfOut12);
-          fft(&sig2[8+80], d_fftLtfOut22);
-          gr_complex tmpadbc;
-          for(int i=0;i<64;i++)
+          else
           {
-            if(i==0 || (i>=29 && i<=35))
-            {
-            }
-            else
-            {
-              d_H_NL[i][0] = (d_fftLtfOut1[i] - d_fftLtfOut12[i])*LTF_NL_28_F_FLOAT2[i];
-              d_H_NL[i][1] = (d_fftLtfOut2[i] - d_fftLtfOut22[i])*LTF_NL_28_F_FLOAT2[i];
-              d_H_NL[i][2] = (d_fftLtfOut1[i] + d_fftLtfOut12[i])*LTF_NL_28_F_FLOAT2[i];
-              d_H_NL[i][3] = (d_fftLtfOut2[i] + d_fftLtfOut22[i])*LTF_NL_28_F_FLOAT2[i];
-
-              gr_complex a = d_H_NL[i][0] * std::conj(d_H_NL[i][0]) + d_H_NL[i][1] * std::conj(d_H_NL[i][1]);
-              gr_complex b = d_H_NL[i][0] * std::conj(d_H_NL[i][2]) + d_H_NL[i][1] * std::conj(d_H_NL[i][3]);
-              gr_complex c = d_H_NL[i][2] * std::conj(d_H_NL[i][0]) + d_H_NL[i][3] * std::conj(d_H_NL[i][1]);
-              gr_complex d = d_H_NL[i][2] * std::conj(d_H_NL[i][2]) + d_H_NL[i][3] * std::conj(d_H_NL[i][3]);
-              tmpadbc = 1.0f/(a*d - b*c);
-
-              d_H_NL_INV[i][0] = tmpadbc*d;
-              d_H_NL_INV[i][1] = -tmpadbc*b;
-              d_H_NL_INV[i][2] = -tmpadbc*c;
-              d_H_NL_INV[i][3] = tmpadbc*a;
-            }
+            d_H_NL[i][0] = d_fftLtfOut1[i] / LTF_NL_28_F_FLOAT[i];
           }
         }
       }
@@ -531,75 +491,31 @@ namespace gr {
     void
     demod_impl::htChanUpdate(const gr_complex* sig1, const gr_complex* sig2)
     {
-      if(d_m.nSS == 1)
+      fft(&sig1[8], d_fftLtfOut1);
+      for(int i=0;i<64;i++)
       {
-        fft(&sig1[8], d_fftLtfOut1);
-        for(int i=0;i<64;i++)
+        if(i==0 || (i>=29 && i<=35))
+        {}
+        else
         {
-          if(i==0 || (i>=29 && i<=35))
-          {}
-          else
-          {
-            d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i][0];
-          }
-        }
-        gr_complex tmpPilotSum = std::conj(d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP] + d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP] + d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP] + d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]);
-        pilotShift(d_pilot);
-        d_pilotP = (d_pilotP + 1) % 127;
-        float tmpPilotSumAbs = std::abs(tmpPilotSum);
-        int j=26;
-        for(int i=0;i<64;i++)
-        {
-          if(i==0 || (i>=29 && i<=35) || i==7 || i==21 || i==43 || i==57)
-          {
-          }
-          else
-          {
-            d_qam[0][j] = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
-            j++;
-            if(j >= 52){j = 0;}
-          }
+          d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i][0];
         }
       }
-      else
+      gr_complex tmpPilotSum = std::conj(d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP] + d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP] + d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP] + d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]);
+      pilotShift(d_pilot);
+      d_pilotP = (d_pilotP + 1) % 127;
+      float tmpPilotSumAbs = std::abs(tmpPilotSum);
+      int j=26;
+      for(int i=0;i<64;i++)
       {
-        fft(&sig1[8], d_fftLtfOut1);
-        fft(&sig2[8], d_fftLtfOut2);
-
-        for(int i=0;i<64;i++)
+        if(i==0 || (i>=29 && i<=35) || i==7 || i==21 || i==43 || i==57)
         {
-          if(i==0 || (i>=29 && i<=35))
-          {}
-          else
-          {
-            gr_complex tmp1 = d_fftLtfOut1[i] * std::conj(d_H_NL[i][0]) + d_fftLtfOut2[i] * std::conj(d_H_NL[i][1]);
-            gr_complex tmp2 = d_fftLtfOut1[i] * std::conj(d_H_NL[i][2]) + d_fftLtfOut2[i] * std::conj(d_H_NL[i][3]);
-            d_sig1[i] = tmp1 * d_H_NL_INV[i][0] + tmp2 * d_H_NL_INV[i][2];
-            d_sig2[i] = tmp1 * d_H_NL_INV[i][1] + tmp2 * d_H_NL_INV[i][3];
-          }
         }
-
-        gr_complex tmpPilotSum = std::conj(d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP] + d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP] + d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP] + d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]);
-        gr_complex tmpPilotSum2 = std::conj(d_sig2[7]*d_pilot2[2]*PILOT_P[d_pilotP] + d_sig2[21]*d_pilot2[3]*PILOT_P[d_pilotP] + d_sig2[43]*d_pilot2[0]*PILOT_P[d_pilotP] + d_sig2[57]*d_pilot2[1]*PILOT_P[d_pilotP]);
-
-        pilotShift(d_pilot);
-        pilotShift(d_pilot2);
-        d_pilotP = (d_pilotP + 1) % 127;
-        float tmpPilotSumAbs = std::abs(tmpPilotSum);
-        float tmpPilotSumAbs2 = std::abs(tmpPilotSum2);
-
-        int j=26;
-        for(int i=0;i<64;i++)
+        else
         {
-          if(i==0 || (i>=29 && i<=35) || i==7 || i==21 || i==43 || i==57)
-          {}
-          else
-          {
-            d_qam[0][j] = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
-            d_qam[1][j] = d_sig2[i] * tmpPilotSum2 / tmpPilotSumAbs2;
-            j++;
-            if(j >= 52){j = 0;}
-          }
+          d_qam[0][j] = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
+          j++;
+          if(j >= 52){j = 0;}
         }
       }
     }
@@ -607,126 +523,51 @@ namespace gr {
     void
     demod_impl::vhtChanUpdate(const gr_complex* sig1, const gr_complex* sig2)
     {
-      if(d_nRxAnt == 1)
+      fft(&sig1[8], d_fftLtfOut1);
+      for(int i=0;i<64;i++)
       {
-        fft(&sig1[8], d_fftLtfOut1);
-        for(int i=0;i<64;i++)
+        if(i==0 || (i>=29 && i<=35))
+        {}
+        else
         {
-          if(i==0 || (i>=29 && i<=35))
-          {}
-          else
-          {
-            d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i][0];
-          }
-        }
-        gr_complex tmpPilotSum = std::conj(d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP] + d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP] + d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP] + d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]);
-        pilotShift(d_pilot);
-        d_pilotP = (d_pilotP + 1) % 127;
-        float tmpPilotSumAbs = std::abs(tmpPilotSum);
-        int j=26;
-        for(int i=0;i<64;i++)
-        {
-          if(i==0 || (i>=29 && i<=35) || i==7 || i==21 || i==43 || i==57)
-          {
-          }
-          else
-          {
-            d_qam[0][j] = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
-            j++;
-            if(j >= 52){j = 0;}
-          }
+          d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i][0];
         }
       }
-      else
+      gr_complex tmpPilotSum = std::conj(d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP] + d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP] + d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP] + d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]);
+      pilotShift(d_pilot);
+      d_pilotP = (d_pilotP + 1) % 127;
+      float tmpPilotSumAbs = std::abs(tmpPilotSum);
+      int j=26;
+      for(int i=0;i<64;i++)
       {
-        fft(&sig1[8], d_fftLtfOut1);
-        fft(&sig2[8], d_fftLtfOut2);
-
-        for(int i=0;i<64;i++)
+        if(i==0 || (i>=29 && i<=35) || i==7 || i==21 || i==43 || i==57)
         {
-          if(i==0 || (i>=29 && i<=35))
-          {}
-          else
-          {
-            gr_complex tmp1 = d_fftLtfOut1[i] * std::conj(d_H_NL[i][0]) + d_fftLtfOut2[i] * std::conj(d_H_NL[i][1]);
-            gr_complex tmp2 = d_fftLtfOut1[i] * std::conj(d_H_NL[i][2]) + d_fftLtfOut2[i] * std::conj(d_H_NL[i][3]);
-            d_sig1[i] = tmp1 * d_H_NL_INV[i][0] + tmp2 * d_H_NL_INV[i][2];
-            d_sig2[i] = tmp1 * d_H_NL_INV[i][1] + tmp2 * d_H_NL_INV[i][3];
-          }
         }
-
-        gr_complex tmpPilotSum = std::conj(d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP] + d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP] + d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP] + d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]);
-        pilotShift(d_pilot);
-        d_pilotP = (d_pilotP + 1) % 127;
-        float tmpPilotSumAbs = std::abs(tmpPilotSum);
-
-        int j=26;
-        for(int i=0;i<64;i++)
+        else
         {
-          if(i==0 || (i>=29 && i<=35) || i==7 || i==21 || i==43 || i==57)
-          {}
-          else
-          {
-            d_qam[0][j] = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
-            d_qam[1][j] = d_sig2[i] * tmpPilotSum / tmpPilotSumAbs;
-            j++;
-            if(j >= 52){j = 0;}
-          }
+          d_qam[0][j] = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
+          j++;
+          if(j >= 52){j = 0;}
         }
-
       }
     }
 
     void
     demod_impl::vhtSigBDemod(const gr_complex* sig1, const gr_complex* sig2)
     {
-      if(d_m.nSS == 1)
+      if(d_m.nSS > 1)
       {
-        fft(&sig1[8], d_fftLtfOut1);
-        for(int i=0;i<64;i++)
-        {
-          if(i==0 || (i>=29 && i<=35))
-          {}
-          else
-          {
-            d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i][0];
-            // dout<<"demod nss 1 sig b qam "<<i<<", "<<d_sig1[i]<<std::endl;
-          }
-        }
+        dout<<"ieee80211 demod, 1 ant demod sig b check if NDP"<<std::endl;
       }
-      else
+      fft(&sig1[8], d_fftLtfOut1);
+      for(int i=0;i<64;i++)
       {
-        if(d_nRxAnt < d_m.nSS)
-        {
-          dout<<"demod sig b check if NDP"<<std::endl;
-          fft(&sig1[8], d_fftLtfOut1);
-          for(int i=0;i<64;i++)
-          {
-            if(i==0 || (i>=29 && i<=35))
-            {}
-            else
-            {
-              d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i][0];
-              // dout<<"sig b qam "<<i<<", "<<d_sig1[i]<<std::endl;
-            }
-          }
-        }
+        if(i==0 || (i>=29 && i<=35))
+        {}
         else
         {
-          fft(&sig1[8], d_fftLtfOut1);
-          fft(&sig2[8], d_fftLtfOut2);
-          for(int i=0;i<64;i++)
-          {
-            if(i==0 || (i>=29 && i<=35))
-            {}
-            else
-            {
-              gr_complex tmp1 = d_fftLtfOut1[i] * std::conj(d_H_NL[i][0]) + d_fftLtfOut2[i] * std::conj(d_H_NL[i][1]);
-              gr_complex tmp2 = d_fftLtfOut1[i] * std::conj(d_H_NL[i][2]) + d_fftLtfOut2[i] * std::conj(d_H_NL[i][3]);
-              d_sig1[i] = tmp1 * d_H_NL_INV[i][0] + tmp2 * d_H_NL_INV[i][2];
-              d_sig2[i] = tmp1 * d_H_NL_INV[i][1] + tmp2 * d_H_NL_INV[i][3];
-            }
-          }
+          d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i][0];
+          // dout<<"demod nss 1 sig b qam "<<i<<", "<<d_sig1[i]<<std::endl;
         }
       }
       gr_complex tmpPilotSum = std::conj(d_sig1[7] - d_sig1[21] + d_sig1[43] + d_sig1[57]);
@@ -739,18 +580,8 @@ namespace gr {
         {}
         else
         {
-          if(d_nRxAnt == 1)
-          {
-            gr_complex tmpSig1 = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
-            // dout<<"sig b LLR "<<i<<" "<<tmpSig1.real()<<std::endl;
-            d_sigVhtB20IntedLlr[j] = tmpSig1.real();
-          }
-          else
-          {
-            gr_complex tmpSig1 = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
-            gr_complex tmpSig2 = d_sig2[i] * tmpPilotSum / tmpPilotSumAbs;
-            d_sigVhtB20IntedLlr[j] = ((tmpSig1 + tmpSig2)/2.0f).real();
-          }
+          gr_complex tmpSig1 = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
+          d_sigVhtB20IntedLlr[j] = tmpSig1.real();
           j++;
           if(j >= 52){j = 0;}
         }

@@ -38,7 +38,6 @@ namespace gr {
               d_ofdm_fft(64,1)
     {
       d_debug = true;
-      d_nStream = 1;
       d_nProc = 0;
       d_nSigPktSeq = 0;
       d_sSignal = S_TRIGGER;
@@ -86,8 +85,8 @@ namespace gr {
             dout<<"ieee80211 signal, total cfo:"<<(d_cfoRad) * 20000000.0f / 2.0f / M_PI<<std::endl;
             break;
           }
+          outSig1[i] = gr_complex(0.0f, 0.0f);    // maybe not needed to set, not used anyway
         }
-        memset(outSig1, 0, sizeof(gr_complex) * i);  // maybe not needed to set, not used anyway
         consume_each(i);
         return i;
       }

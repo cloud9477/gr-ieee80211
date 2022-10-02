@@ -4,14 +4,7 @@ category: '[ieee80211]'
 
 templates:
   imports: from gnuradio import ieee80211
-  make: ieee80211.signal2(${nss})
-
-parameters:
-- id: nss
-  label: SS Num
-  dtype: int
-  default: '1'
-  options: ['1', '2']
+  make: ieee80211.signal2()
 
 inputs:
 - label: sync

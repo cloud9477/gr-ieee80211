@@ -47,7 +47,6 @@ namespace gr {
       int d_nGen;
       int d_sSignal;
       bool d_debug;
-      int d_nStream;
       // signal soft viterbi ver
       float d_cfoRad;
       gr_complex d_sigAfterCfoComp[240];
@@ -70,7 +69,7 @@ namespace gr {
       gr_complex d_fftSigOut[64];
 
      public:
-      signal2_impl(int nss);
+      signal2_impl();
       ~signal2_impl();
 
       // Where all the action really happens

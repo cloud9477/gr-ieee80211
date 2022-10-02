@@ -32,7 +32,7 @@ namespace gr {
        * class. ieee80211::signal2::make is the public interface for
        * creating new instances.
        */
-      static sptr make(int nss);
+      static sptr make();
     };
 
   } // namespace ieee80211

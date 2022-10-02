@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(signal2.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(529698dea7563cbbaebfdc069e607f12)                     */
+/* BINDTOOL_HEADER_FILE_HASH(ce4fd0c9e2dd89821d7ba4d5644dc934)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -37,7 +37,6 @@ void bind_signal2(py::module& m)
         std::shared_ptr<signal2>>(m, "signal2", D(signal2))
 
         .def(py::init(&signal2::make),
-           py::arg("nss"),
            D(signal2,make)
         )
         

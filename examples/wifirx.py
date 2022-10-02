@@ -21,7 +21,6 @@ if __name__ == '__main__':
             print("Warning: failed to XInitThreads()")
 
 from gnuradio import blocks
-import pmt
 from gnuradio import gr
 from gnuradio.filter import firdes
 from gnuradio.fft import window
@@ -34,6 +33,8 @@ from gnuradio import eng_notation
 from gnuradio import gr, pdu
 from gnuradio import ieee80211
 from gnuradio import network
+from gnuradio import uhd
+import time
 
 
 
@@ -76,10 +77,26 @@ class wifirx(gr.top_block, Qt.QWidget):
         # Variables
         ##################################################
         self.samp_rate = samp_rate = 20e6
+        self.freq = freq = 2412e6
 
         ##################################################
         # Blocks
         ##################################################
+        self.uhd_usrp_source_0 = uhd.usrp_source(
+            ",".join(("", '')),
+            uhd.stream_args(
+                cpu_format="fc32",
+                args='',
+                channels=list(range(0,1)),
+            ),
+        )
+        self.uhd_usrp_source_0.set_samp_rate(samp_rate)
+        self.uhd_usrp_source_0.set_time_unknown_pps(uhd.time_spec(0))
+
+        self.uhd_usrp_source_0.set_center_freq(freq, 0)
+        self.uhd_usrp_source_0.set_antenna("RX2", 0)
+        self.uhd_usrp_source_0.set_bandwidth(samp_rate, 0)
+        self.uhd_usrp_source_0.set_normalized_gain(0.9, 0)
         self.pdu_pdu_to_tagged_stream_0 = pdu.pdu_to_tagged_stream(gr.types.byte_t, 'packet_len')
         self.network_udp_sink_0 = network.udp_sink(gr.sizeof_char, 1, '127.0.0.1', 9527, 0, 1400, False)
         self.ieee80211_trigger_0 = ieee80211.trigger()
@@ -91,8 +108,6 @@ class wifirx(gr.top_block, Qt.QWidget):
         self.blocks_multiply_conjugate_cc_0 = blocks.multiply_conjugate_cc(1)
         self.blocks_moving_average_xx_1 = blocks.moving_average_ff(64, 1, 4000, 1)
         self.blocks_moving_average_xx_0 = blocks.moving_average_cc(48, 1, 4000, 1)
-        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/gr-ieee80211/tools/sig80211VhtGenCfo_1x1_0.bin', False, 0, 0)
-        self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
         self.blocks_divide_xx_0 = blocks.divide_ff(1)
         self.blocks_delay_0 = blocks.delay(gr.sizeof_gr_complex*1, 16)
         self.blocks_complex_to_mag_squared_0 = blocks.complex_to_mag_squared(1)
@@ -107,7 +122,6 @@ class wifirx(gr.top_block, Qt.QWidget):
         self.connect((self.blocks_complex_to_mag_squared_0, 0), (self.blocks_moving_average_xx_1, 0))
         self.connect((self.blocks_delay_0, 0), (self.blocks_multiply_conjugate_cc_0, 0))
         self.connect((self.blocks_divide_xx_0, 0), (self.ieee80211_trigger_0, 0))
-        self.connect((self.blocks_file_source_0, 0), (self.blocks_throttle_0, 0))
         self.connect((self.blocks_moving_average_xx_0, 0), (self.blocks_complex_to_mag_0, 0))
         self.connect((self.blocks_moving_average_xx_0, 0), (self.ieee80211_sync_0, 2))
         self.connect((self.blocks_moving_average_xx_1, 0), (self.blocks_divide_xx_0, 1))
@@ -124,6 +138,7 @@ class wifirx(gr.top_block, Qt.QWidget):
         self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_signal_0, 0))
         self.connect((self.ieee80211_trigger_0, 0), (self.ieee80211_sync_0, 0))
         self.connect((self.pdu_pdu_to_tagged_stream_0, 0), (self.network_udp_sink_0, 0))
+        self.connect((self.uhd_usrp_source_0, 0), (self.blocks_throttle_0, 0))
 
 
     def closeEvent(self, event):
@@ -140,6 +155,15 @@ class wifirx(gr.top_block, Qt.QWidget):
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
         self.blocks_throttle_0.set_sample_rate(self.samp_rate)
+        self.uhd_usrp_source_0.set_samp_rate(self.samp_rate)
+        self.uhd_usrp_source_0.set_bandwidth(self.samp_rate, 0)
+
+    def get_freq(self):
+        return self.freq
+
+    def set_freq(self, freq):
+        self.freq = freq
+        self.uhd_usrp_source_0.set_center_freq(self.freq, 0)
 
 
 

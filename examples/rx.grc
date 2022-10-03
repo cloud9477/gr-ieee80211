@@ -147,7 +147,7 @@ blocks:
     bus_structure: null
     coordinate: [0, 212.0]
     rotation: 0
-    state: disabled
+    state: enabled
 - name: blocks_moving_average_xx_0
   id: blocks_moving_average_xx
   parameters:
@@ -772,7 +772,7 @@ blocks:
     bus_structure: null
     coordinate: [80, 332.0]
     rotation: 0
-    state: true
+    state: disabled
 
 connections:
 - [blocks_complex_to_mag_0, '0', blocks_divide_xx_0, '0']

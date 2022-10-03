@@ -82,7 +82,6 @@ namespace gr {
           {
             d_sSignal = S_DEMOD;
             d_cfoRad = inCfoRad[i];
-            dout<<"ieee80211 signal, total cfo:"<<(d_cfoRad) * 20000000.0f / 2.0f / M_PI<<std::endl;
             break;
           }
           outSig1[i] = gr_complex(0.0f, 0.0f);    // maybe not needed to set, not used anyway
@@ -125,7 +124,6 @@ namespace gr {
           gr_complex tmpPilotSum = std::conj(d_sig[7] - d_sig[21] + d_sig[43] + d_sig[57]);
           float tmpPilotSumAbs = std::abs(tmpPilotSum);
           int j=24;
-          dout<<"ieee80211 signal, signal field qam: ";
           for(int i=0;i<64;i++)
           {
             if(i==0 || (i>=27 && i<=37) || i==7 || i==21 || i==43 || i==57)
@@ -134,13 +132,11 @@ namespace gr {
             else
             {
               d_sig[i] = d_sig[i] * tmpPilotSum / tmpPilotSumAbs;
-              dout<<d_sig[i].real()<<" ";
               d_sigLegacyIntedLlr[j] = d_sig[i].real();
               j++;
               if(j >= 48){j = 0;}
             }
           }
-          dout<<std::endl;
           /* soft ver */
           procDeintLegacyBpsk(d_sigLegacyIntedLlr, d_sigLegacyCodedLlr);
           SV_Decode_Sig(d_sigLegacyCodedLlr, d_sigLegacyBits, 24);
@@ -149,7 +145,7 @@ namespace gr {
             d_nSymbol = (d_nSigLen*8 + 16 + 6)/d_nSigDBPS + (((d_nSigLen*8 + 16 + 6)%d_nSigDBPS) != 0);
             d_nSample = d_nSymbol * 80;
             d_nSampleCopied = 0;
-            dout<<"ieee80211 signal, mcs: "<<d_nSigMcs<<", len:"<<d_nSigLen<<", nSym:"<<d_nSymbol<<", nSample:"<<d_nSample<<std::endl;
+            dout<<"ieee80211 signal, cfo:"<<(d_cfoRad) * 20000000.0f / 2.0f / M_PI<<", mcs: "<<d_nSigMcs<<", len:"<<d_nSigLen<<", nSym:"<<d_nSymbol<<", nSample:"<<d_nSample<<std::endl;
             // add info into tag
             d_nSigPktSeq++;
             if(d_nSigPktSeq >= 1000000000){d_nSigPktSeq = 0;}

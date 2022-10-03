@@ -861,7 +861,6 @@ void signalParserVhtA(uint8_t* inBits, c8p_mod* outMod, c8p_sigVhtA* outSigVhtA)
 	// 4-9 group ID, group ID is used to judge su or mu and filter the packet, only 0 and 63 used for su
 	outSigVhtA->groupId = 0;
 	for(int i=0;i<6;i++){outSigVhtA->groupId |= (((int)inBits[i+4])<<i);}
-	std::cout<<"vht sig a parser, group ID:"<<outSigVhtA->groupId<<std::endl;
 	if(outSigVhtA->groupId == 0 || outSigVhtA->groupId == 63)	// su
 	{
 		// 10-12 nSTS
@@ -948,7 +947,6 @@ void signalParserVhtB(uint8_t* inBits, c8p_mod* outMod)
 	{
 		for(int i=0;i<16;i++){tmpLen |= (((int)inBits[i])<<i);}
 		for(int i=0;i<4;i++){tmpMcs |= (((int)inBits[i+16])<<i);}
-		std::cout<<"sig b parser, mu-mimo, len: "<<tmpLen<<", mcs: "<<tmpMcs<<std::endl;
 		modParserVht(tmpMcs, outMod);
 		outMod->len = tmpLen * 4;
 		outMod->nSym = (outMod->len*8 + 16 + 6) / outMod->nDBPS + (((outMod->len*8 + 16 + 6) % outMod->nDBPS) != 0);
@@ -958,7 +956,6 @@ void signalParserVhtB(uint8_t* inBits, c8p_mod* outMod)
 	{
 		if((inBits[17] + inBits[18] + inBits[19]) == 3)
 		{
-			std::cout<<"sig b parser, single user"<<std::endl;
 			for(int i=0;i<17;i++){tmpLen |= (((int)inBits[i])<<i);}
 			outMod->len = tmpLen * 4;
 			outMod->nSym = (outMod->len*8 + 16 + 6) / outMod->nDBPS + (((outMod->len*8 + 16 + 6) % outMod->nDBPS) != 0);

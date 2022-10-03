@@ -39,6 +39,7 @@ namespace gr {
       message_port_register_out(pmt::mp("out"));
 
       d_sDecode = DECODE_S_IDLE;
+      d_nPktCorrect = 0;
       set_tag_propagation_policy(block::TPP_DONT);
     }
 
@@ -81,7 +82,7 @@ namespace gr {
           v_trellis = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("trellis"), pmt::from_long(99999)));
           d_sDecode = DECODE_S_DECODE;
           t_nProcd = 0;
-          dout<<"ieee80211 decode, tag f:"<<t_format<<", ampdu:"<<t_ampdu<<", len:"<<t_len<<", total:"<<t_nTotal<<", cr:"<<t_cr<<", tr:"<<v_trellis<<std::endl;
+          // dout<<"ieee80211 decode, tag f:"<<t_format<<", ampdu:"<<t_ampdu<<", len:"<<t_len<<", total:"<<t_nTotal<<", cr:"<<t_cr<<", tr:"<<v_trellis<<std::endl;
           if(v_trellis == 0)
           {
             d_sDecode = DECODE_S_CLEAN;
@@ -94,7 +95,7 @@ namespace gr {
             float* tmpFloatPointer = (float*)&d_mu2x1ChanFloatBytes[3];
             for(int i=0;i<128;i++)
             {
-              dout<<"chan "<<i<<" "<<d_mu2x1Chan[i]<<std::endl;
+              // dout<<"chan "<<i<<" "<<d_mu2x1Chan[i]<<std::endl;
               tmpFloatPointer[i*2] = d_mu2x1Chan[i].real();
               tmpFloatPointer[i*2+1] = d_mu2x1Chan[i].imag();
             }
@@ -128,7 +129,7 @@ namespace gr {
         if(d_nProc >= (t_nTotal - t_nProcd))
         {
           d_sDecode = DECODE_S_IDLE;
-          dout<<"ieee80211 decode, clean:"<<(t_nTotal - t_nProcd)<<std::endl;
+          // dout<<"ieee80211 decode, clean:"<<(t_nTotal - t_nProcd)<<std::endl;
           consume_each((t_nTotal - t_nProcd));
           return 0;
         }
@@ -334,26 +335,37 @@ namespace gr {
               break;
             }
             tmpBitP += 32;
-            d_dataBytes[0] = t_format;    // byte 0 format
-            d_dataBytes[1] = tmpLen%256;  // byte 1-2 packet len
-            d_dataBytes[2] = tmpLen/256;
+            d_pktBytes[0] = t_format;    // byte 0 format
+            d_pktBytes[1] = tmpLen%256;  // byte 1-2 packet len
+            d_pktBytes[2] = tmpLen/256;
             for(int i=0;i<tmpLen;i++)
             {
-              d_dataBytes[i+3] = 0;
+              d_pktBytes[i+3] = 0;
               for(int j=0;j<8;j++)
               {
-                d_dataBytes[i+3] |= (tmpBitP[i*8+j]<<j);
+                d_pktBytes[i+3] |= (tmpBitP[i*8+j]<<j);
               }
             }
             tmpBitP += ((tmpLen/4 + ((tmpLen%4)!=0))*4*8);
-            // 1 byte packet format
-            dout<<"ieee80211 decode, vht ampdu subf len:"<<tmpLen<<std::endl;
-            tmpLen += 3;
-            memset(&d_dataBytes[tmpLen], 0, (DECODE_UDP_LEN - tmpLen));
-            pmt::pmt_t tmpMeta = pmt::make_dict();
-            tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(DECODE_UDP_LEN));
-            pmt::pmt_t tmpPayload = pmt::make_blob(d_dataBytes, DECODE_UDP_LEN);
-            message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
+
+            d_crc32.reset();
+            d_crc32.process_bytes(d_pktBytes + 3, tmpLen);
+            if (d_crc32.checksum() != 558161692) {
+              // dout << "ieee80211 decode, crc32 checksum wrong" << std::endl;
+            }
+            else
+            {
+              d_nPktCorrect++;
+              dout << "ieee80211 decode, crc32 checksum correct: "<<d_nPktCorrect << std::endl;
+              // 1 byte packet format
+              // dout << "ieee80211 decode, vht ampdu subf len:"<<tmpLen<<std::endl;
+              tmpLen += 3;
+              memset(&d_pktBytes[tmpLen], 0, (DECODE_UDP_LEN - tmpLen));
+              pmt::pmt_t tmpMeta = pmt::make_dict();
+              tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(DECODE_UDP_LEN));
+              pmt::pmt_t tmpPayload = pmt::make_blob(d_pktBytes, DECODE_UDP_LEN);
+              message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
+            }
 
             if(tmpEof)
             {
@@ -372,27 +384,38 @@ namespace gr {
         else
         {
           uint8_t* tmpBitP = &v_unCodedBits[16];
-          d_dataBytes[0] = t_format;
-          d_dataBytes[1] = t_len%256;  // byte 1-2 packet len
-          d_dataBytes[2] = t_len/256;
+          d_pktBytes[0] = t_format;
+          d_pktBytes[1] = t_len%256;  // byte 1-2 packet len
+          d_pktBytes[2] = t_len/256;
           for(int i=0;i<t_len;i++)
           {
-            d_dataBytes[i+3] = 0;
+            d_pktBytes[i+3] = 0;
             for(int j=0;j<8;j++)
             {
-              d_dataBytes[i+3] |= (tmpBitP[i*8+j]<<j);
+              d_pktBytes[i+3] |= (tmpBitP[i*8+j]<<j);
             }
           }
-          if(t_format == C8P_F_L){
-            dout<<"ieee80211 decode, legacy len:"<<t_len<<std::endl;
+          
+          d_crc32.reset();
+          d_crc32.process_bytes(d_pktBytes + 3, t_len);
+          if (d_crc32.checksum() != 558161692) {
+            // dout << "ieee80211 decode, crc32 checksum wrong" << std::endl;
           }
-          else{
-            dout<<"ieee80211 decode, ht len:"<<t_len<<std::endl;
+          else
+          {
+            d_nPktCorrect++;
+            dout << "ieee80211 decode, crc32 checksum correct: "<<d_nPktCorrect << std::endl;
+            // if(t_format == C8P_F_L){
+            //   dout<<"ieee80211 decode, legacy len:"<<t_len<<std::endl;
+            // }
+            // else{
+            //   dout<<"ieee80211 decode, ht len:"<<t_len<<std::endl;
+            // }
+            pmt::pmt_t tmpMeta = pmt::make_dict();
+            tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(t_len));
+            pmt::pmt_t tmpPayload = pmt::make_blob(d_pktBytes, DECODE_UDP_LEN);
+            message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
           }
-          pmt::pmt_t tmpMeta = pmt::make_dict();
-          tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(t_len));
-          pmt::pmt_t tmpPayload = pmt::make_blob(d_dataBytes, DECODE_UDP_LEN);
-          message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
         }
       }
     }

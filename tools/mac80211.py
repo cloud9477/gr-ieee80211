@@ -17,6 +17,7 @@ from matplotlib import pyplot as plt
 def procCheckCrc32(inBytesPayload, inBytesCrc32):
     tmpPayloadCrc32 = zlib.crc32(inBytesPayload)
     print(tmpPayloadCrc32)
+    print(hex(tmpPayloadCrc32))
     tmpTailCrc32, =struct.unpack('<L',inBytesCrc32)
     if(tmpPayloadCrc32 == tmpTailCrc32):
         print("cloud80211 mac crc32 check pass")

@@ -23,7 +23,7 @@
 
 #include <gnuradio/ieee80211/decode.h>
 #include "cloud80211phy.h"
-
+#include <boost/crc.hpp>
 
 #define dout d_debug&&std::cout
 
@@ -46,6 +46,7 @@ namespace gr {
       int d_nGen;
       int d_sDecode;
       bool d_debug;
+      uint64_t d_nPktCorrect;
       // tag
       std::vector<gr::tag_t> tags;
       int t_len;
@@ -74,8 +75,10 @@ namespace gr {
       int v_cr_p, v_cr_len;
       uint8_t v_scramBits[DECODE_V_MAX];
       uint8_t v_unCodedBits[DECODE_V_MAX];
-      // mac packet
       uint8_t d_dataBytes[DECODE_D_MAX];
+      boost::crc_32_type d_crc32;
+      // mac packet
+      uint8_t d_pktBytes[DECODE_D_MAX];
       int d_dataLen;
 
 

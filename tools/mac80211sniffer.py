@@ -37,6 +37,7 @@ if __name__ == "__main__":
         tmpPktLen = int(rxPkt[1]) + int(rxPkt[2]) * 256
         tmpPkt = rxPkt[3:(3+tmpPktLen)]
         print(len(rxPkt), rxAddr, packetSeq, tmpPktType, tmpPktLen)
+        packetSeq += 1
         if(tmpPktType == PKT_TYPE_NDP):
             if(tmpPktLen == 1024):
                 print("cloud80211, sniffer: NDP channel info recvd, MU 2x2 station channel info")

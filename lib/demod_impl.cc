@@ -107,7 +107,7 @@ namespace gr {
             {
               std::vector<gr_complex> tmp_csi = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("csi"), pmt::PMT_NIL));
               std::copy(tmp_csi.begin(), tmp_csi.end(), d_H);
-              dout<<"ieee80211 demod, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<std::endl;
+              // dout<<"ieee80211 demod, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<std::endl;
               if(d_nSigLMcs > 0)
               {
                 // go to legacy
@@ -172,18 +172,17 @@ namespace gr {
             procDeintLegacyBpsk(d_sigVhtAIntedLlr, d_sigVhtACodedLlr);
             procDeintLegacyBpsk(&d_sigVhtAIntedLlr[48], &d_sigVhtACodedLlr[48]);
             SV_Decode_Sig(d_sigVhtACodedLlr, d_sigVhtABits, 48);
-            dout<<"sig vht a bits"<<std::endl;
-            for(int i=0;i<48;i++)
-            {
-              dout<<(int)d_sigVhtABits[i]<<" ";
-            }
-            dout<<std::endl;
+            // dout<<"sig vht a bits"<<std::endl;
+            // for(int i=0;i<48;i++)
+            // {
+            //   dout<<(int)d_sigVhtABits[i]<<" ";
+            // }
+            // dout<<std::endl;
             if(signalCheckVhtA(d_sigVhtABits))
             {
-              dout<<"sig vht a bits check passed"<<std::endl;
               // go to vht
               signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
-              dout<<"sig vht a bits parser done, nLTF:"<<d_m.nLTF<<std::endl;
+              dout<<"ieee80211 demod, vht a check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
               d_sDemod = DEMOD_S_VHT;
               consume_each(160);
               return 0;
@@ -197,6 +196,7 @@ namespace gr {
               {
                 // go to ht
                 signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
+                dout<<"ieee80211 demod, ht check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
                 d_sDemod = DEMOD_S_HT;
                 consume_each(160);
                 return 0;
@@ -222,12 +222,12 @@ namespace gr {
             nonLegacyChanEstimate(&inSig1[80]);
             vhtSigBDemod(&inSig1[80 + d_m.nLTF*80]);
 
-            dout<<"sig b bits:";
-            for(int i=0;i<26;i++)
-            {
-              dout<<(int)d_sigVhtB20Bits[i]<<" ";
-            }
-            dout<<std::endl;
+            // dout<<"sig b bits:";
+            // for(int i=0;i<26;i++)
+            // {
+            //   dout<<(int)d_sigVhtB20Bits[i]<<" ";
+            // }
+            // dout<<std::endl;
 
             signalParserVhtB(d_sigVhtB20Bits, &d_m);
             int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
@@ -237,11 +237,11 @@ namespace gr {
               d_nTrellis = d_m.nSym * d_m.nDBPS;
               memcpy(d_pilot, PILOT_VHT, sizeof(float)*4);
               d_pilotP = 4;
-              dout<<"ieee80211 demod, vht packet"<<std::endl;
               d_sDemod = DEMOD_S_WRTAG;
             }
             else
             {
+              dout<<"ieee80211 demod, vht packet length check fail"<<std::endl;
               d_sDemod = DEMOD_S_SYNC;
             }
             consume_each(80 + d_m.nLTF*80 + 80);
@@ -263,11 +263,11 @@ namespace gr {
               d_nTrellis = d_m.len * 8 + 22;
               memcpy(d_pilot, PILOT_HT_2_1, sizeof(float)*4);
               d_pilotP = 3;
-              dout<<"ieee80211 demod, ht packet"<<std::endl;
               d_sDemod = DEMOD_S_WRTAG;
             }
             else
             {
+              dout<<"ieee80211 demod, ht packet length check fail"<<std::endl;
               d_sDemod = DEMOD_S_SYNC;
             }
             consume_each(80 + d_m.nLTF*80);
@@ -399,7 +399,6 @@ namespace gr {
       if(d_m.sumu)
       {
         // mu-mimo 2x2
-        dout<<"MU-MIMO 2x1 channel est"<<std::endl;
         fft(&sig1[8], d_fftLtfOut1);
         fft(&sig1[8+80], d_fftLtfOut2);
         for(int i=0;i<64;i++)
@@ -440,7 +439,6 @@ namespace gr {
       }
       else
       {
-        dout<<"ieee80211 demod, 1 ant chan est nSS:"<<d_m.nSS<<std::endl;
         // 1 ant, ant number and nss not corresponding, only check if NDP, keep LTF and only use first LTF to demod sig b
         memcpy(&d_mu2x1Chan[0], &sig1[8], sizeof(gr_complex) * 64);
         memcpy(&d_mu2x1Chan[64], &sig1[8+80], sizeof(gr_complex) * 64);

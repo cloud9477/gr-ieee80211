@@ -133,7 +133,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [0, 220.0]
+    coordinate: [0, 140.0]
     rotation: 0
     state: enabled
 - name: blocks_file_source_0_0
@@ -155,7 +155,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [8, 332.0]
+    coordinate: [0, 244.0]
     rotation: 0
     state: enabled
 - name: blocks_moving_average_xx_0
@@ -230,7 +230,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [120, 148.0]
+    coordinate: [216, 172.0]
     rotation: 0
     state: true
 - name: ieee80211_decode_0

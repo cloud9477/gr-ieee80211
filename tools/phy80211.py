@@ -832,6 +832,17 @@ class phy80211():
             self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssPhySig[ssItr], self.ssVhtPreamble[ssItr])
             self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssPhySig[ssItr], self.ssVhtSigB[ssItr])
 
+    def __genSignalWithCfo(self, inSig, cfoHz):
+        tmpRadStep = cfoHz * 2.0 * np.pi / 20000000.0
+        outSig = []
+        for i in range(0, len(inSig)):
+            outSig.append(inSig[i] * (np.cos(i * tmpRadStep) + np.sin(i * tmpRadStep) * 1j))
+        return outSig
+
+    def procAddCfo(self, cfoHz):
+        for ssItr in range(0, self.m.nSS):
+            self.ssPhySig[ssItr] = self.__genSignalWithCfo(self.ssPhySig[ssItr], cfoHz)
+
     def genSigBinFile(self, fileAddr="", ifAddPad=True):
         print("write signal into bin file")
         if(len(fileAddr)<1):

@@ -46,6 +46,7 @@ namespace gr {
       float d_stfCfo;
       float d_tmpAc[SYNC_MAX_RES_LEN];
       gr_complex d_tmpConjSamp[128];
+      float d_snr;
 
      public:
       sync_impl();

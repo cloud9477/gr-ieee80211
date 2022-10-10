@@ -40,6 +40,7 @@ namespace gr {
 
       d_sDecode = DECODE_S_IDLE;
       d_nPktCorrect = 0;
+      memset(d_vhtMcsCount, 0, sizeof(uint64_t) * 10);
       set_tag_propagation_policy(block::TPP_DONT);
     }
 
@@ -78,6 +79,7 @@ namespace gr {
           t_len = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len"), pmt::from_long(99999)));
           t_nTotal = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("total"), pmt::from_long(99999)));
           t_cr = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("cr"), pmt::from_long(99999)));
+          t_mcs = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("mcs"), pmt::from_long(99999)));
           t_ampdu = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("ampdu"), pmt::from_long(99999)));
           v_trellis = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("trellis"), pmt::from_long(99999)));
           d_sDecode = DECODE_S_DECODE;
@@ -356,7 +358,23 @@ namespace gr {
             else
             {
               d_nPktCorrect++;
-              dout << "ieee80211 decode, crc32 checksum correct: "<<d_nPktCorrect << std::endl;
+              if(t_mcs >= 0 && t_mcs < 10)
+              {
+                d_vhtMcsCount[t_mcs]++;
+              }
+              dout << "ieee80211 decode, vht mcs count: ";
+              dout << ", 0:"<<d_vhtMcsCount[0];
+              dout << ", 1:"<<d_vhtMcsCount[1];
+              dout << ", 2:"<<d_vhtMcsCount[2];
+              dout << ", 3:"<<d_vhtMcsCount[3];
+              dout << ", 4:"<<d_vhtMcsCount[4];
+              dout << ", 5:"<<d_vhtMcsCount[5];
+              dout << ", 6:"<<d_vhtMcsCount[6];
+              dout << ", 7:"<<d_vhtMcsCount[7];
+              dout << ", 8:"<<d_vhtMcsCount[8];
+              dout << ", 9:"<<d_vhtMcsCount[9];
+              dout << std::endl;
+              dout << "ieee80211 decode, vht crc32 checksum correct: "<<d_nPktCorrect << std::endl;
               // 1 byte packet format
               // dout << "ieee80211 decode, vht ampdu subf len:"<<tmpLen<<std::endl;
               tmpLen += 3;

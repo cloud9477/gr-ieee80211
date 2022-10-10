@@ -56,6 +56,7 @@ namespace gr {
       int t_nUnCoded;
       int t_nTotal;
       int t_nProcd;
+      int t_mcs;
       // NDP channel
       gr_complex d_mu2x1Chan[128];
       uint8_t d_mu2x1ChanFloatBytes[1400];
@@ -80,6 +81,8 @@ namespace gr {
       // mac packet
       uint8_t d_pktBytes[DECODE_D_MAX];
       int d_dataLen;
+      // debug
+      uint64_t d_vhtMcsCount[10];
 
 
     public:

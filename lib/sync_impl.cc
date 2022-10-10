@@ -38,10 +38,10 @@ namespace gr {
     sync_impl::sync_impl()
       : gr::block("sync",
               gr::io_signature::makev(3, 3, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex), sizeof(gr_complex)}),
-              gr::io_signature::makev(2, 2, std::vector<int>{sizeof(uint8_t), sizeof(float)})),
-              d_debug(0)
+              gr::io_signature::makev(2, 2, std::vector<int>{sizeof(uint8_t), sizeof(float)}))
     {
       d_nProc = 0;
+      d_debug = true;
       d_sSync = SYNC_S_IDLE;
     }
 
@@ -124,10 +124,11 @@ namespace gr {
               }
             }
             int tmpM = (tmpL+tmpR)/2;
+            d_snr = 5.0f * log10f((*tmpMaxAcP) / (1 - (*tmpMaxAcP)));
             // sync index is LTF starting index + 16
-            dout<<"ieee80211 sync, ac max value: "<<*tmpMaxAcP<<", max index: "<<(tmpMaxIndex)<<", L: "<<tmpL<<", R: "<<tmpR<<", mid: "<<tmpM<<std::endl;
+            dout<<"ieee80211 sync, ac max value: "<<*tmpMaxAcP<<", snr: "<<d_snr<<std::endl;
             float tmpTotalRadStep = ltf_cfo(&inSig[tmpM]);
-            dout<<"ieee80211 sync, total cfo:"<<(tmpTotalRadStep) * 20000000.0f / 2.0f / M_PI<<std::endl;
+            // dout<<"ieee80211 sync, total cfo:"<<(tmpTotalRadStep) * 20000000.0f / 2.0f / M_PI<<std::endl;
             sync[tmpM] = 0x01;
             outRad[tmpM] = tmpTotalRadStep;
           }
@@ -187,7 +188,7 @@ namespace gr {
         tmpConjSum += d_tmpConjSamp[i] * std::conj(d_tmpConjSamp[i+64]);
       }
       float tmpRadStepLtf = atan2f((tmpConjSum/64.0f).imag(), (tmpConjSum/64.0f).real()) / 64.0f;
-      dout<<"ieee80211 sync, stf cfo:"<<(tmpRadStepStf) * 20000000.0f / 2.0f / M_PI<<", ltf cfo:"<<(tmpRadStepLtf) * 20000000.0f / 2.0f / M_PI<<std::endl;
+      // dout<<"ieee80211 sync, stf cfo:"<<(tmpRadStepStf) * 20000000.0f / 2.0f / M_PI<<", ltf cfo:"<<(tmpRadStepLtf) * 20000000.0f / 2.0f / M_PI<<std::endl;
       return (tmpRadStepStf + tmpRadStepLtf);
     }
 

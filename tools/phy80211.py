@@ -57,7 +57,8 @@ class phy80211():
         self.ssStreamParserBits = []
         self.ssInterleaveBits = []    # interleave bits to sub carriers
         self.ssSymbols = []          # bits map to constellation
-        self.ssPhySig = []
+        self.ssPhySig = []          # sig sample of phy
+        self.ssFinalSig = []        # sig sample to be used
 
     def genLegacy(self, mpdu, phyFormat):
         self.mpdu = mpdu
@@ -839,40 +840,51 @@ class phy80211():
             outSig.append(inSig[i] * (np.cos(i * tmpRadStep) + np.sin(i * tmpRadStep) * 1j))
         return outSig
 
-    def procAddCfo(self, cfoHz):
+    def __genSignalWithAmp(self, inSig, m):
+        return [each * m for each in inSig]
+
+    def __procAddCfo(self, cfoHz):
         for ssItr in range(0, self.m.nSS):
             self.ssPhySig[ssItr] = self.__genSignalWithCfo(self.ssPhySig[ssItr], cfoHz)
     
-    def procAddAmp(self, multiplier):
+    def __procAddAmp(self, multiplier):
         for ssItr in range(0, self.m.nSS):
             self.ssPhySig[ssItr] = [each * multiplier for each in self.ssPhySig[ssItr]]
 
-    def genSigBinFile(self, fileAddr="", ifAddPad=True):
+    def genFinalSig(self, multiplier = 1.0, cfoHz = 0.0, num = 1, gap = True, gapLen = 10000):
+        self.ssFinalSig = []
+        if(num < 1):
+            print("gen final sig num error")
+            return
+        for ssItr in range(0, self.m.nSS):
+            tmpSig = self.__genSignalWithAmp(self.ssPhySig[ssItr], multiplier)
+            tmpSig = self.__genSignalWithCfo(tmpSig, cfoHz)
+            if(gap):
+                tmpSig = ([0] * gapLen + tmpSig) * num + [0] * gapLen
+            else:
+                tmpSig = tmpSig * num
+            self.ssFinalSig.append(tmpSig)
+        return self.ssFinalSig
+        
+
+    def genSigBinFile(self, ssSig, fileAddr=""):
         print("write signal into bin file")
         if(len(fileAddr)<1):
             print("error: file address not given")
             return
 
-        for ssItr in range(0, self.m.nSS):
+        for ssItr in range(0, len(ssSig)):
             binF = open(fileAddr + "_" + str(self.f.nSTS) + "x" + str(self.f.nSTS) + "_" + str(ssItr) + ".bin", "wb")
-            textF = open(fileAddr + "_" + str(self.f.nSTS) + "x" + str(self.f.nSTS) + "_" + str(ssItr) + ".txt", "w")
-            if(ifAddPad):
-                tmpSig = ([0] * 10000 + self.ssPhySig[ssItr]) * 100 + [0] * 10000
-                #tmpSig = [0] * 1000 + self.ssPhySig[ssItr] + [0] * 1000
-            else:
-                tmpSig = self.ssPhySig[ssItr]
-            print("%d sample number %d" % (ssItr, len(self.ssPhySig[0])))
+            tmpSig = ssSig[ssItr]
+            print("%d sample number %d" % (ssItr, len(tmpSig)))
             for i in range(0, len(tmpSig)):
                binF.write(struct.pack("f", np.real(tmpSig[i])))
                binF.write(struct.pack("f", np.imag(tmpSig[i])))
-               textF.write(str(np.real(tmpSig[i])) + " " + str(np.imag(tmpSig[i])) + "\n")
             binF.close()
-            textF.close()
             print("written in " + (fileAddr + "_" + str(ssItr)))
             plt.figure(100 + ssItr)
             plt.plot(np.real(tmpSig))
             plt.plot(np.imag(tmpSig))
-            #plt.xlim([0, len(tmpSig)])
         plt.show()
 
 def genMac80211UdpMPDU(udpPayload):
@@ -920,15 +932,19 @@ udpPayload2 = "This is packet for station 002"
 if __name__ == "__main__":
     h = p8h.phy80211header()
     phy80211Ins = phy80211()
-
     # data packet
-    pkt = genMac80211UdpMPDU(udpPayload500)
-    phy80211Ins.genVht(pkt, p8h.phy80211format('vht', mcs=0, bw=h.BW_20, nSTS=1, pktLen=len(pkt), shortGi=False))
-    phy80211Ins.procAddAmp(100.0)
-    phy80211Ins.procAddCfo(311233)
+    # pkt = genMac80211UdpMPDU(udpPayload500)
+    # phy80211Ins.genVht(pkt, p8h.phy80211format('vht', mcs=0, bw=h.BW_20, nSTS=1, pktLen=len(pkt), shortGi=False))
+    # ssFinal = phy80211Ins.genFinalSig(100.0, 311233, 20, True, 10000)
+    # phy80211Ins.genSigBinFile(ssFinal, "/home/cloud/sdr/sig80211VhtGenCfo100")
 
-    phy80211Ins.genSigBinFile("/home/cloud/sdr/sig80211VhtGenCfo100", True)
-    time.sleep(10000)
+    mcsSigFinal = [[]]
+    pkt = genMac80211UdpMPDU(udpPayload500)
+    for mcsIter in range(0, 9):
+        phy80211Ins.genVht(pkt, p8h.phy80211format('vht', mcs=mcsIter, bw=h.BW_20, nSTS=1, pktLen=len(pkt), shortGi=False))
+        ssFinal = phy80211Ins.genFinalSig(100.0, 311233, 10, True, 10000)
+        mcsSigFinal[0] += ssFinal[0]
+    phy80211Ins.genSigBinFile(mcsSigFinal, "/home/cloud/sdr/sig80211VhtGenCfoMcs100")
 
     # NDP
     # phyFormat = p8h.phy80211format('vht', mcs = 0, bw = h.BW_20, nSTS = 2, shortGi = False)
@@ -1053,7 +1069,7 @@ if __name__ == "__main__":
     # sigg = phy80211Ins.genVhtMu([pkt1, pkt2], [p8h.phy80211format('vht', mcs=0, bw=h.BW_20, nSTS=1, pktLen=len(pkt1), shortGi=False), p8h.phy80211format('vht', mcs=0, bw=h.BW_20, nSTS=1, pktLen=len(pkt2), shortGi=False)], bfQ = bfQForFftNormdForFft, groupId=2)
     # # phy80211Ins.genSigBinFile("sig80211VhtGenMu", False)
 
-    plt.show()
+    # plt.show()
 
 
 

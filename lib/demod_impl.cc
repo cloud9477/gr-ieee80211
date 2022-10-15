@@ -107,7 +107,7 @@ namespace gr {
             {
               std::vector<gr_complex> tmp_csi = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("csi"), pmt::PMT_NIL));
               std::copy(tmp_csi.begin(), tmp_csi.end(), d_H);
-              // dout<<"ieee80211 demod, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<std::endl;
+              dout<<"ieee80211 demod, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<std::endl;
               if(d_nSigLMcs > 0)
               {
                 // go to legacy
@@ -122,6 +122,7 @@ namespace gr {
               return 0;
             }
           }
+          dout<<"ieee80211 demod, rd tag fail."<<std::endl;
           d_sDemod = DEMOD_S_SYNC;
           consume_each(80);
           return 0;

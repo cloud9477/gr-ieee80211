@@ -9,7 +9,7 @@ options:
     description: ''
     gen_cmake: 'On'
     gen_linking: dynamic
-    generate_options: qt_gui
+    generate_options: no_gui
     hier_block_src_path: '.:'
     id: wifirx
     max_nouts: '0'
@@ -62,7 +62,7 @@ blocks:
   parameters:
     affinity: ''
     alias: ''
-    amp: '0.0000075'
+    amp: '0.0015'
     comment: ''
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -164,6 +164,42 @@ blocks:
     coordinate: [864, 16.0]
     rotation: 0
     state: true
+- name: blocks_file_sink_0
+  id: blocks_file_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    append: 'False'
+    comment: ''
+    file: /home/cloud/sdr/debugSigComp.bin
+    type: complex
+    unbuffered: 'False'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1424, 28.0]
+    rotation: 0
+    state: true
+- name: blocks_file_sink_1
+  id: blocks_file_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    append: 'False'
+    comment: ''
+    file: /home/cloud/sdr/debugSigByte.bin
+    type: byte
+    unbuffered: 'False'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1208, 28.0]
+    rotation: 0
+    state: true
 - name: blocks_file_source_0
   id: blocks_file_source
   parameters:
@@ -171,7 +207,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/gr-ieee80211/tools/sig80211VhtGenCfo_1x1_0.bin
+    file: /home/cloud/sdr/sig80211VhtGenCfoMcs100_1x1_0.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -183,7 +219,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [0, 212.0]
+    coordinate: [16, 276.0]
     rotation: 0
     state: enabled
 - name: blocks_moving_average_xx_0
@@ -258,9 +294,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [120, 148.0]
+    coordinate: [144, 156.0]
     rotation: 0
-    state: true
+    state: enabled
 - name: ieee80211_decode_0
   id: ieee80211_decode
   parameters:
@@ -290,7 +326,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1416, 144.0]
+    coordinate: [1408, 144.0]
     rotation: 0
     state: true
 - name: ieee80211_signal_0
@@ -395,7 +431,9 @@ connections:
 - [blocks_throttle_0, '0', ieee80211_sync_0, '1']
 - [ieee80211_decode_0, out, pdu_pdu_to_tagged_stream_0, pdus]
 - [ieee80211_demod_0, '0', ieee80211_decode_0, '0']
+- [ieee80211_signal_0, '0', blocks_file_sink_0, '0']
 - [ieee80211_signal_0, '0', ieee80211_demod_0, '1']
+- [ieee80211_sync_0, '0', blocks_file_sink_1, '0']
 - [ieee80211_sync_0, '0', ieee80211_demod_0, '0']
 - [ieee80211_sync_0, '0', ieee80211_signal_0, '0']
 - [ieee80211_sync_0, '1', ieee80211_signal_0, '1']

@@ -209,7 +209,7 @@ namespace gr {
           // ss 1 part
           dout<<"ieee80211 modulation, ss 1 signal prepare."<<std::endl;
           // sig gap at begining
-          memset(d_sigPtr1, 0, sizeof(gr_complex) * MODUL_N_GAP);
+          memset((uint8_t*)d_sigPtr1, 0, sizeof(gr_complex) * MODUL_N_GAP);
           d_sigPtr1 += MODUL_N_GAP;
           // legacy training
           memcpy(d_sigPtr1, d_stf_l, sizeof(gr_complex) * 160);
@@ -240,7 +240,7 @@ namespace gr {
             d_pilots1[3] = gr_complex(-1.0f, 0.0f);
             d_pilotP = 1;
             // tail pad
-            memset(d_sigPtr1, 0, MODUL_N_GAP * sizeof(gr_complex));
+            memset((uint8_t*)d_sigPtr1, 0, MODUL_N_GAP * sizeof(gr_complex));
             consume_each(0);
             return 0;
           }
@@ -362,7 +362,7 @@ namespace gr {
           {
             dout<<"ieee80211 modulation, ss 2 signal prepare."<<std::endl;
             // sig gap at begining
-            memset(d_sigPtr2, 0, sizeof(gr_complex) * MODUL_N_GAP);
+            memset((uint8_t*)d_sigPtr2, 0, sizeof(gr_complex) * MODUL_N_GAP);
             d_sigPtr2 += MODUL_N_GAP;
             // legacy training
             memcpy(d_sigPtr2, d_stf_l2, sizeof(gr_complex) * 160);
@@ -674,8 +674,8 @@ namespace gr {
             if(d_nSymRd >= d_m.nSym)
             {
               // tail pad
-              memset(d_sigPtr1, 0, MODUL_N_GAP * sizeof(gr_complex));
-              memset(d_sigPtr2, 0, MODUL_N_GAP * sizeof(gr_complex));
+              memset((uint8_t*)d_sigPtr1, 0, MODUL_N_GAP * sizeof(gr_complex));
+              memset((uint8_t*)d_sigPtr2, 0, MODUL_N_GAP * sizeof(gr_complex));
               d_sigPtr1 = d_sig1;
               d_sigPtr2 = d_sig2;
               dout<<"modulation check if padded needs to be consumed"<<std::endl;
@@ -726,7 +726,7 @@ namespace gr {
           if(d_m.nSS == 1)
           {
             memcpy(outSig1, d_sigPtr1, o * sizeof(gr_complex));
-            memset(outSig2, 0, o * sizeof(gr_complex));
+            memset((uint8_t*)outSig2, 0, o * sizeof(gr_complex));
           }
           else
           {

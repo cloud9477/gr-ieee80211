@@ -42,11 +42,10 @@ namespace gr {
               d_nRxAnt(nrx),
               d_muPos(mupos),
               d_muGroupId(mugid),
-              d_debug(1),
               d_ofdm_fft(64,1)
     {
+      d_debug = true;
       d_nProc = 0;
-      d_muPos = 1;
       d_sDemod = DEMOD_S_SYNC;
       set_tag_propagation_policy(block::TPP_DONT);
     }
@@ -62,11 +61,9 @@ namespace gr {
     void
     demod2_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
     {
-      gr_vector_int::size_type ninputs = ninput_items_required.size();
-      for(int i=0; i < ninputs; i++)
-      {
-	      ninput_items_required[i] = noutput_items + 160;
-      }
+      ninput_items_required[0] = noutput_items + 160;
+      ninput_items_required[1] = noutput_items + 160;
+      ninput_items_required[2] = noutput_items + 160;
     }
 
     int
@@ -325,7 +322,7 @@ namespace gr {
           
 
           pmt::pmt_t pairs = pmt::dict_items(dict);
-          for (int i = 0; i < pmt::length(pairs); i++) {
+          for (size_t i = 0; i < pmt::length(pairs); i++) {
               pmt::pmt_t pair = pmt::nth(i, pairs);
               add_item_tag(0,                   // output port index
                             nitems_written(0),  // output sample index

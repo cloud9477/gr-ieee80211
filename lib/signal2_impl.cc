@@ -93,8 +93,8 @@ namespace gr {
             break;
           }
         }
-        memset(outSig1, 0, sizeof(gr_complex) * i);  // maybe not needed to set, not used anyway
-        memset(outSig2, 0, sizeof(gr_complex) * i);
+        memset((uint8_t*)outSig1, 0, sizeof(gr_complex) * i);  // maybe not needed to set, not used anyway
+        memset((uint8_t*)outSig2, 0, sizeof(gr_complex) * i);
         consume_each(i);
         return i;
       }
@@ -170,7 +170,7 @@ namespace gr {
             dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_nSigLen));
             dict = pmt::dict_add(dict, pmt::mp("csi"), pmt::init_c32vector(csi.size(), csi));
             pmt::pmt_t pairs = pmt::dict_items(dict);
-            for (int i = 0; i < pmt::length(pairs); i++) {
+            for (size_t i = 0; i < pmt::length(pairs); i++) {
                 pmt::pmt_t pair = pmt::nth(i, pairs);
                 add_item_tag(0,                   // output port index
                               nitems_written(0),  // output sample index
@@ -179,16 +179,16 @@ namespace gr {
                               alias_pmt());
             }
             d_sSignal = S_COPY;
-            memset(outSig1, 0, sizeof(gr_complex) * 224);  // maybe not needed to set, not used anyway
-            memset(outSig2, 0, sizeof(gr_complex) * 224);
+            memset((uint8_t*)outSig1, 0, sizeof(gr_complex) * 224);  // maybe not needed to set, not used anyway
+            memset((uint8_t*)outSig2, 0, sizeof(gr_complex) * 224);
             consume_each(224);
             return 224;
           }
           else
           {
             d_sSignal = S_TRIGGER;
-            memset(outSig1, 0, sizeof(gr_complex) * 80);  // maybe not needed to set, not used anyway
-            memset(outSig2, 0, sizeof(gr_complex) * 80);
+            memset((uint8_t*)outSig1, 0, sizeof(gr_complex) * 80);  // maybe not needed to set, not used anyway
+            memset((uint8_t*)outSig2, 0, sizeof(gr_complex) * 80);
             consume_each(80);
             return 80;
           }

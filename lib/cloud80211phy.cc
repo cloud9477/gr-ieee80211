@@ -1091,7 +1091,6 @@ void modParserVht(int mcs, c8p_mod* outMod)
 void genCrc8Bits(uint8_t* inBits, uint8_t* outBits, int len)
 {
 	uint16_t c = 0x00ff;
-	uint8_t cf = 0x00;
 	for (int i = 0; i < len; i++)
 	{
 		c = c << 1;
@@ -2099,18 +2098,18 @@ void procNonDataSc(gr_complex* sigIn, gr_complex* sigOut, int format)
 		// memset(&sigOut[27], 0, 11*sizeof(gr_complex));
 		// memcpy(&sigOut[38], &sigIn[0], 26*sizeof(gr_complex));
 
-		memset(&sigOut[0],  0, 6*sizeof(gr_complex));
-		memcpy(&sigOut[6], &sigIn[0], 53*sizeof(gr_complex));
-		memset(&sigOut[59], 0, 5*sizeof(gr_complex));
+		memset((uint8_t*)&sigOut[0],  0, 6*sizeof(gr_complex));
+		memcpy((uint8_t*)&sigOut[6], &sigIn[0], 53*sizeof(gr_complex));
+		memset((uint8_t*)&sigOut[59], 0, 5*sizeof(gr_complex));
 	}
 	else
 	{
 		// memcpy(&sigOut[0], &sigIn[28], 29*sizeof(gr_complex));
 		// memset(&sigOut[29], 0, 7*sizeof(gr_complex));
 		// memcpy(&sigOut[36], &sigIn[0], 28*sizeof(gr_complex));
-		memset(&sigOut[0],  0, 4*sizeof(gr_complex));
-		memcpy(&sigOut[4], &sigIn[0], 57*sizeof(gr_complex));
-		memset(&sigOut[61], 0, 3*sizeof(gr_complex));
+		memset((uint8_t*)&sigOut[0],  0, 4*sizeof(gr_complex));
+		memcpy((uint8_t*)&sigOut[4], &sigIn[0], 57*sizeof(gr_complex));
+		memset((uint8_t*)&sigOut[61], 0, 3*sizeof(gr_complex));
 	}
 }
 

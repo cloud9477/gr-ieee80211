@@ -51,11 +51,7 @@ namespace gr {
     void
     decode_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
     {
-      gr_vector_int::size_type ninputs = ninput_items_required.size();
-      for(int i=0; i < ninputs; i++)
-      {
-	      ninput_items_required[i] = noutput_items + 160;
-      }
+      ninput_items_required[0] = noutput_items + 160;
     }
 
     int
@@ -314,7 +310,6 @@ namespace gr {
         {
           uint8_t* tmpBitP = &v_unCodedBits[16];
           int tmpEof, tmpLen=0;
-          uint8_t tmpCrc8;
           while(true)
           {
             tmpBitsProcd += 32;

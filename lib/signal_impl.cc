@@ -162,7 +162,7 @@ namespace gr {
             dict = pmt::dict_add(dict, pmt::mp("nsamp"), pmt::from_long(d_nSample));
             dict = pmt::dict_add(dict, pmt::mp("csi"), pmt::init_c32vector(csi.size(), csi));
             pmt::pmt_t pairs = pmt::dict_items(dict);
-            for (int i = 0; i < pmt::length(pairs); i++) {
+            for (size_t i = 0; i < pmt::length(pairs); i++) {
                 pmt::pmt_t pair = pmt::nth(i, pairs);
                 add_item_tag(0,                   // output port index
                               nitems_written(0),  // output sample index
@@ -230,7 +230,7 @@ namespace gr {
       {
         if(d_nGen > (1000 - d_nSample))
         {
-          memset(outSig1, 0, sizeof(gr_complex) * (1000 - d_nSample));
+          memset((uint8_t*)outSig1, 0, sizeof(gr_complex) * (1000 - d_nSample));
           d_sSignal = S_TRIGGER;
           consume_each(0);
           return (1000 - d_nSample);

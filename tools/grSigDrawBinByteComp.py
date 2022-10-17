@@ -25,19 +25,19 @@ print("finish read 1")
 
 sigReal2 = []
 sigImag2 = []
-fWaveComp2 = open("/home/cloud/sdr/debugSigComp0.bin",'rb')
-fWaveComp2.read(index * 8)
-print("finish gap")
-count = totalSamp
-while(count > 0):
-    count = count - 1
-    try:
-        sigReal2.append(struct.unpack('f', fWaveComp2.read(1) + fWaveComp2.read(1) + fWaveComp2.read(1) + fWaveComp2.read(1))[0])
-        sigImag2.append(struct.unpack('f', fWaveComp2.read(1) + fWaveComp2.read(1) + fWaveComp2.read(1) + fWaveComp2.read(1))[0])
-    except:
-        break
-fWaveComp2.close()
-print("finish read 2")
+# fWaveComp2 = open("/home/cloud/sdr/debugSigComp0.bin",'rb')
+# fWaveComp2.read(index * 8)
+# print("finish gap")
+# count = totalSamp
+# while(count > 0):
+#     count = count - 1
+#     try:
+#         sigReal2.append(struct.unpack('f', fWaveComp2.read(1) + fWaveComp2.read(1) + fWaveComp2.read(1) + fWaveComp2.read(1))[0])
+#         sigImag2.append(struct.unpack('f', fWaveComp2.read(1) + fWaveComp2.read(1) + fWaveComp2.read(1) + fWaveComp2.read(1))[0])
+#     except:
+#         break
+# fWaveComp2.close()
+# print("finish read 2")
 
 
 

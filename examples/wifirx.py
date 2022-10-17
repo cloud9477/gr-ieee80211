@@ -8,7 +8,6 @@
 # Title: Not titled yet
 # GNU Radio version: 3.10.4.0
 
-from gnuradio import analog
 from gnuradio import blocks
 import pmt
 from gnuradio import gr
@@ -51,31 +50,23 @@ class wifirx(gr.top_block):
         self.blocks_multiply_conjugate_cc_0 = blocks.multiply_conjugate_cc(1)
         self.blocks_moving_average_xx_1 = blocks.moving_average_ff(64, 1, 4000, 1)
         self.blocks_moving_average_xx_0 = blocks.moving_average_cc(48, 1, 4000, 1)
-        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211VhtGenCfoMcs100_1x1_0.bin', False, 0, 0)
+        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211VhtGenCfo100_1x1_0.bin', False, 0, 0)
         self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
-        self.blocks_file_sink_1 = blocks.file_sink(gr.sizeof_char*1, '/home/cloud/sdr/debugSigByte.bin', False)
-        self.blocks_file_sink_1.set_unbuffered(False)
-        self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_gr_complex*1, '/home/cloud/sdr/debugSigComp.bin', False)
-        self.blocks_file_sink_0.set_unbuffered(False)
         self.blocks_divide_xx_0 = blocks.divide_ff(1)
         self.blocks_delay_0 = blocks.delay(gr.sizeof_gr_complex*1, 16)
         self.blocks_complex_to_mag_squared_0 = blocks.complex_to_mag_squared(1)
         self.blocks_complex_to_mag_0 = blocks.complex_to_mag(1)
-        self.blocks_add_xx_0 = blocks.add_vcc(1)
-        self.analog_fastnoise_source_x_0 = analog.fastnoise_source_c(analog.GR_GAUSSIAN, 0.0015, 9527, 8192)
 
 
         ##################################################
         # Connections
         ##################################################
         self.msg_connect((self.ieee80211_decode_0, 'out'), (self.pdu_pdu_to_tagged_stream_0, 'pdus'))
-        self.connect((self.analog_fastnoise_source_x_0, 0), (self.blocks_add_xx_0, 1))
-        self.connect((self.blocks_add_xx_0, 0), (self.blocks_throttle_0, 0))
         self.connect((self.blocks_complex_to_mag_0, 0), (self.blocks_divide_xx_0, 0))
         self.connect((self.blocks_complex_to_mag_squared_0, 0), (self.blocks_moving_average_xx_1, 0))
         self.connect((self.blocks_delay_0, 0), (self.blocks_multiply_conjugate_cc_0, 0))
         self.connect((self.blocks_divide_xx_0, 0), (self.ieee80211_trigger_0, 0))
-        self.connect((self.blocks_file_source_0, 0), (self.blocks_add_xx_0, 0))
+        self.connect((self.blocks_file_source_0, 0), (self.blocks_throttle_0, 0))
         self.connect((self.blocks_moving_average_xx_0, 0), (self.blocks_complex_to_mag_0, 0))
         self.connect((self.blocks_moving_average_xx_0, 0), (self.ieee80211_sync_0, 2))
         self.connect((self.blocks_moving_average_xx_1, 0), (self.blocks_divide_xx_0, 1))
@@ -86,12 +77,9 @@ class wifirx(gr.top_block):
         self.connect((self.blocks_throttle_0, 0), (self.ieee80211_signal_0, 2))
         self.connect((self.blocks_throttle_0, 0), (self.ieee80211_sync_0, 1))
         self.connect((self.ieee80211_demod_0, 0), (self.ieee80211_decode_0, 0))
-        self.connect((self.ieee80211_signal_0, 0), (self.blocks_file_sink_0, 0))
-        self.connect((self.ieee80211_signal_0, 0), (self.ieee80211_demod_0, 1))
-        self.connect((self.ieee80211_sync_0, 0), (self.blocks_file_sink_1, 0))
-        self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_demod_0, 0))
-        self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_signal_0, 0))
+        self.connect((self.ieee80211_signal_0, 0), (self.ieee80211_demod_0, 0))
         self.connect((self.ieee80211_sync_0, 1), (self.ieee80211_signal_0, 1))
+        self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_signal_0, 0))
         self.connect((self.ieee80211_trigger_0, 0), (self.ieee80211_sync_0, 0))
         self.connect((self.pdu_pdu_to_tagged_stream_0, 0), (self.network_udp_sink_0, 0))
 

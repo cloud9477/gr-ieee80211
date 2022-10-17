@@ -33,7 +33,7 @@ namespace gr {
 
     demod_impl::demod_impl(int mupos, int mugid)
       : gr::block("demod",
-              gr::io_signature::makev(2, 2, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex)}),
+              gr::io_signature::make(1, 1, sizeof(gr_complex)),
               gr::io_signature::make(1, 1, sizeof(float))),
               d_muPos(mupos),
               d_muGroupId(mugid),
@@ -42,7 +42,7 @@ namespace gr {
       d_nProc = 0;
       d_muPos = 1;
       d_debug = true;
-      d_sDemod = DEMOD_S_SYNC;
+      d_sDemod = DEMOD_S_RDTAG;
       set_tag_propagation_policy(block::TPP_DONT);
     }
 
@@ -54,11 +54,7 @@ namespace gr {
     void
     demod_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
     {
-      gr_vector_int::size_type ninputs = ninput_items_required.size();
-      for(int i=0; i < ninputs; i++)
-      {
-	      ninput_items_required[i] = noutput_items + 160;
-      }
+      ninput_items_required[0] = noutput_items + 160;
     }
 
     int
@@ -67,64 +63,46 @@ namespace gr {
                        gr_vector_const_void_star &input_items,
                        gr_vector_void_star &output_items)
     {
-      const uint8_t* sync = static_cast<const uint8_t*>(input_items[0]);
-      const gr_complex* inSig1 = static_cast<const gr_complex*>(input_items[1]);
+      const gr_complex* inSig1 = static_cast<const gr_complex*>(input_items[0]);
       float* outLlrs = static_cast<float*>(output_items[0]);
 
-      d_nProc = std::min(ninput_items[0], ninput_items[1]);
+      d_nProc = ninput_items[0];
       d_nGen = noutput_items;
 
       switch(d_sDemod)
       {
-        case DEMOD_S_SYNC:
-        {
-          int i;
-          for(i=0;i<d_nGen;i++)
-          {
-            if(sync[i])
-            {
-              d_sDemod = DEMOD_S_RDTAG;
-              break;
-            }
-          }
-          consume_each(i);
-          return 0;
-        }
-
         case DEMOD_S_RDTAG:
         {
-          get_tags_in_range(tags, 1, nitems_read(1) , nitems_read(1) + 1);
+          // tags, which input, start, end
+          get_tags_in_range(tags, 0, nitems_read(0) , nitems_read(0) + 1);
           if (tags.size())
           {
             pmt::pmt_t d_meta = pmt::make_dict();
             for (auto tag : tags){
               d_meta = pmt::dict_add(d_meta, tag.key, tag.value);
             }
-            int tmpPktSeq = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("seq"), pmt::from_long(-2)));
-            d_nSigLMcs = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("mcs"), pmt::from_long(9999)));
-            d_nSigLLen = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len"), pmt::from_long(9999)));
-            if((d_nSigLMcs >=0) && (d_nSigLMcs <8) && (d_nSigLLen >= 0) && (d_nSigLLen < 4096) && pmt::dict_has_key(d_meta, pmt::mp("csi")))
+            int tmpPktSeq = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("seq"), pmt::from_long(-1)));
+            d_nSigLMcs = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("mcs"), pmt::from_long(-1)));
+            d_nSigLLen = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len"), pmt::from_long(-1)));
+            d_nSigLSamp = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("nsamp"), pmt::from_long(-1)));
+            std::vector<gr_complex> tmp_csi = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("csi"), pmt::PMT_NIL));
+            std::copy(tmp_csi.begin(), tmp_csi.end(), d_H);
+            dout<<"ieee80211 demod, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<std::endl;
+            d_nSampConsumed = 0;
+            if(d_nSigLSamp < 1000)
             {
-              std::vector<gr_complex> tmp_csi = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("csi"), pmt::PMT_NIL));
-              std::copy(tmp_csi.begin(), tmp_csi.end(), d_H);
-              dout<<"ieee80211 demod, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<std::endl;
-              if(d_nSigLMcs > 0)
-              {
-                // go to legacy
-                d_sDemod = DEMOD_S_LEGACY;
-              }
-              else
-              {
-                // check non-legacy
-                d_sDemod = DEMOD_S_FORMAT;
-              }
-              consume_each(224);  // gap samples
-              return 0;
+              d_nSigLSamp = 1000;
+            }
+            if(d_nSigLMcs > 0)
+            {
+              d_sDemod = DEMOD_S_LEGACY;    // go to legacy
+            }
+            else
+            {
+              d_sDemod = DEMOD_S_FORMAT;    // check non-legacy
             }
           }
-          dout<<"ieee80211 demod, rd tag fail."<<std::endl;
-          d_sDemod = DEMOD_S_SYNC;
-          consume_each(80);
+          consume_each(0);
           return 0;
         }
 
@@ -173,18 +151,19 @@ namespace gr {
             procDeintLegacyBpsk(d_sigVhtAIntedLlr, d_sigVhtACodedLlr);
             procDeintLegacyBpsk(&d_sigVhtAIntedLlr[48], &d_sigVhtACodedLlr[48]);
             SV_Decode_Sig(d_sigVhtACodedLlr, d_sigVhtABits, 48);
-            // dout<<"sig vht a bits"<<std::endl;
-            // for(int i=0;i<48;i++)
-            // {
-            //   dout<<(int)d_sigVhtABits[i]<<" ";
-            // }
-            // dout<<std::endl;
+            dout<<"sig vht a bits"<<std::endl;
+            for(int i=0;i<48;i++)
+            {
+              dout<<(int)d_sigVhtABits[i]<<" ";
+            }
+            dout<<std::endl;
             if(signalCheckVhtA(d_sigVhtABits))
             {
               // go to vht
               signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
               dout<<"ieee80211 demod, vht a check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
               d_sDemod = DEMOD_S_VHT;
+              d_nSampConsumed += 160;
               consume_each(160);
               return 0;
             }
@@ -199,6 +178,7 @@ namespace gr {
                 signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
                 dout<<"ieee80211 demod, ht check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
                 d_sDemod = DEMOD_S_HT;
+                d_nSampConsumed += 160;
                 consume_each(160);
                 return 0;
               }
@@ -223,12 +203,12 @@ namespace gr {
             nonLegacyChanEstimate(&inSig1[80]);
             vhtSigBDemod(&inSig1[80 + d_m.nLTF*80]);
 
-            // dout<<"sig b bits:";
-            // for(int i=0;i<26;i++)
-            // {
-            //   dout<<(int)d_sigVhtB20Bits[i]<<" ";
-            // }
-            // dout<<std::endl;
+            dout<<"sig b bits:";
+            for(int i=0;i<26;i++)
+            {
+              dout<<(int)d_sigVhtB20Bits[i]<<" ";
+            }
+            dout<<std::endl;
 
             signalParserVhtB(d_sigVhtB20Bits, &d_m);
             int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
@@ -243,8 +223,10 @@ namespace gr {
             else
             {
               dout<<"ieee80211 demod, vht packet length check fail"<<std::endl;
-              d_sDemod = DEMOD_S_SYNC;
+              d_sDemod = DEMOD_S_CLEAN;
             }
+            // STF + n LTF + sig b
+            d_nSampConsumed += (80 + d_m.nLTF*80 + 80);
             consume_each(80 + d_m.nLTF*80 + 80);
             return 0;
           }
@@ -269,8 +251,9 @@ namespace gr {
             else
             {
               dout<<"ieee80211 demod, ht packet length check fail"<<std::endl;
-              d_sDemod = DEMOD_S_SYNC;
+              d_sDemod = DEMOD_S_CLEAN;
             }
+            d_nSampConsumed += (80 + d_m.nLTF*80);
             consume_each(80 + d_m.nLTF*80);
             return 0;
           }
@@ -332,7 +315,7 @@ namespace gr {
           if(d_m.nSym == 0)
           {
             // NDP
-            d_sDemod = DEMOD_S_SYNC;
+            d_sDemod = DEMOD_S_CLEAN;
             consume_each(0);
             return 1024;
           }
@@ -368,28 +351,44 @@ namespace gr {
             o2 += d_m.nCBPS;
             if(d_nSymProcd >= d_m.nSym)
             {
-              d_sDemod = DEMOD_S_SYNC;
+              d_sDemod = DEMOD_S_CLEAN;
               break;
             }
           }
           if(d_nSymProcd >= d_m.nSym)
           {
-            d_sDemod = DEMOD_S_SYNC;
+            d_sDemod = DEMOD_S_CLEAN;
           }
+          d_nSampConsumed += o1;
           consume_each (o1);
           return (o2);
         }
 
+        case DEMOD_S_CLEAN:
+        {
+          dout << "ieee80211 demod, nProc: "<< d_nProc <<", samp consumed: "<<d_nSampConsumed<<", samp to be consumed: "<< d_nSigLSamp - d_nSampConsumed << std::endl;
+          if(d_nProc >= (d_nSigLSamp - d_nSampConsumed))
+          {
+            consume_each(d_nSigLSamp - d_nSampConsumed);
+            dout << "ieee80211 demod, clean done." << std::endl;
+            d_sDemod = DEMOD_S_RDTAG;
+          }
+          else
+          {
+            d_nSampConsumed += d_nProc;
+            consume_each(d_nProc);
+          }
+          return 0;
+        }
+
         default:
         {
-          d_sDemod = DEMOD_S_SYNC;
           std::cout<<"ieee80211 demod state error"<<std::endl;
           consume_each (0);
           return (0);
         }
       }
 
-      d_sDemod = DEMOD_S_SYNC;
       std::cout<<"ieee80211 demod state error"<<std::endl;
       consume_each (0);
       return (0);

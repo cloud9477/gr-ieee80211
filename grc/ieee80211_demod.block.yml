@@ -17,15 +17,12 @@ parameters:
   default: '2'
 
 inputs:
-- label: sync
-  domain: stream
-  dtype: byte
 - label: sig
   domain: stream
   dtype: complex
 
 outputs:
-- label: outLlr
+- label: llr
   domain: stream
   dtype: float
 

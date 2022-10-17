@@ -35,6 +35,7 @@
 #define DEMOD_S_LEGACY 5
 #define DEMOD_S_WRTAG 6
 #define DEMOD_S_DEMOD 7
+#define DEMOD_S_CLEAN 8
 
 namespace gr {
   namespace ieee80211 {
@@ -56,6 +57,8 @@ namespace gr {
       int d_nSigLMcs;
       int d_nSigLLen;
       gr_complex d_H[64];
+      int d_nSigLSamp;
+      int d_nSampConsumed;
       // check format
       gr_complex d_sig1[64];
       gr_complex d_sig2[64];

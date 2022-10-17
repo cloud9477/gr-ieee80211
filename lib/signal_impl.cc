@@ -71,12 +71,12 @@ namespace gr {
       
       // input and output not sync
       d_nProc = std::min(std::min(ninput_items[0], ninput_items[1]), ninput_items[2]);
-      d_nGen = std::min(noutput_items, d_nProc);
+      d_nGen = noutput_items;
 
       if(d_sSignal == S_TRIGGER)
       {
         int i;
-        for(i=0;i<d_nGen;i++)
+        for(i=0;i<d_nProc;i++)
         {
           if(sync[i])
           {
@@ -84,10 +84,10 @@ namespace gr {
             d_cfoRad = inCfoRad[i];
             break;
           }
-          outSig1[i] = gr_complex(0.0f, 0.0f);    // maybe not needed to set, not used anyway
+          // outSig1[i] = gr_complex(0.0f, 0.0f);    // maybe not needed to set, not used anyway
         }
         consume_each(i);
-        return i;
+        return 0;
       }
       else if(d_sSignal == S_DEMOD)
       {
@@ -159,6 +159,7 @@ namespace gr {
             dict = pmt::dict_add(dict, pmt::mp("seq"), pmt::from_long(d_nSigPktSeq));
             dict = pmt::dict_add(dict, pmt::mp("mcs"), pmt::from_long(d_nSigMcs));
             dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_nSigLen));
+            dict = pmt::dict_add(dict, pmt::mp("nsamp"), pmt::from_long(d_nSample));
             dict = pmt::dict_add(dict, pmt::mp("csi"), pmt::init_c32vector(csi.size(), csi));
             pmt::pmt_t pairs = pmt::dict_items(dict);
             for (int i = 0; i < pmt::length(pairs); i++) {
@@ -170,18 +171,18 @@ namespace gr {
                               alias_pmt());
             }
             d_sSignal = S_COPY;
-            memset(outSig1, 0, sizeof(gr_complex) * 224);  // maybe not needed to set, not used anyway
+            // memset(outSig1, 0, sizeof(gr_complex) * 224);  // maybe not needed to set, not used anyway
             
             consume_each(224);
-            return 224;
+            return 0;
           }
           else
           {
             d_sSignal = S_TRIGGER;
-            memset(outSig1, 0, sizeof(gr_complex) * 80);  // maybe not needed to set, not used anyway
+            // memset(outSig1, 0, sizeof(gr_complex) * 80);  // maybe not needed to set, not used anyway
             
             consume_each(80);
-            return 80;
+            return 0;
           }
         }
         else
@@ -213,9 +214,31 @@ namespace gr {
             outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
             d_nSampleCopied++;
           }
-          d_sSignal = S_TRIGGER;
+          if(d_nSample >= 1000)
+          {
+            d_sSignal = S_TRIGGER;
+          }
+          else
+          {
+            d_sSignal = S_PAD;
+          }
           consume_each(tmpNumGen);
           return tmpNumGen;
+        }
+      }
+      else if(d_sSignal == S_PAD)
+      {
+        if(d_nGen > (1000 - d_nSample))
+        {
+          memset(outSig1, 0, sizeof(gr_complex) * (1000 - d_nSample));
+          d_sSignal = S_TRIGGER;
+          consume_each(0);
+          return (1000 - d_nSample);
+        }
+        else
+        {
+          consume_each(0);
+          return 0;
         }
       }
 

@@ -30,6 +30,7 @@
 #define S_TRIGGER 0
 #define S_DEMOD 1
 #define S_COPY 2
+#define S_PAD 3
 
 #define F_LEGACY 0
 #define F_HT 1

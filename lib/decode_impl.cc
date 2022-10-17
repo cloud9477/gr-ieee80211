@@ -375,6 +375,7 @@ namespace gr {
               dout << ", 9:"<<d_vhtMcsCount[9];
               dout << std::endl;
               dout << "ieee80211 decode, vht crc32 checksum correct, total: "<<d_nPktCorrect << std::endl;
+              dout << "------------------------------------------------------" << std::endl;
               // 1 byte packet format
               // dout << "ieee80211 decode, vht ampdu subf len:"<<tmpLen<<std::endl;
               tmpLen += 3;

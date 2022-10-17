@@ -169,7 +169,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/sig80211VhtGenCfo100_1x1_0.bin
+    file: /home/cloud/sdr/sig80211VhtGenCfoMcs100_1x1_0.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'

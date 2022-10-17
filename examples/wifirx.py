@@ -50,7 +50,7 @@ class wifirx(gr.top_block):
         self.blocks_multiply_conjugate_cc_0 = blocks.multiply_conjugate_cc(1)
         self.blocks_moving_average_xx_1 = blocks.moving_average_ff(64, 1, 4000, 1)
         self.blocks_moving_average_xx_0 = blocks.moving_average_cc(48, 1, 4000, 1)
-        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211VhtGenCfo100_1x1_0.bin', False, 0, 0)
+        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211VhtGenCfoMcs100_1x1_0.bin', False, 0, 0)
         self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
         self.blocks_divide_xx_0 = blocks.divide_ff(1)
         self.blocks_delay_0 = blocks.delay(gr.sizeof_gr_complex*1, 16)
@@ -78,8 +78,8 @@ class wifirx(gr.top_block):
         self.connect((self.blocks_throttle_0, 0), (self.ieee80211_sync_0, 1))
         self.connect((self.ieee80211_demod_0, 0), (self.ieee80211_decode_0, 0))
         self.connect((self.ieee80211_signal_0, 0), (self.ieee80211_demod_0, 0))
-        self.connect((self.ieee80211_sync_0, 1), (self.ieee80211_signal_0, 1))
         self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_signal_0, 0))
+        self.connect((self.ieee80211_sync_0, 1), (self.ieee80211_signal_0, 1))
         self.connect((self.ieee80211_trigger_0, 0), (self.ieee80211_sync_0, 0))
         self.connect((self.pdu_pdu_to_tagged_stream_0, 0), (self.network_udp_sink_0, 0))
 

@@ -947,7 +947,7 @@ if __name__ == "__main__":
         # 100 for 1.5 power in LTF, and 20 for max under 1
         ssFinal = phy80211Ins.genFinalSig(100.0, 311233, 100, True, 10000)
         mcsSigFinal[0] += ssFinal[0]
-    phy80211Ins.genSigBinFile(mcsSigFinal, "/home/cloud/sdr/sig80211VhtGenCfoMcs100", False)
+    phy80211Ins.genSigBinFile(mcsSigFinal, "/home/cloud/sdr/sig80211VhtGenCfoMcs100", True)
 
     # NDP
     # phyFormat = p8h.phy80211format('vht', mcs = 0, bw = h.BW_20, nSTS = 2, shortGi = False)

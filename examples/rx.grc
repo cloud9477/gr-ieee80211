@@ -57,6 +57,44 @@ blocks:
     coordinate: [184, 12]
     rotation: 0
     state: enabled
+- name: analog_fastnoise_source_x_0
+  id: analog_fastnoise_source_x
+  parameters:
+    affinity: ''
+    alias: ''
+    amp: '1.2505'
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    noise_type: analog.GR_GAUSSIAN
+    samples: '8192'
+    seed: '9527'
+    type: complex
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [24, 228.0]
+    rotation: 0
+    state: true
+- name: blocks_add_xx_0
+  id: blocks_add_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_inputs: '2'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [264, 296.0]
+    rotation: 0
+    state: true
 - name: blocks_complex_to_mag_0
   id: blocks_complex_to_mag
   parameters:
@@ -181,7 +219,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [16, 276.0]
+    coordinate: [16, 340.0]
     rotation: 0
     state: enabled
 - name: blocks_moving_average_xx_0
@@ -392,11 +430,13 @@ blocks:
     state: enabled
 
 connections:
+- [analog_fastnoise_source_x_0, '0', blocks_add_xx_0, '0']
+- [blocks_add_xx_0, '0', blocks_throttle_0, '0']
 - [blocks_complex_to_mag_0, '0', blocks_divide_xx_0, '0']
 - [blocks_complex_to_mag_squared_0, '0', blocks_moving_average_xx_1, '0']
 - [blocks_delay_0, '0', blocks_multiply_conjugate_cc_0, '0']
 - [blocks_divide_xx_0, '0', ieee80211_trigger_0, '0']
-- [blocks_file_source_0, '0', blocks_throttle_0, '0']
+- [blocks_file_source_0, '0', blocks_add_xx_0, '1']
 - [blocks_moving_average_xx_0, '0', blocks_complex_to_mag_0, '0']
 - [blocks_moving_average_xx_0, '0', ieee80211_sync_0, '2']
 - [blocks_moving_average_xx_1, '0', blocks_divide_xx_0, '1']

@@ -12,12 +12,13 @@ inputs:
   dtype: byte
 #  vlen: ...
 #  optional: ...
-- label: inSig
-  domain: stream
-  dtype: complex
 - label: inConj
   domain: stream
   dtype: complex
+- label: inSig
+  domain: stream
+  dtype: complex
+
 
 outputs:
 - label: sync

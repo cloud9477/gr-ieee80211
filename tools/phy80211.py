@@ -945,7 +945,7 @@ if __name__ == "__main__":
     for mcsIter in range(0, 9):
         phy80211Ins.genVht(pkt, p8h.phy80211format('vht', mcs=mcsIter, bw=h.BW_20, nSTS=1, pktLen=len(pkt), shortGi=False))
         # 100 for 1.5 power in LTF, and 20 for max under 1
-        ssFinal = phy80211Ins.genFinalSig(100.0, 311233, 100, True, 10000)
+        ssFinal = phy80211Ins.genFinalSig(100.0, 311233, 10, True, 10000)
         mcsSigFinal[0] += ssFinal[0]
     phy80211Ins.genSigBinFile(mcsSigFinal, "/home/cloud/sdr/sig80211VhtGenCfoMcs100", True)
 

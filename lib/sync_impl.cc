@@ -67,8 +67,8 @@ namespace gr {
                        gr_vector_void_star &output_items)
     {
       const uint8_t* trigger = static_cast<const uint8_t*>(input_items[0]);
-      const gr_complex* inSig = static_cast<const gr_complex*>(input_items[1]);
-      const gr_complex* inConj = static_cast<const gr_complex*>(input_items[2]);
+      const gr_complex* inSig = static_cast<const gr_complex*>(input_items[2]);
+      const gr_complex* inConj = static_cast<const gr_complex*>(input_items[1]);
 
       uint8_t* sync = static_cast<uint8_t*>(output_items[0]);
       float* outRad = static_cast<float*>(output_items[1]);

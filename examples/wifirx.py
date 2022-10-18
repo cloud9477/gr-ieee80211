@@ -8,13 +8,16 @@
 # Title: Not titled yet
 # GNU Radio version: 3.10.4.0
 
+import os
+import sys
+sys.path.append(os.environ.get('GRC_HIER_PATH', os.path.expanduser('~/.grc_gnuradio')))
+
 from gnuradio import analog
 from gnuradio import blocks
 import pmt
 from gnuradio import gr
 from gnuradio.filter import firdes
 from gnuradio.fft import window
-import sys
 import signal
 from argparse import ArgumentParser
 from gnuradio.eng_arg import eng_float, intx
@@ -22,6 +25,7 @@ from gnuradio import eng_notation
 from gnuradio import gr, pdu
 from gnuradio import ieee80211
 from gnuradio import network
+from presiso import presiso  # grc-generated hier_block
 
 
 
@@ -40,6 +44,7 @@ class wifirx(gr.top_block):
         ##################################################
         # Blocks
         ##################################################
+        self.presiso_0 = presiso()
         self.pdu_pdu_to_tagged_stream_0 = pdu.pdu_to_tagged_stream(gr.types.byte_t, 'packet_len')
         self.network_udp_sink_0 = network.udp_sink(gr.sizeof_char, 1, '127.0.0.1', 9527, 0, 1400, False)
         self.ieee80211_trigger_0 = ieee80211.trigger()
@@ -48,17 +53,12 @@ class wifirx(gr.top_block):
         self.ieee80211_demod_0 = ieee80211.demod(0, 2)
         self.ieee80211_decode_0 = ieee80211.decode()
         self.blocks_throttle_0 = blocks.throttle(gr.sizeof_gr_complex*1, samp_rate,True)
-        self.blocks_multiply_conjugate_cc_0 = blocks.multiply_conjugate_cc(1)
-        self.blocks_moving_average_xx_1 = blocks.moving_average_ff(64, 1, 4000, 1)
-        self.blocks_moving_average_xx_0 = blocks.moving_average_cc(48, 1, 4000, 1)
         self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211VhtGenCfoMcs100_1x1_0.bin', False, 0, 0)
         self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
-        self.blocks_divide_xx_0 = blocks.divide_ff(1)
-        self.blocks_delay_0 = blocks.delay(gr.sizeof_gr_complex*1, 16)
-        self.blocks_complex_to_mag_squared_0 = blocks.complex_to_mag_squared(1)
-        self.blocks_complex_to_mag_0 = blocks.complex_to_mag(1)
+        self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_char*1, '/home/cloud/sdr/debugSigByte.bin', False)
+        self.blocks_file_sink_0.set_unbuffered(False)
         self.blocks_add_xx_0 = blocks.add_vcc(1)
-        self.analog_fastnoise_source_x_0 = analog.fastnoise_source_c(analog.GR_GAUSSIAN, 1.2505, 9527, 8192)
+        self.analog_fastnoise_source_x_0 = analog.fastnoise_source_c(analog.GR_GAUSSIAN, 0.5, 9527, 8192)
 
 
         ##################################################
@@ -67,26 +67,19 @@ class wifirx(gr.top_block):
         self.msg_connect((self.ieee80211_decode_0, 'out'), (self.pdu_pdu_to_tagged_stream_0, 'pdus'))
         self.connect((self.analog_fastnoise_source_x_0, 0), (self.blocks_add_xx_0, 0))
         self.connect((self.blocks_add_xx_0, 0), (self.blocks_throttle_0, 0))
-        self.connect((self.blocks_complex_to_mag_0, 0), (self.blocks_divide_xx_0, 0))
-        self.connect((self.blocks_complex_to_mag_squared_0, 0), (self.blocks_moving_average_xx_1, 0))
-        self.connect((self.blocks_delay_0, 0), (self.blocks_multiply_conjugate_cc_0, 0))
-        self.connect((self.blocks_divide_xx_0, 0), (self.ieee80211_trigger_0, 0))
         self.connect((self.blocks_file_source_0, 0), (self.blocks_add_xx_0, 1))
-        self.connect((self.blocks_moving_average_xx_0, 0), (self.blocks_complex_to_mag_0, 0))
-        self.connect((self.blocks_moving_average_xx_0, 0), (self.ieee80211_sync_0, 2))
-        self.connect((self.blocks_moving_average_xx_1, 0), (self.blocks_divide_xx_0, 1))
-        self.connect((self.blocks_multiply_conjugate_cc_0, 0), (self.blocks_moving_average_xx_0, 0))
-        self.connect((self.blocks_throttle_0, 0), (self.blocks_complex_to_mag_squared_0, 0))
-        self.connect((self.blocks_throttle_0, 0), (self.blocks_delay_0, 0))
-        self.connect((self.blocks_throttle_0, 0), (self.blocks_multiply_conjugate_cc_0, 1))
         self.connect((self.blocks_throttle_0, 0), (self.ieee80211_signal_0, 2))
-        self.connect((self.blocks_throttle_0, 0), (self.ieee80211_sync_0, 1))
+        self.connect((self.blocks_throttle_0, 0), (self.ieee80211_sync_0, 2))
+        self.connect((self.blocks_throttle_0, 0), (self.presiso_0, 0))
         self.connect((self.ieee80211_demod_0, 0), (self.ieee80211_decode_0, 0))
         self.connect((self.ieee80211_signal_0, 0), (self.ieee80211_demod_0, 0))
         self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_signal_0, 0))
         self.connect((self.ieee80211_sync_0, 1), (self.ieee80211_signal_0, 1))
+        self.connect((self.ieee80211_trigger_0, 0), (self.blocks_file_sink_0, 0))
         self.connect((self.ieee80211_trigger_0, 0), (self.ieee80211_sync_0, 0))
         self.connect((self.pdu_pdu_to_tagged_stream_0, 0), (self.network_udp_sink_0, 0))
+        self.connect((self.presiso_0, 1), (self.ieee80211_sync_0, 1))
+        self.connect((self.presiso_0, 0), (self.ieee80211_trigger_0, 0))
 
 
     def get_samp_rate(self):

@@ -44,26 +44,26 @@ sigImag2 = []
 
 sigReal3 = []
 sigImag3 = []
-fWaveComp3 = open("/home/cloud/sdr/debugSigComp.bin",'rb')
-fWaveComp3.read(index * 8)
-print("finish gap")
-count = totalSamp
-while(count > 0):
-    count = count - 1
-    try:
-        sigReal3.append(struct.unpack('f', fWaveComp3.read(1) + fWaveComp3.read(1) + fWaveComp3.read(1) + fWaveComp3.read(1))[0])
-        sigImag3.append(struct.unpack('f', fWaveComp3.read(1) + fWaveComp3.read(1) + fWaveComp3.read(1) + fWaveComp3.read(1))[0])
-    except:
-        break
-fWaveComp3.close()
-print("finish read 3")
+# fWaveComp3 = open("/home/cloud/sdr/debugSigComp.bin",'rb')
+# fWaveComp3.read(index * 8)
+# print("finish gap")
+# count = totalSamp
+# while(count > 0):
+#     count = count - 1
+#     try:
+#         sigReal3.append(struct.unpack('f', fWaveComp3.read(1) + fWaveComp3.read(1) + fWaveComp3.read(1) + fWaveComp3.read(1))[0])
+#         sigImag3.append(struct.unpack('f', fWaveComp3.read(1) + fWaveComp3.read(1) + fWaveComp3.read(1) + fWaveComp3.read(1))[0])
+#     except:
+#         break
+# fWaveComp3.close()
+# print("finish read 3")
 
 
 
 plt.plot(sigReal1)
 #plt.plot(sigReal2)
 #plt.plot(sigImag2)
-plt.plot(sigReal3)
+#plt.plot(sigReal3)
 
 #plt.plot([sigImag2[i] - sigImag3[i] for i in range(0, 8000)])
 

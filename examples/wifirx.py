@@ -58,7 +58,7 @@ class wifirx(gr.top_block):
         self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_char*1, '/home/cloud/sdr/debugSigByte.bin', False)
         self.blocks_file_sink_0.set_unbuffered(False)
         self.blocks_add_xx_0 = blocks.add_vcc(1)
-        self.analog_fastnoise_source_x_0 = analog.fastnoise_source_c(analog.GR_GAUSSIAN, 0.5, 9527, 8192)
+        self.analog_fastnoise_source_x_0 = analog.fastnoise_source_c(analog.GR_GAUSSIAN, 0.0015, 9527, 8192)
 
 
         ##################################################
@@ -68,14 +68,13 @@ class wifirx(gr.top_block):
         self.connect((self.analog_fastnoise_source_x_0, 0), (self.blocks_add_xx_0, 0))
         self.connect((self.blocks_add_xx_0, 0), (self.blocks_throttle_0, 0))
         self.connect((self.blocks_file_source_0, 0), (self.blocks_add_xx_0, 1))
-        self.connect((self.blocks_throttle_0, 0), (self.ieee80211_signal_0, 2))
+        self.connect((self.blocks_throttle_0, 0), (self.ieee80211_signal_0, 1))
         self.connect((self.blocks_throttle_0, 0), (self.ieee80211_sync_0, 2))
         self.connect((self.blocks_throttle_0, 0), (self.presiso_0, 0))
         self.connect((self.ieee80211_demod_0, 0), (self.ieee80211_decode_0, 0))
         self.connect((self.ieee80211_signal_0, 0), (self.ieee80211_demod_0, 0))
+        self.connect((self.ieee80211_sync_0, 0), (self.blocks_file_sink_0, 0))
         self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_signal_0, 0))
-        self.connect((self.ieee80211_sync_0, 1), (self.ieee80211_signal_0, 1))
-        self.connect((self.ieee80211_trigger_0, 0), (self.blocks_file_sink_0, 0))
         self.connect((self.ieee80211_trigger_0, 0), (self.ieee80211_sync_0, 0))
         self.connect((self.pdu_pdu_to_tagged_stream_0, 0), (self.network_udp_sink_0, 0))
         self.connect((self.presiso_0, 1), (self.ieee80211_sync_0, 1))

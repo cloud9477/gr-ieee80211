@@ -26,9 +26,9 @@ outputs:
   dtype: byte
 #  vlen: ...
 #  optional: ...
-- label: outCfo
-  domain: stream
-  dtype: float
+# - label: outCfo
+#   domain: stream
+#   dtype: float
 
 #  'file_format' specifies the version of the GRC yml format used in the file
 #  and should usually not be changed.

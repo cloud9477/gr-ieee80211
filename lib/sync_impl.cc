@@ -38,7 +38,7 @@ namespace gr {
     sync_impl::sync_impl()
       : gr::block("sync",
               gr::io_signature::makev(3, 3, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex), sizeof(gr_complex)}),
-              gr::io_signature::makev(2, 2, std::vector<int>{sizeof(uint8_t), sizeof(float)}))
+              gr::io_signature::make(1, 1, sizeof(uint8_t)))//gr::io_signature::makev(2, 2, std::vector<int>{sizeof(uint8_t), sizeof(float)}))
     {
       d_nProc = 0;
       d_debug = true;
@@ -71,7 +71,7 @@ namespace gr {
       const gr_complex* inConj = static_cast<const gr_complex*>(input_items[1]);
 
       uint8_t* sync = static_cast<uint8_t*>(output_items[0]);
-      float* outRad = static_cast<float*>(output_items[1]);
+      // float* outRad = static_cast<float*>(output_items[1]);
 
       d_nProc = noutput_items;
 
@@ -130,7 +130,21 @@ namespace gr {
             float tmpTotalRadStep = ltf_cfo(&inSig[tmpM]);
             // dout<<"ieee80211 sync, total cfo:"<<(tmpTotalRadStep) * 20000000.0f / 2.0f / M_PI<<std::endl;
             sync[tmpM] = 0x01;
-            outRad[tmpM] = tmpTotalRadStep;
+            // outRad[tmpM] = tmpTotalRadStep;
+
+            // add tag to pass cfo and snr
+            pmt::pmt_t dict = pmt::make_dict();
+            dict = pmt::dict_add(dict, pmt::mp("rad"), pmt::from_double((double)tmpTotalRadStep));
+            dict = pmt::dict_add(dict, pmt::mp("snr"), pmt::from_double((double)d_snr));
+            pmt::pmt_t pairs = pmt::dict_items(dict);
+            for (size_t i = 0; i < pmt::length(pairs); i++) {
+                pmt::pmt_t pair = pmt::nth(i, pairs);
+                add_item_tag(0,                   // output port index
+                              nitems_written(0) + tmpM,  // output sample index
+                              pmt::car(pair),
+                              pmt::cdr(pair),
+                              alias_pmt());
+            }
           }
           d_sSync = SYNC_S_IDLE;
           consume_each(SYNC_MAX_RES_LEN);

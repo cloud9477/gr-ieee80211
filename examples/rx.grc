@@ -62,7 +62,7 @@ blocks:
   parameters:
     affinity: ''
     alias: ''
-    amp: '0.5'
+    amp: '0.0015'
     comment: ''
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -74,7 +74,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [448, 12.0]
+    coordinate: [16, 252.0]
     rotation: 0
     state: true
 - name: blocks_add_xx_0
@@ -92,7 +92,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [736, 40.0]
+    coordinate: [280, 312.0]
     rotation: 0
     state: true
 - name: blocks_file_sink_0
@@ -110,9 +110,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [928, 132.0]
+    coordinate: [1128, 148.0]
     rotation: 0
-    state: true
+    state: enabled
 - name: blocks_file_source_0
   id: blocks_file_source
   parameters:
@@ -132,7 +132,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [248, 92.0]
+    coordinate: [16, 356.0]
     rotation: 0
     state: enabled
 - name: blocks_throttle_0
@@ -151,7 +151,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [112, 332.0]
+    coordinate: [376, 324.0]
     rotation: 0
     state: enabled
 - name: ieee80211_decode_0
@@ -166,7 +166,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [576, 472.0]
+    coordinate: [1432, 312.0]
     rotation: 0
     state: enabled
 - name: ieee80211_demod_0
@@ -183,7 +183,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1304, 292.0]
+    coordinate: [1232, 300.0]
     rotation: 0
     state: enabled
 - name: ieee80211_signal_0
@@ -198,7 +198,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1128, 272.0]
+    coordinate: [1120, 296.0]
     rotation: 0
     state: true
 - name: ieee80211_sync_0
@@ -213,7 +213,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [920, 256.0]
+    coordinate: [976, 264.0]
     rotation: 0
     state: true
 - name: ieee80211_trigger_0
@@ -228,7 +228,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [704, 256.0]
+    coordinate: [816, 264.0]
     rotation: 0
     state: true
 - name: network_udp_sink_0
@@ -248,7 +248,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [960, 436.0]
+    coordinate: [1360, 444.0]
     rotation: 0
     state: enabled
 - name: pdu_pdu_to_tagged_stream_0
@@ -265,7 +265,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [720, 468.0]
+    coordinate: [1120, 476.0]
     rotation: 0
     state: enabled
 - name: presiso_0
@@ -280,7 +280,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [456, 256.0]
+    coordinate: [608, 264.0]
     rotation: 0
     state: true
 
@@ -288,15 +288,14 @@ connections:
 - [analog_fastnoise_source_x_0, '0', blocks_add_xx_0, '0']
 - [blocks_add_xx_0, '0', blocks_throttle_0, '0']
 - [blocks_file_source_0, '0', blocks_add_xx_0, '1']
-- [blocks_throttle_0, '0', ieee80211_signal_0, '2']
+- [blocks_throttle_0, '0', ieee80211_signal_0, '1']
 - [blocks_throttle_0, '0', ieee80211_sync_0, '2']
 - [blocks_throttle_0, '0', presiso_0, '0']
 - [ieee80211_decode_0, out, pdu_pdu_to_tagged_stream_0, pdus]
 - [ieee80211_demod_0, '0', ieee80211_decode_0, '0']
 - [ieee80211_signal_0, '0', ieee80211_demod_0, '0']
+- [ieee80211_sync_0, '0', blocks_file_sink_0, '0']
 - [ieee80211_sync_0, '0', ieee80211_signal_0, '0']
-- [ieee80211_sync_0, '1', ieee80211_signal_0, '1']
-- [ieee80211_trigger_0, '0', blocks_file_sink_0, '0']
 - [ieee80211_trigger_0, '0', ieee80211_sync_0, '0']
 - [pdu_pdu_to_tagged_stream_0, '0', network_udp_sink_0, '0']
 - [presiso_0, '0', ieee80211_trigger_0, '0']

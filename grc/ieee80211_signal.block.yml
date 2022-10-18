@@ -10,9 +10,6 @@ inputs:
 - label: sync
   domain: stream
   dtype: byte
-- label: cfo
-  domain: stream
-  dtype: float
 - label: sig
   domain: stream
   dtype: complex

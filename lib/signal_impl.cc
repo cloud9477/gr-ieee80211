@@ -33,7 +33,7 @@ namespace gr {
 
     signal_impl::signal_impl()
       : gr::block("signal",
-              gr::io_signature::makev(3, 3, std::vector<int>{sizeof(uint8_t), sizeof(float), sizeof(gr_complex)}),
+              gr::io_signature::makev(2, 2, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex)}),
               gr::io_signature::make(1, 1, sizeof(gr_complex))),
               d_ofdm_fft(64,1)
     {
@@ -54,7 +54,6 @@ namespace gr {
     {
       ninput_items_required[0] = noutput_items + 160;
       ninput_items_required[1] = noutput_items + 160;
-      ninput_items_required[2] = noutput_items + 160;
     }
 
     int
@@ -64,13 +63,13 @@ namespace gr {
                        gr_vector_void_star &output_items)
     {
       const uint8_t* sync = static_cast<const uint8_t*>(input_items[0]);
-      const float* inCfoRad = static_cast<const float*>(input_items[1]);
-      const gr_complex* inSig1 = static_cast<const gr_complex*>(input_items[2]);
+      // const float* inCfoRad = static_cast<const float*>(input_items[1]);
+      const gr_complex* inSig1 = static_cast<const gr_complex*>(input_items[1]);
       
       gr_complex* outSig1 = static_cast<gr_complex*>(output_items[0]);
       
       // input and output not sync
-      d_nProc = std::min(std::min(ninput_items[0], ninput_items[1]), ninput_items[2]);
+      d_nProc = std::min(ninput_items[0], ninput_items[1]);
       d_nGen = noutput_items;
 
       if(d_sSignal == S_TRIGGER)
@@ -81,7 +80,26 @@ namespace gr {
           if(sync[i])
           {
             d_sSignal = S_DEMOD;
-            d_cfoRad = inCfoRad[i];
+            // d_cfoRad = inCfoRad[i];
+
+            std::vector<gr::tag_t> tags;
+            get_tags_in_range(tags, 0, nitems_read(0) + i, nitems_read(0) + i + 1);
+            if (tags.size())
+            {
+              pmt::pmt_t d_meta = pmt::make_dict();
+              for (auto tag : tags){
+                d_meta = pmt::dict_add(d_meta, tag.key, tag.value);
+              }
+              t_rad = (float)pmt::to_double(pmt::dict_ref(d_meta, pmt::mp("rad"), pmt::from_double(0.0)));
+              d_cfoRad = t_rad;
+              t_snr = (float)pmt::to_double(pmt::dict_ref(d_meta, pmt::mp("snr"), pmt::from_double(0.0)));
+              dout<<"ieee80211 signal, rd tag cfo:"<<(t_rad) * 20000000.0f / 2.0f / M_PI<<", snr:"<<t_snr<<std::endl;
+            }
+            else
+            {
+              dout<<"ieee80211 signal, error: sync no tag !!!!!!!!!!!!!!"<<std::endl;
+            }
+
             break;
           }
           // outSig1[i] = gr_complex(0.0f, 0.0f);    // maybe not needed to set, not used anyway

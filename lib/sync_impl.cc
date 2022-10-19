@@ -41,7 +41,7 @@ namespace gr {
               gr::io_signature::make(1, 1, sizeof(uint8_t)))//gr::io_signature::makev(2, 2, std::vector<int>{sizeof(uint8_t), sizeof(float)}))
     {
       d_nProc = 0;
-      d_debug = true;
+      d_debug = false;
       d_sSync = SYNC_S_IDLE;
     }
 

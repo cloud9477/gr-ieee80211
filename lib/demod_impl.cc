@@ -41,7 +41,7 @@ namespace gr {
     {
       d_nProc = 0;
       d_muPos = 1;
-      d_debug = true;
+      d_debug = false;
       d_sDemod = DEMOD_S_RDTAG;
       set_tag_propagation_policy(block::TPP_DONT);
     }
@@ -89,10 +89,11 @@ namespace gr {
             std::copy(tmp_csi.begin(), tmp_csi.end(), d_H);
             dout<<"ieee80211 demod, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<std::endl;
             d_nSampConsumed = 0;
-            if(d_nSigLSamp < 1000)
-            {
-              d_nSigLSamp = 1000;
-            }
+            // if(d_nSigLSamp < 1000)
+            // {
+            //   d_nSigLSamp = 1000;
+            // }
+            d_nSigLSamp = d_nSigLSamp + 320;
             if(d_nSigLMcs > 0)
             {
               d_sDemod = DEMOD_S_LEGACY;    // go to legacy
@@ -287,6 +288,7 @@ namespace gr {
           dict = pmt::dict_add(dict, pmt::mp("trellis"), pmt::from_long(d_nTrellis));
           if(d_m.nSym == 0)
           {
+            // NDP
             d_tagMu2x1Chan.clear();
             d_tagMu2x1Chan.reserve(128);
             for(int i=0;i<128;i++)
@@ -330,9 +332,10 @@ namespace gr {
         {
           int o1 = 0;
           int o2 = 0;
-          // dout << d_nProc << " " << d_nGen << " " << std::endl;
+          //dout << d_nProc << " " << d_nGen << " " << std::endl;
           while(((o1 + d_m.nSymSamp) < d_nProc) && ((o2 + d_m.nCBPS) < d_nGen) && (d_nSymProcd < d_m.nSym))
           {
+            //dout << d_nSymProcd << " " << d_m.nSym << std::endl;
             // channel equlizer
             if(d_m.format == C8P_F_L)
             {
@@ -372,7 +375,7 @@ namespace gr {
           if(d_nProc >= (d_nSigLSamp - d_nSampConsumed))
           {
             consume_each(d_nSigLSamp - d_nSampConsumed);
-            dout << "ieee80211 demod, clean done." << std::endl;
+            dout << "ieee80211 demod, clean done: "<< (d_nSigLSamp - d_nSampConsumed) << std::endl;
             d_sDemod = DEMOD_S_RDTAG;
           }
           else

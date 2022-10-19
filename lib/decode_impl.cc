@@ -24,23 +24,26 @@
 namespace gr {
   namespace ieee80211 {
     decode::sptr
-    decode::make()
+    decode::make(int inpara)
     {
-      return gnuradio::make_block_sptr<decode_impl>(
+      return gnuradio::make_block_sptr<decode_impl>(inpara
         );
     }
 
-    decode_impl::decode_impl()
+    decode_impl::decode_impl(int inpara)
       : gr::block("decode",
               gr::io_signature::make(1, 1, sizeof(float)),
               gr::io_signature::make(0, 0, 0)),
-              d_debug(1)
+              d_inParam(inpara)
     {
       message_port_register_out(pmt::mp("out"));
 
       d_sDecode = DECODE_S_IDLE;
       d_nPktCorrect = 0;
       memset(d_vhtMcsCount, 0, sizeof(uint64_t) * 10);
+      d_debug = true;
+      dout << "decodesnr:"<<d_inParam<<std::endl;
+
       set_tag_propagation_policy(block::TPP_DONT);
     }
 
@@ -348,7 +351,7 @@ namespace gr {
             d_crc32.reset();
             d_crc32.process_bytes(d_pktBytes + 3, tmpLen);
             if (d_crc32.checksum() != 558161692) {
-              dout << "ieee80211 decode, crc32 checksum wrong, total: "<< d_nPktCorrect << std::endl;
+              dout << "ieee80211 decode, vht crc32 wrong, total:"<< d_nPktCorrect << std::endl;
             }
             else
             {
@@ -357,20 +360,18 @@ namespace gr {
               {
                 d_vhtMcsCount[t_mcs]++;
               }
-              dout << "ieee80211 decode, vht mcs count: ";
-              dout << ", 0:"<<d_vhtMcsCount[0];
-              dout << ", 1:"<<d_vhtMcsCount[1];
-              dout << ", 2:"<<d_vhtMcsCount[2];
-              dout << ", 3:"<<d_vhtMcsCount[3];
-              dout << ", 4:"<<d_vhtMcsCount[4];
-              dout << ", 5:"<<d_vhtMcsCount[5];
-              dout << ", 6:"<<d_vhtMcsCount[6];
-              dout << ", 7:"<<d_vhtMcsCount[7];
-              dout << ", 8:"<<d_vhtMcsCount[8];
-              dout << ", 9:"<<d_vhtMcsCount[9];
+              dout << "ieee80211 decode, vht crc32 correct, total:" << d_nPktCorrect;
+              dout << ",0:"<<d_vhtMcsCount[0];
+              dout << ",1:"<<d_vhtMcsCount[1];
+              dout << ",2:"<<d_vhtMcsCount[2];
+              dout << ",3:"<<d_vhtMcsCount[3];
+              dout << ",4:"<<d_vhtMcsCount[4];
+              dout << ",5:"<<d_vhtMcsCount[5];
+              dout << ",6:"<<d_vhtMcsCount[6];
+              dout << ",7:"<<d_vhtMcsCount[7];
+              dout << ",8:"<<d_vhtMcsCount[8];
+              dout << ",9:"<<d_vhtMcsCount[9];
               dout << std::endl;
-              dout << "ieee80211 decode, vht crc32 checksum correct, total: "<<d_nPktCorrect << std::endl;
-              dout << "------------------------------------------------------" << std::endl;
               // 1 byte packet format
               // dout << "ieee80211 decode, vht ampdu subf len:"<<tmpLen<<std::endl;
               tmpLen += 3;
@@ -413,12 +414,12 @@ namespace gr {
           d_crc32.reset();
           d_crc32.process_bytes(d_pktBytes + 3, t_len);
           if (d_crc32.checksum() != 558161692) {
-            dout << "ieee80211 decode, l-ht crc32 checksum wrong, total: "<< d_nPktCorrect << std::endl;
+            dout << "ieee80211 decode, l-ht crc32 wrong, total:"<< d_nPktCorrect << std::endl;
           }
           else
           {
             d_nPktCorrect++;
-            dout << "ieee80211 decode, l-ht crc32 checksum correct, total: "<< d_nPktCorrect << std::endl;
+            dout << "ieee80211 decode, l-ht crc32 correct, total:"<< d_nPktCorrect << std::endl;
             // if(t_format == C8P_F_L){
             //   dout<<"ieee80211 decode, legacy len:"<<t_len<<std::endl;
             // }

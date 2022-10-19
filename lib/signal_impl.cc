@@ -37,7 +37,7 @@ namespace gr {
               gr::io_signature::make(1, 1, sizeof(gr_complex))),
               d_ofdm_fft(64,1)
     {
-      d_debug = true;
+      d_debug = false;
       d_nProc = 0;
       d_nSigPktSeq = 0;
       d_sSignal = S_TRIGGER;
@@ -232,26 +232,34 @@ namespace gr {
             outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
             d_nSampleCopied++;
           }
-          if(d_nSample >= 1000)
-          {
-            d_sSignal = S_TRIGGER;
-          }
-          else
-          {
-            d_sSignal = S_PAD;
-          }
+          // if(d_nSample >= 1000)
+          // {
+          //   d_sSignal = S_TRIGGER;
+          // }
+          // else
+          // {
+          //   d_sSignal = S_PAD;
+          // }
+          d_sSignal = S_PAD;
           consume_each(tmpNumGen);
           return tmpNumGen;
         }
       }
       else if(d_sSignal == S_PAD)
       {
-        if(d_nGen > (1000 - d_nSample))
+        // if(d_nGen > (1000 - d_nSample))
+        // {
+        //   memset((uint8_t*)outSig1, 0, sizeof(gr_complex) * (1000 - d_nSample));
+        //   d_sSignal = S_TRIGGER;
+        //   consume_each(0);
+        //   return (1000 - d_nSample);
+        // }
+        if(d_nGen >= 320)
         {
-          memset((uint8_t*)outSig1, 0, sizeof(gr_complex) * (1000 - d_nSample));
+          memset((uint8_t*)outSig1, 0, sizeof(gr_complex) * 320);
           d_sSignal = S_TRIGGER;
           consume_each(0);
-          return (1000 - d_nSample);
+          return 320;
         }
         else
         {

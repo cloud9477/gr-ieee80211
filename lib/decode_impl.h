@@ -83,10 +83,11 @@ namespace gr {
       int d_dataLen;
       // debug
       uint64_t d_vhtMcsCount[10];
+      int d_inParam;
 
 
     public:
-      decode_impl();
+      decode_impl(int inpara);
       ~decode_impl();
 
       // Where all the action really happens

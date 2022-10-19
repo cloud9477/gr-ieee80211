@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(decode.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(a361cf4d308060a5eddc043fa1d668da)                     */
+/* BINDTOOL_HEADER_FILE_HASH(626fb006f5dea6e3bb1b37abc88c3dbe)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -30,13 +30,14 @@ namespace py = pybind11;
 void bind_decode(py::module& m)
 {
 
-    using decode    = gr::ieee80211::decode;
+    using decode    = ::gr::ieee80211::decode;
 
 
     py::class_<decode, gr::block, gr::basic_block,
         std::shared_ptr<decode>>(m, "decode", D(decode))
 
         .def(py::init(&decode::make),
+           py::arg("inpara"),
            D(decode,make)
         )
         

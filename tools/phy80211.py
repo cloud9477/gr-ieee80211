@@ -934,20 +934,36 @@ udpPayload2 = "This is packet for station 002"
 if __name__ == "__main__":
     h = p8h.phy80211header()
     phy80211Ins = phy80211()
-    # data packet
-    # pkt = genMac80211UdpMPDU(udpPayload500)
-    # phy80211Ins.genVht(pkt, p8h.phy80211format('vht', mcs=0, bw=h.BW_20, nSTS=1, pktLen=len(pkt), shortGi=False))
-    # ssFinal = phy80211Ins.genFinalSig(100.0, 311233, 100, True, 10000)
-    # phy80211Ins.genSigBinFile(ssFinal, "/home/cloud/sdr/sig80211VhtGenCfo100", False)
 
-    mcsSigFinal = [[]]
+
+
+
     pkt = genMac80211UdpMPDU(udpPayload500)
-    for mcsIter in range(0, 9):
-        phy80211Ins.genVht(pkt, p8h.phy80211format('vht', mcs=mcsIter, bw=h.BW_20, nSTS=1, pktLen=len(pkt), shortGi=False))
-        # 100 for 1.5 power in LTF, and 20 for max under 1
-        ssFinal = phy80211Ins.genFinalSig(100.0, 311233, 100, True, 10000)
-        mcsSigFinal[0] += ssFinal[0]
-    phy80211Ins.genSigBinFile(mcsSigFinal, "/home/cloud/sdr/sig80211VhtGenCfoMcs100", True)
+    phy80211Ins.genVht(pkt, p8h.phy80211format('vht', mcs=0, bw=h.BW_20, nSTS=1, pktLen=len(pkt), shortGi=False))
+    ssFinal = phy80211Ins.genFinalSig(100.0, 311233, 1, True, 10000)
+    phy80211Ins.genSigBinFile(ssFinal, "/home/cloud/sdr/sig80211VhtGenCfo100", True)
+
+
+
+
+    # mcsSigFinal = [[]]
+    # pkt = genMac80211UdpMPDU(udpPayload500)
+    # for mcsIter in range(0, 9):
+    #     phy80211Ins.genVht(pkt, p8h.phy80211format('vht', mcs=8-mcsIter, bw=h.BW_20, nSTS=1, pktLen=len(pkt), shortGi=False))
+    #     # 100 for 1.5 power in LTF, and 20 for max under 1
+    #     ssFinal = phy80211Ins.genFinalSig(100.0, 311233, 100, True, 10000)
+    #     mcsSigFinal[0] += ssFinal[0]
+    # phy80211Ins.genSigBinFile(mcsSigFinal, "/home/cloud/sdr/sig80211VhtGenCfoMcs100", False)
+
+
+
+
+
+
+
+
+
+
 
     # NDP
     # phyFormat = p8h.phy80211format('vht', mcs = 0, bw = h.BW_20, nSTS = 2, shortGi = False)

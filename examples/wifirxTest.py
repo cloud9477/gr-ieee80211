@@ -29,6 +29,12 @@ from gnuradio import network
 from presiso import presiso  # grc-generated hier_block
 
 
+##############################
+import numpy as np
+import time
+noiseAmp = 0.000000015
+noiseSnr = -10
+##############################
 
 
 class wifirx(gr.top_block):
@@ -52,7 +58,7 @@ class wifirx(gr.top_block):
         self.ieee80211_sync_0 = ieee80211.sync()
         self.ieee80211_signal_0 = ieee80211.signal()
         self.ieee80211_demod_0 = ieee80211.demod(0, 2)
-        self.ieee80211_decode_0 = ieee80211.decode(0)
+        self.ieee80211_decode_0 = ieee80211.decode(noiseSnr)
         self.blocks_throttle_0 = blocks.throttle(gr.sizeof_gr_complex*1, samp_rate,True)
         self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211VhtGenCfoMcs100_1x1_0.bin', False, 0, 0)
         self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
@@ -110,13 +116,22 @@ def main(top_block_cls=wifirx, options=None):
 
     tb.start()
 
-    try:
-        input('Press Enter to quit: ')
-    except EOFError:
-        pass
+    #try:
+    #    input('Press Enter to quit: ')
+    #except EOFError:
+    #    pass
+    time.sleep(10)
     tb.stop()
     tb.wait()
 
 
 if __name__ == '__main__':
-    main()
+    pLTF = 1.5
+    snrDb = range(0, 2)
+    pNoise = pLTF / (10 ** (np.array(snrDb) / 10) + 1)
+
+    for i in range(0, len(snrDb)):
+        # print("snr:", snrDb[i])
+        noiseAmp = pNoise[i]
+        noiseSnr = snrDb[i]
+        main()

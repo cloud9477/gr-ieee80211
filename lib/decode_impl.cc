@@ -43,6 +43,7 @@ namespace gr {
       memset(d_vhtMcsCount, 0, sizeof(uint64_t) * 10);
       d_debug = true;
       dout << "decodesnr:"<<d_inParam<<std::endl;
+      dout << "ieee80211 decode, vht crc32 wrongg, total:0,0:0,1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0"<<std::endl;
 
       set_tag_propagation_policy(block::TPP_DONT);
     }
@@ -84,29 +85,38 @@ namespace gr {
           d_sDecode = DECODE_S_DECODE;
           t_nProcd = 0;
           // dout<<"ieee80211 decode, tag f:"<<t_format<<", ampdu:"<<t_ampdu<<", len:"<<t_len<<", total:"<<t_nTotal<<", cr:"<<t_cr<<", tr:"<<v_trellis<<std::endl;
-          if(v_trellis == 0)
+          
+          if(t_len > DECODE_LEN_MAX)
           {
+            // dout<<"ieee80211 decode, packet len too long not supported." << std::endl;
             d_sDecode = DECODE_S_CLEAN;
-            d_tagMu2x1Chan = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("mu2x1chan"), pmt::PMT_NIL));
-            std::copy(d_tagMu2x1Chan.begin(), d_tagMu2x1Chan.end(), d_mu2x1Chan);
-            int tmpLen = sizeof(float)*256;
-            d_mu2x1ChanFloatBytes[0] = C8P_F_VHT_NDP;
-            d_mu2x1ChanFloatBytes[1] = tmpLen%256;  // byte 1-2 packet len
-            d_mu2x1ChanFloatBytes[2] = tmpLen/256;
-            float* tmpFloatPointer = (float*)&d_mu2x1ChanFloatBytes[3];
-            for(int i=0;i<128;i++)
-            {
-              // dout<<"chan "<<i<<" "<<d_mu2x1Chan[i]<<std::endl;
-              tmpFloatPointer[i*2] = d_mu2x1Chan[i].real();
-              tmpFloatPointer[i*2+1] = d_mu2x1Chan[i].imag();
-            }
-            dout<<"ieee80211 decode, vht NDP 2x1 channel report:"<<tmpLen<<std::endl;
-            pmt::pmt_t tmpMeta = pmt::make_dict();
-            tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(tmpLen));
-            pmt::pmt_t tmpPayload = pmt::make_blob((uint8_t*)d_mu2x1ChanFloatBytes, DECODE_UDP_LEN);
-            message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
           }
-          vstb_init();
+          else
+          {
+            if(v_trellis == 0)
+            {
+              d_sDecode = DECODE_S_CLEAN;
+              d_tagMu2x1Chan = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("mu2x1chan"), pmt::PMT_NIL));
+              std::copy(d_tagMu2x1Chan.begin(), d_tagMu2x1Chan.end(), d_mu2x1Chan);
+              int tmpLen = sizeof(float)*256;
+              d_mu2x1ChanFloatBytes[0] = C8P_F_VHT_NDP;
+              d_mu2x1ChanFloatBytes[1] = tmpLen%256;  // byte 1-2 packet len
+              d_mu2x1ChanFloatBytes[2] = tmpLen/256;
+              float* tmpFloatPointer = (float*)&d_mu2x1ChanFloatBytes[3];
+              for(int i=0;i<128;i++)
+              {
+                // dout<<"chan "<<i<<" "<<d_mu2x1Chan[i]<<std::endl;
+                tmpFloatPointer[i*2] = d_mu2x1Chan[i].real();
+                tmpFloatPointer[i*2+1] = d_mu2x1Chan[i].imag();
+              }
+              dout<<"ieee80211 decode, vht NDP 2x1 channel report:"<<tmpLen<<std::endl;
+              pmt::pmt_t tmpMeta = pmt::make_dict();
+              tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(tmpLen));
+              pmt::pmt_t tmpPayload = pmt::make_blob((uint8_t*)d_mu2x1ChanFloatBytes, DECODE_UDP_LEN);
+              message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
+            }
+            vstb_init();
+          }
         }
         consume_each(0);
         return 0;
@@ -133,6 +143,12 @@ namespace gr {
           // dout<<"ieee80211 decode, clean:"<<(t_nTotal - t_nProcd)<<std::endl;
           consume_each((t_nTotal - t_nProcd));
           return 0;
+        }
+        else
+        {
+          t_nProcd += d_nProc;
+          // dout<<"ieee80211 decode, clean:"<<d_nProc<<std::endl;
+          consume_each(d_nProc);
         }
       }
 
@@ -431,12 +447,6 @@ namespace gr {
           {
             d_nPktCorrect++;
             // dout << "ieee80211 decode, l-ht crc32 correct, total:"<< d_nPktCorrect << std::endl;
-            // if(t_format == C8P_F_L){
-            //   dout<<"ieee80211 decode, legacy len:"<<t_len<<std::endl;
-            // }
-            // else{
-            //   dout<<"ieee80211 decode, ht len:"<<t_len<<std::endl;
-            // }
             pmt::pmt_t tmpMeta = pmt::make_dict();
             tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(t_len));
             pmt::pmt_t tmpPayload = pmt::make_blob(d_pktBytes, DECODE_UDP_LEN);

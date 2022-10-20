@@ -34,6 +34,7 @@
 #define DECODE_V_MAX 16000
 #define DECODE_D_MAX 2000
 #define DECODE_UDP_LEN 1400
+#define DECODE_LEN_MAX 1300
 
 namespace gr {
   namespace ieee80211 {

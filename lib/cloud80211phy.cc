@@ -979,7 +979,7 @@ void signalParserVhtB(uint8_t* inBits, c8p_mod* outMod)
 				outMod->len = -1;
 				outMod->nSym = -1;
 			}
-			std::cout<<"sig b parser, NDP check "<<outMod->len<<" "<<outMod->nSym<<", pattern:"<<tmpRxPattern<<std::endl;
+			// std::cout<<"sig b parser, NDP check "<<outMod->len<<" "<<outMod->nSym<<", pattern:"<<tmpRxPattern<<std::endl;
 		}
 	}
 }

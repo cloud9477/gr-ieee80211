@@ -2,9 +2,9 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-pLTF = 1.5
+pLTF = 1.49129
 snrDb = [-7, -3, 0, 3, 7, 10, 13, 17, 20, 23, 27, 30]
-pNoise = pLTF / (10 ** (np.array(snrDb) / 10) + 1)
+pNoise = pLTF / (10 ** (np.array(snrDb) / 10))
 
 for i in range(0, len(snrDb)):
     print(snrDb[i], pNoise[i])

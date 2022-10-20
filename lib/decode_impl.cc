@@ -318,7 +318,7 @@ namespace gr {
             tmpBitsProcd += 32;
             if(tmpBitsProcd > v_trellis)
             {
-              dout<<"ieee80211 decode, ampdu error"<<std::endl;
+              //dout<<"ieee80211 decode, ampdu error"<<std::endl;
               break;
             }
             tmpEof = tmpBitP[0];
@@ -331,7 +331,7 @@ namespace gr {
             tmpBitsProcd += ((tmpLen/4 + ((tmpLen%4)!=0))*4*8);
             if(tmpBitsProcd > v_trellis)
             {
-              dout<<"ieee80211 decode, ampdu error"<<std::endl;
+              //dout<<"ieee80211 decode, ampdu error"<<std::endl;
               break;
             }
             tmpBitP += 32;
@@ -351,7 +351,18 @@ namespace gr {
             d_crc32.reset();
             d_crc32.process_bytes(d_pktBytes + 3, tmpLen);
             if (d_crc32.checksum() != 558161692) {
-              dout << "ieee80211 decode, vht crc32 wrong, total:"<< d_nPktCorrect << std::endl;
+              dout << "ieee80211 decode, vht crc32 wrong, total:"<< d_nPktCorrect;
+              dout << ",0:"<<d_vhtMcsCount[0];
+              dout << ",1:"<<d_vhtMcsCount[1];
+              dout << ",2:"<<d_vhtMcsCount[2];
+              dout << ",3:"<<d_vhtMcsCount[3];
+              dout << ",4:"<<d_vhtMcsCount[4];
+              dout << ",5:"<<d_vhtMcsCount[5];
+              dout << ",6:"<<d_vhtMcsCount[6];
+              dout << ",7:"<<d_vhtMcsCount[7];
+              dout << ",8:"<<d_vhtMcsCount[8];
+              dout << ",9:"<<d_vhtMcsCount[9];
+              dout << std::endl;
             }
             else
             {
@@ -414,12 +425,12 @@ namespace gr {
           d_crc32.reset();
           d_crc32.process_bytes(d_pktBytes + 3, t_len);
           if (d_crc32.checksum() != 558161692) {
-            dout << "ieee80211 decode, l-ht crc32 wrong, total:"<< d_nPktCorrect << std::endl;
+            // dout << "ieee80211 decode, l-ht crc32 wrong, total:"<< d_nPktCorrect << std::endl;
           }
           else
           {
             d_nPktCorrect++;
-            dout << "ieee80211 decode, l-ht crc32 correct, total:"<< d_nPktCorrect << std::endl;
+            // dout << "ieee80211 decode, l-ht crc32 correct, total:"<< d_nPktCorrect << std::endl;
             // if(t_format == C8P_F_L){
             //   dout<<"ieee80211 decode, legacy len:"<<t_len<<std::endl;
             // }

@@ -49,10 +49,10 @@ namespace gr {
       int d_nGen;
       int d_sSignal;
       bool d_debug;
-      // signal soft viterbi ver
+      // tag
       float t_rad;
       float t_snr;
-
+      // signal soft viterbi ver
       float d_cfoRad;
       gr_complex d_sigAfterCfoComp[240];
       gr_complex d_H[64];

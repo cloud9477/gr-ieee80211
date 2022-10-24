@@ -29,6 +29,7 @@
 #define S_TRIGGER 0
 #define S_DEMOD 1
 #define S_COPY 2
+#define S_PAD 3
 
 #define F_LEGACY 0
 #define F_HT 1
@@ -47,6 +48,9 @@ namespace gr {
       int d_nGen;
       int d_sSignal;
       bool d_debug;
+      // tag
+      float t_rad;
+      float t_snr;
       // signal soft viterbi ver
       float d_cfoRad;
       gr_complex d_sigAfterCfoComp[240];

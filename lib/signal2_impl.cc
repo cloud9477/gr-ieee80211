@@ -37,7 +37,7 @@ namespace gr {
      */
     signal2_impl::signal2_impl()
       : gr::block("signal2",
-              gr::io_signature::makev(4, 4, std::vector<int>{sizeof(uint8_t), sizeof(float), sizeof(gr_complex), sizeof(gr_complex)}),
+              gr::io_signature::makev(3, 3, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex), sizeof(gr_complex)}),
               gr::io_signature::make(2, 2, sizeof(gr_complex))),
               d_ofdm_fft(64,1)
     {
@@ -62,7 +62,6 @@ namespace gr {
       ninput_items_required[0] = noutput_items + 160;
       ninput_items_required[1] = noutput_items + 160;
       ninput_items_required[2] = noutput_items + 160;
-      ninput_items_required[3] = noutput_items + 160;
     }
 
     int
@@ -72,13 +71,12 @@ namespace gr {
                        gr_vector_void_star &output_items)
     {
       const uint8_t* sync = static_cast<const uint8_t*>(input_items[0]);
-      const float* inCfoRad = static_cast<const float*>(input_items[1]);
-      const gr_complex* inSig1 = static_cast<const gr_complex*>(input_items[2]);
-      const gr_complex* inSig2 = static_cast<const gr_complex*>(input_items[3]);
+      const gr_complex* inSig1 = static_cast<const gr_complex*>(input_items[1]);
+      const gr_complex* inSig2 = static_cast<const gr_complex*>(input_items[2]);
       gr_complex* outSig1 = static_cast<gr_complex*>(output_items[0]);
       gr_complex* outSig2 = static_cast<gr_complex*>(output_items[1]);
       // input and output not sync
-      d_nProc = std::min(std::min(std::min(ninput_items[0], ninput_items[1]), ninput_items[2]), ninput_items[3]);
+      d_nProc = std::min(std::min(ninput_items[0], ninput_items[1]), ninput_items[2]);
       d_nGen = std::min(noutput_items, d_nProc);
 
       if(d_sSignal == S_TRIGGER)
@@ -89,14 +87,31 @@ namespace gr {
           if(sync[i])
           {
             d_sSignal = S_DEMOD;
-            d_cfoRad = inCfoRad[i];
+            // d_cfoRad = inCfoRad[i];
+
+            std::vector<gr::tag_t> tags;
+            get_tags_in_range(tags, 0, nitems_read(0) + i, nitems_read(0) + i + 1);
+            if (tags.size())
+            {
+              pmt::pmt_t d_meta = pmt::make_dict();
+              for (auto tag : tags){
+                d_meta = pmt::dict_add(d_meta, tag.key, tag.value);
+              }
+              t_rad = (float)pmt::to_double(pmt::dict_ref(d_meta, pmt::mp("rad"), pmt::from_double(0.0)));
+              d_cfoRad = t_rad;
+              t_snr = (float)pmt::to_double(pmt::dict_ref(d_meta, pmt::mp("snr"), pmt::from_double(0.0)));
+              dout<<"ieee80211 signal2, rd tag cfo:"<<(t_rad) * 20000000.0f / 2.0f / M_PI<<", snr:"<<t_snr<<std::endl;
+            }
+            else
+            {
+              dout<<"ieee80211 signal2, error: sync no tag !!!!!!!!!!!!!!"<<std::endl;
+            }
+
             break;
           }
         }
-        memset((uint8_t*)outSig1, 0, sizeof(gr_complex) * i);  // maybe not needed to set, not used anyway
-        memset((uint8_t*)outSig2, 0, sizeof(gr_complex) * i);
         consume_each(i);
-        return i;
+        return 0;
       }
       else if(d_sSignal == S_DEMOD)
       {
@@ -168,6 +183,7 @@ namespace gr {
             dict = pmt::dict_add(dict, pmt::mp("seq"), pmt::from_long(d_nSigPktSeq));
             dict = pmt::dict_add(dict, pmt::mp("mcs"), pmt::from_long(d_nSigMcs));
             dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_nSigLen));
+            dict = pmt::dict_add(dict, pmt::mp("nsamp"), pmt::from_long(d_nSample));
             dict = pmt::dict_add(dict, pmt::mp("csi"), pmt::init_c32vector(csi.size(), csi));
             pmt::pmt_t pairs = pmt::dict_items(dict);
             for (size_t i = 0; i < pmt::length(pairs); i++) {
@@ -179,18 +195,14 @@ namespace gr {
                               alias_pmt());
             }
             d_sSignal = S_COPY;
-            memset((uint8_t*)outSig1, 0, sizeof(gr_complex) * 224);  // maybe not needed to set, not used anyway
-            memset((uint8_t*)outSig2, 0, sizeof(gr_complex) * 224);
             consume_each(224);
-            return 224;
+            return 0;
           }
           else
           {
             d_sSignal = S_TRIGGER;
-            memset((uint8_t*)outSig1, 0, sizeof(gr_complex) * 80);  // maybe not needed to set, not used anyway
-            memset((uint8_t*)outSig2, 0, sizeof(gr_complex) * 80);
             consume_each(80);
-            return 80;
+            return 0;
           }
         }
         else
@@ -224,9 +236,25 @@ namespace gr {
             outSig2[i] = inSig2[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
             d_nSampleCopied++;
           }
-          d_sSignal = S_TRIGGER;
+          d_sSignal = S_PAD;
           consume_each(tmpNumGen);
           return tmpNumGen;
+        }
+      }
+      else if(d_sSignal == S_PAD)
+      {
+        if(d_nGen >= 320)
+        {
+          memset((uint8_t*)outSig1, 0, sizeof(gr_complex) * 320);
+          memset((uint8_t*)outSig2, 0, sizeof(gr_complex) * 320);
+          d_sSignal = S_TRIGGER;
+          consume_each(0);
+          return 320;
+        }
+        else
+        {
+          consume_each(0);
+          return 0;
         }
       }
 

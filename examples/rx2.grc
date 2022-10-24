@@ -45,75 +45,6 @@ blocks:
     coordinate: [184, 12]
     rotation: 0
     state: enabled
-- name: blocks_complex_to_mag_0
-  id: blocks_complex_to_mag
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [672, 16.0]
-    rotation: 0
-    state: true
-- name: blocks_complex_to_mag_squared_0
-  id: blocks_complex_to_mag_squared
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [344, 320.0]
-    rotation: 0
-    state: true
-- name: blocks_delay_0
-  id: blocks_delay
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    delay: '16'
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    num_ports: '1'
-    type: complex
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [336, 40.0]
-    rotation: 0
-    state: true
-- name: blocks_divide_xx_0
-  id: blocks_divide_xx
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    num_inputs: '2'
-    type: float
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [864, 16.0]
-    rotation: 0
-    state: true
 - name: blocks_file_source_0
   id: blocks_file_source
   parameters:
@@ -133,7 +64,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [0, 140.0]
+    coordinate: [0, 188.0]
     rotation: 0
     state: enabled
 - name: blocks_file_source_0_0
@@ -155,65 +86,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [0, 244.0]
+    coordinate: [0, 220.0]
     rotation: 0
     state: enabled
-- name: blocks_moving_average_xx_0
-  id: blocks_moving_average_xx
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    length: '48'
-    max_iter: '4000'
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    scale: '1'
-    type: complex
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [544, 164.0]
-    rotation: 0
-    state: true
-- name: blocks_moving_average_xx_1
-  id: blocks_moving_average_xx
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    length: '64'
-    max_iter: '4000'
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    scale: '1'
-    type: float
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [536, 292.0]
-    rotation: 0
-    state: true
-- name: blocks_multiply_conjugate_cc_0
-  id: blocks_multiply_conjugate_cc
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [472, 56.0]
-    rotation: 0
-    state: true
 - name: blocks_throttle_0
   id: blocks_throttle
   parameters:
@@ -230,7 +105,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [216, 172.0]
+    coordinate: [240, 220.0]
     rotation: 0
     state: true
 - name: ieee80211_decode_0
@@ -239,6 +114,7 @@ blocks:
     affinity: ''
     alias: ''
     comment: ''
+    inpara: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
   states:
@@ -263,7 +139,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1472, 144.0]
+    coordinate: [1192, 176.0]
     rotation: 0
     state: true
 - name: ieee80211_signal2_0
@@ -278,7 +154,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1288, 144.0]
+    coordinate: [992, 192.0]
     rotation: 0
     state: true
 - name: ieee80211_sync_0
@@ -293,7 +169,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1080, 128.0]
+    coordinate: [848, 160.0]
     rotation: 0
     state: true
 - name: ieee80211_trigger_0
@@ -308,7 +184,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1000, 32.0]
+    coordinate: [656, 160.0]
     rotation: 0
     state: true
 - name: network_udp_sink_0
@@ -348,32 +224,38 @@ blocks:
     coordinate: [1176, 348.0]
     rotation: 0
     state: true
+- name: presiso_0
+  id: presiso
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [408, 160.0]
+    rotation: 0
+    state: true
 
 connections:
-- [blocks_complex_to_mag_0, '0', blocks_divide_xx_0, '0']
-- [blocks_complex_to_mag_squared_0, '0', blocks_moving_average_xx_1, '0']
-- [blocks_delay_0, '0', blocks_multiply_conjugate_cc_0, '0']
-- [blocks_divide_xx_0, '0', ieee80211_trigger_0, '0']
 - [blocks_file_source_0, '0', blocks_throttle_0, '0']
-- [blocks_file_source_0_0, '0', ieee80211_signal2_0, '3']
-- [blocks_moving_average_xx_0, '0', blocks_complex_to_mag_0, '0']
-- [blocks_moving_average_xx_0, '0', ieee80211_sync_0, '2']
-- [blocks_moving_average_xx_1, '0', blocks_divide_xx_0, '1']
-- [blocks_multiply_conjugate_cc_0, '0', blocks_moving_average_xx_0, '0']
-- [blocks_throttle_0, '0', blocks_complex_to_mag_squared_0, '0']
-- [blocks_throttle_0, '0', blocks_delay_0, '0']
-- [blocks_throttle_0, '0', blocks_multiply_conjugate_cc_0, '1']
-- [blocks_throttle_0, '0', ieee80211_signal2_0, '2']
-- [blocks_throttle_0, '0', ieee80211_sync_0, '1']
+- [blocks_file_source_0_0, '0', ieee80211_signal2_0, '2']
+- [blocks_throttle_0, '0', ieee80211_signal2_0, '1']
+- [blocks_throttle_0, '0', ieee80211_sync_0, '2']
+- [blocks_throttle_0, '0', presiso_0, '0']
 - [ieee80211_decode_0, out, pdu_pdu_to_tagged_stream_0, pdus]
 - [ieee80211_demod2_0, '0', ieee80211_decode_0, '0']
 - [ieee80211_signal2_0, '0', ieee80211_demod2_0, '1']
 - [ieee80211_signal2_0, '1', ieee80211_demod2_0, '2']
 - [ieee80211_sync_0, '0', ieee80211_demod2_0, '0']
 - [ieee80211_sync_0, '0', ieee80211_signal2_0, '0']
-- [ieee80211_sync_0, '1', ieee80211_signal2_0, '1']
 - [ieee80211_trigger_0, '0', ieee80211_sync_0, '0']
 - [pdu_pdu_to_tagged_stream_0, '0', network_udp_sink_0, '0']
+- [presiso_0, '0', ieee80211_trigger_0, '0']
+- [presiso_0, '1', ieee80211_sync_0, '1']
 
 metadata:
   file_format: 1

@@ -10,9 +10,6 @@ inputs:
 - label: sync
   domain: stream
   dtype: byte
-- label: inCfoRad
-  domain: stream
-  dtype: float
 - label: inSig1
   domain: stream
   dtype: complex

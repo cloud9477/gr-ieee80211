@@ -63,11 +63,8 @@ namespace gr {
                        gr_vector_void_star &output_items)
     {
       const uint8_t* sync = static_cast<const uint8_t*>(input_items[0]);
-      // const float* inCfoRad = static_cast<const float*>(input_items[1]);
       const gr_complex* inSig1 = static_cast<const gr_complex*>(input_items[1]);
-      
       gr_complex* outSig1 = static_cast<gr_complex*>(output_items[0]);
-      
       // input and output not sync
       d_nProc = std::min(ninput_items[0], ninput_items[1]);
       d_nGen = noutput_items;
@@ -102,7 +99,6 @@ namespace gr {
 
             break;
           }
-          // outSig1[i] = gr_complex(0.0f, 0.0f);    // maybe not needed to set, not used anyway
         }
         consume_each(i);
         return 0;
@@ -189,16 +185,12 @@ namespace gr {
                               alias_pmt());
             }
             d_sSignal = S_COPY;
-            // memset(outSig1, 0, sizeof(gr_complex) * 224);  // maybe not needed to set, not used anyway
-            
             consume_each(224);
             return 0;
           }
           else
           {
             d_sSignal = S_TRIGGER;
-            // memset(outSig1, 0, sizeof(gr_complex) * 80);  // maybe not needed to set, not used anyway
-            
             consume_each(80);
             return 0;
           }
@@ -232,14 +224,6 @@ namespace gr {
             outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
             d_nSampleCopied++;
           }
-          // if(d_nSample >= 1000)
-          // {
-          //   d_sSignal = S_TRIGGER;
-          // }
-          // else
-          // {
-          //   d_sSignal = S_PAD;
-          // }
           d_sSignal = S_PAD;
           consume_each(tmpNumGen);
           return tmpNumGen;
@@ -247,13 +231,6 @@ namespace gr {
       }
       else if(d_sSignal == S_PAD)
       {
-        // if(d_nGen > (1000 - d_nSample))
-        // {
-        //   memset((uint8_t*)outSig1, 0, sizeof(gr_complex) * (1000 - d_nSample));
-        //   d_sSignal = S_TRIGGER;
-        //   consume_each(0);
-        //   return (1000 - d_nSample);
-        // }
         if(d_nGen >= 320)
         {
           memset((uint8_t*)outSig1, 0, sizeof(gr_complex) * 320);

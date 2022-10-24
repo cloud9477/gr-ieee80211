@@ -939,9 +939,9 @@ if __name__ == "__main__":
 
 
     pkt = genMac80211UdpMPDU(udpPayload500)
-    phy80211Ins.genVht(pkt, p8h.phy80211format('vht', mcs=0, bw=h.BW_20, nSTS=1, pktLen=len(pkt), shortGi=False))
-    ssFinal = phy80211Ins.genFinalSig(100.0, 311233, 1, True, 10000)
-    phy80211Ins.genSigBinFile(ssFinal, "/home/cloud/sdr/sig80211VhtGenCfo100", True)
+    phy80211Ins.genVht(pkt, p8h.phy80211format('vht', mcs=0, bw=h.BW_20, nSTS=2, pktLen=len(pkt), shortGi=False))
+    ssFinal = phy80211Ins.genFinalSig(100.0, 311233, 2000, True, 10000)
+    phy80211Ins.genSigBinFile(ssFinal, "/home/cloud/sdr/sig80211VhtGenCfo100", False)
 
 
 

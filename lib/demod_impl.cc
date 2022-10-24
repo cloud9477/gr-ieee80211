@@ -40,7 +40,6 @@ namespace gr {
               d_ofdm_fft(64,1)
     {
       d_nProc = 0;
-      d_muPos = 1;
       d_debug = false;
       d_sDemod = DEMOD_S_RDTAG;
       set_tag_propagation_policy(block::TPP_DONT);
@@ -89,10 +88,6 @@ namespace gr {
             std::copy(tmp_csi.begin(), tmp_csi.end(), d_H);
             dout<<"ieee80211 demod, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<std::endl;
             d_nSampConsumed = 0;
-            // if(d_nSigLSamp < 1000)
-            // {
-            //   d_nSigLSamp = 1000;
-            // }
             d_nSigLSamp = d_nSigLSamp + 320;
             if(d_nSigLMcs > 0)
             {

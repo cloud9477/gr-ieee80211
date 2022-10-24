@@ -9,7 +9,7 @@ options:
     description: ''
     gen_cmake: 'On'
     gen_linking: dynamic
-    generate_options: qt_gui
+    generate_options: no_gui
     hier_block_src_path: '.:'
     id: wifirx
     max_nouts: '0'
@@ -52,7 +52,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/gr-ieee80211/tools/sig80211VhtGenCfo_2x2_0.bin
+    file: /home/cloud/sdr/sig80211VhtGenCfo100_2x2_0.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -74,7 +74,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/gr-ieee80211/tools/sig80211VhtGenCfo_2x2_1.bin
+    file: /home/cloud/sdr/sig80211VhtGenCfo100_2x2_1.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -108,6 +108,25 @@ blocks:
     coordinate: [240, 220.0]
     rotation: 0
     state: true
+- name: blocks_throttle_0_0
+  id: blocks_throttle
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    ignoretag: 'True'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samples_per_second: samp_rate
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [240, 252.0]
+    rotation: 0
+    state: true
 - name: ieee80211_decode_0
   id: ieee80211_decode
   parameters:
@@ -121,7 +140,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1016, 352.0]
+    coordinate: [1040, 348.0]
     rotation: 0
     state: enabled
 - name: ieee80211_demod2_0
@@ -134,12 +153,11 @@ blocks:
     minoutbuf: '0'
     mugid: '2'
     mupos: '0'
-    nrx: '2'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1192, 176.0]
+    coordinate: [1168, 208.0]
     rotation: 0
     state: true
 - name: ieee80211_signal2_0
@@ -221,7 +239,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1176, 348.0]
+    coordinate: [1200, 348.0]
     rotation: 0
     state: true
 - name: presiso_0
@@ -242,15 +260,15 @@ blocks:
 
 connections:
 - [blocks_file_source_0, '0', blocks_throttle_0, '0']
-- [blocks_file_source_0_0, '0', ieee80211_signal2_0, '2']
+- [blocks_file_source_0_0, '0', blocks_throttle_0_0, '0']
 - [blocks_throttle_0, '0', ieee80211_signal2_0, '1']
 - [blocks_throttle_0, '0', ieee80211_sync_0, '2']
 - [blocks_throttle_0, '0', presiso_0, '0']
+- [blocks_throttle_0_0, '0', ieee80211_signal2_0, '2']
 - [ieee80211_decode_0, out, pdu_pdu_to_tagged_stream_0, pdus]
 - [ieee80211_demod2_0, '0', ieee80211_decode_0, '0']
-- [ieee80211_signal2_0, '0', ieee80211_demod2_0, '1']
-- [ieee80211_signal2_0, '1', ieee80211_demod2_0, '2']
-- [ieee80211_sync_0, '0', ieee80211_demod2_0, '0']
+- [ieee80211_signal2_0, '0', ieee80211_demod2_0, '0']
+- [ieee80211_signal2_0, '1', ieee80211_demod2_0, '1']
 - [ieee80211_sync_0, '0', ieee80211_signal2_0, '0']
 - [ieee80211_trigger_0, '0', ieee80211_sync_0, '0']
 - [pdu_pdu_to_tagged_stream_0, '0', network_udp_sink_0, '0']

@@ -7,7 +7,7 @@ import time
 import struct
 
 # device info
-staID = 1
+staID = 0
 print("cloud80211 pyMac starts, station ID:" + str(staID))
 
 staMacIp = "127.0.0.1"
@@ -31,7 +31,7 @@ while(True):
             print("station NDP channel info recvd")
             tmpChanPkt = rxPkt[3:1024 + 3]
             print("write chan into file" + str(staID))
-            fWaveBin = open("/home/cloud/sdr/cmu-chan"+str(staID)+".bin", 'wb')
+            fWaveBin = open("/home/cloud/sdr/cmu_chan"+str(staID)+".bin", 'wb')
             fWaveBin.write(tmpChanPkt)
             fWaveBin.close()
             print("write chan into file done!!!!!!!!")

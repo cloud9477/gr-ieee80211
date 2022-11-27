@@ -11,305 +11,375 @@ import time
 
 class phy80211():
     def __init__(self):
-        self.h = p8h.phy80211header()
-        self.m = p8h.phy80211mod()
-        self.f = p8h.phy80211format('l', 0, self.h.BW_20, 1, False)
-
-        self.nSym = 0       # number of symbols in data field
-        self.psduLen = 0
-        self.apepLen = 0
-        self.dataScrambler = 93  # scrambler used for scrambling, from 1 to 127
-        self.vhtPartialAid = 0
-        self.vhtGroupId = 0
-        self.vhtPadN = 0
-        self.vhtSigBCrcBits = []
-        # ----------------------------------------------------------
-        self.mpduMu = []
-        self.fMu = []
-        self.mMu = []
-        self.ifMu = 0
-        self.nMuUser = 0
-
-        self.nSymMu = 0
-        self.nSSMu = 0
-        self.vhtSigBCrcBitsMu = []
-        self.ssSymbolsMu = []
-
-        self.bfQ = []
-        #-----------------------------------------------------------
+        self.m = p8h.modulation()
+        self.mpdu = b""
+        self.ampdu = b""
+        self.dataScrambler = 93         # scrambler used for scrambling, from 1 to 127
         self.ssP = [[], [], [], []]     # pilots of ss
-        self.ssPPI = [0, 0, 0, 0]      # pilot polarity index of ss
-        # L-STF & L-LTF, L-SIG
-        self.ssLegacyPreamble = []
+        self.ssPPI = [0, 0, 0, 0]       # pilot polarity index of ss
+        # legacy training, legacy sig
+        self.ssLegacyTraining = []
         self.ssLegacySig = []
-        # HT-SIG, HT-STF- HT-LTF
+        # ht sig, ht Training, vht sig a, vht training, vht sig b
         self.ssHtSig = []
-        self.ssHtPreamble = []
-        # VHT-SIG, VHT-STF, VHT-LTF
+        self.ssHtTraining = []
         self.ssVhtSigA = []
-        self.ssVhtPreamble = []
+        self.ssVhtTraining = []
         self.ssVhtSigB = []
-        # VHT data
-        self.dataBits = []  # original data bits
-        self.dataScrambledBits = []  # scrambled data bits
-        self.dataConvolvedBits = []  # convolved data bits, use convolutional coding
-        self.dataPuncturedBits = []  # punctured bits according to rate
-        self.ssStreamParserBits = []
-        self.ssInterleaveBits = []    # interleave bits to sub carriers
-        self.ssSymbols = []          # bits map to constellation
-        self.ssPhySig = []          # sig sample of phy
-        self.ssFinalSig = []        # sig sample to be used
+        # data
+        self.dataBits = []              # original data bits
+        self.esCodedBits = []           # coded bits of nES encoders, legacy has only one encoder
+        self.ssStreamBits = []          # parsered bits of nSS streams
+        self.ssIntedBits = []           # interleaved bits of nSS streams
+        self.ssSymbols = []             # qam constellations of nSS streams
+        self.ssPhySig = []              # phy samples of nSS streams
+        self.ssFinalSig = []            # phy samples of nSS streams for figure or GNU Radio bin file
+        # vht special
+        self.vhtPartialAid = 0
+        self.vhtGroupId = 0             # Group ID, 0 to AP, 63 to stations
+        self.vhtSigBCrcBits = []
+        self.ampduMu = [b""] * 4
+        self.mMu = [p8h.modulation(), p8h.modulation(), p8h.modulation(), p8h.modulation()]
+        self.nUserMu = 0
+        self.nSymMu = 0
+        self.nSTSMu = 0
+        self.vhtSigBCrcBitsMu = [[], [], [], []]
+        self.bfQ = []
 
-    def genLegacy(self, mpdu, phyFormat):
-        self.mpdu = mpdu
-        self.f = phyFormat
-        self.m = p8h.getMod(self.f)
-        self.psduLen = len(self.mpdu)
-
-    def genHt(self, mpdu, phyFormat):
-        self.mpdu = mpdu
-        self.f = phyFormat
-        self.m = p8h.getMod(self.f)
-        self.psduLen = len(self.mpdu)
-
-    def genVht(self, mpdu, phyFormat, partialAid = 0, groupId = 0):
-        self.mpdu = mpdu
-        self.f = phyFormat
-        self.m = p8h.getMod(self.f)
-        self.vhtPartialAid = partialAid
-        self.vhtGroupId = groupId       # Group ID, 0 to AP, 63 to stations
-        self.apepLen = len(self.mpdu)
-        print("VHT physical APEP len:", self.apepLen)
-        self.ifMu = 0
-        if(self.apepLen > 0):
-            self.__genLegacyTraining()
-            self.__genLegacySignal()
-            self.__genVhtSignalA()
-            self.__genVhtTraining()
-            self.__genVhtSignalB()
-            self.__genDataBits()
-            self.__genScrambledDataBits()
-            self.__genBccDataBits()
-            self.__genPuncturedDataBits()
-            self.__genStreamParserDataBits()
-            self.__genInterleaveDataBits()
-            self.__genConstellation()
-            self.__genOfdmSignal()
+    def genFromMpdu(self, mpdu, mod):
+        if(isinstance(mpdu, (bytes, bytearray)) and isinstance(mod, p8h.modulation) and len(mpdu) > 0 and mod.initRes):
+            if(mod.phyFormat == p8h.F.L):
+                self.mpdu = mpdu
+                self.m = mod
+                self.m.ampdu = False
+                self.m.procPktLenNonAggre(len(self.mpdu))
+                self.__genLegacyTraining()
+                self.__genLegacySignal()
+                self.__genDataBits()
+                self.__genCodedBits()
+                self.__genStreamParserDataBits()
+                self.__genInterleaveDataBits()
+                self.__genConstellation()
+                self.__genOfdmSignal()
+            elif(mod.phyFormat == p8h.F.HT):
+                self.mpdu = mpdu
+                self.m = mod
+                self.m.ampdu = False
+                self.m.procPktLenNonAggre(len(self.mpdu))
+                self.__genLegacyTraining()
+                self.__genLegacySignal()
+                self.__genHtSignal()
+                self.__genNonLegacyTraining()
+                self.__genDataBits()
+                self.__genCodedBits()
+                self.__genStreamParserDataBits()
+                self.__genInterleaveDataBits()
+                self.__genConstellation()
+                self.__genOfdmSignal()
+            else:
+                print("cloud phy80211, genFromMpdu input format error, %s is not supported" % mod.phyFormat)
+                return
         else:
-            # NDP
-            self.__genLegacyTraining()
-            self.__genLegacySignal()
-            self.__genVhtSignalA()
-            self.__genVhtTraining()
-            self.__genVhtSignalB()
-            self.__genOfdmSignalNdp()
-        return self.ssPhySig
-
-    def genVhtMu(self, mpduMu, phyFormatMu, bfQ = [], groupId = 0):
-        if(len(mpduMu) == len(phyFormatMu)):
-            pass
-        else:
+            print("cloud phy80211, genFromMpdu input param error")
             return
-        self.ifMu = 1
-        self.nMuUser = len(mpduMu)
-        print("VHT MU number of users:", self.nMuUser)
-        self.mpduMu = mpduMu
-        self.fMu = phyFormatMu
-        self.mMu = []
-        for each in self.fMu:
-            self.mMu.append(p8h.getMod(each))
-        self.vhtGroupId = groupId       # multiple user, 1 to 62
-        print("VHT MU nSym of users:", [each.nSym for each in self.mMu])
-        self.nSymMu = max([each.nSym for each in self.mMu])
-        for i in range(0, self.nMuUser):
-            self.mMu[i].nSym = self.nSymMu
 
-        self.m = p8h.getMod(self.fMu[0])
-        self.nSSMu = sum([each.nSS for each in self.mMu])
-        self.m.nSS = self.nSSMu
-        self.f.type = 'vht'
-        self.f.nSTS = sum([each.nSTS for each in self.fMu])
-        self.m.nLtf = self.h.LTF_VHT_N[self.m.nSS]
-        print("VHT MU nSTS, nSS, nLTF:", self.f.nSTS, self.m.nSS, self.m.nLtf)
+    def genFromAmpdu(self, ampdu, mod, vhtPartialAid = 0, vhtGroupId = 0):
+        if(isinstance(ampdu, (bytes, bytearray)) and isinstance(mod, p8h.modulation) and mod.initRes):
+            if(mod.phyFormat == p8h.F.HT):
+                self.ampdu = ampdu
+                self.m = mod
+                self.m.ampdu = True
+                self.m.procPktLenAggre(len(self.ampdu))
+                self.__genLegacyTraining()
+                self.__genLegacySignal()
+                self.__genHtSignal()
+                self.__genNonLegacyTraining()
+                self.__genDataBits()
+                self.__genCodedBits()
+                self.__genStreamParserDataBits()
+                self.__genInterleaveDataBits()
+                self.__genConstellation()
+                self.__genOfdmSignal()
+            elif(mod.phyFormat == p8h.F.VHT):
+                if(vhtPartialAid >= 0 and (vhtGroupId == 0 or vhtGroupId == 63)):
+                    # single user packet either goes to AP or to station
+                    # 0: sta to AP, 63: AP to sta
+                    if(len(ampdu) > 0):
+                        print("cloud phy80211, genVht type general packet")
+                        self.ampdu = ampdu
+                        self.m = mod
+                        self.m.ampdu = True
+                        self.m.procPktLenAggre(len(self.ampdu))
+                        self.vhtPartialAid = vhtPartialAid
+                        self.vhtGroupId = vhtGroupId
+                        self.m.mu = False
+                        self.__genLegacyTraining()
+                        self.__genLegacySignal()
+                        self.__genVhtSignalA()
+                        self.__genNonLegacyTraining()
+                        self.__genVhtSignalB()
+                        self.__genDataBits()
+                        self.__genCodedBits()
+                        self.__genStreamParserDataBits()
+                        self.__genInterleaveDataBits()
+                        self.__genConstellation()
+                        self.__genOfdmSignal()
+                    else:
+                        # NDP
+                        print("cloud phy80211, genVht type NDP packet")
+                        self.ampdu = b""
+                        self.m = mod
+                        self.m.ampdu = True
+                        self.m.procPktLenAggre(0)
+                        self.vhtPartialAid = vhtPartialAid
+                        self.vhtGroupId = vhtGroupId
+                        self.m.mu = False
+                        self.__genLegacyTraining()
+                        self.__genLegacySignal()
+                        self.__genVhtSignalA()
+                        self.__genNonLegacyTraining()
+                        self.__genVhtSignalB()
+                        self.__genOfdmSignalNdp()
+            else:
+                print("cloud phy80211, genFromAmpdu input format error, %s is not supported" % mod.phyFormat)
+                return
+        else:
+            print("cloud phy80211, genFromAmpdu input param error")
+            return
+
+    def genAmpduMu(self, nUser = 2, bfQ = [], groupId = 1, ampdu0=b"", mod0 = p8h.modulation(), ampdu1=b"", mod1 = p8h.modulation(), ampdu2=b"", mod2 = p8h.modulation(), ampdu3=b"", mod3 = p8h.modulation()):
+        # get input params
+        self.ampduMu = [ampdu0, ampdu1, ampdu2, ampdu3]
+        self.mMu = [mod0, mod1, mod2, mod3]
+        self.nUserMu = nUser
+        print("VHT MU number of users:", self.nUserMu)
+        # prepare each mod
+        self.nSymMu = 0
+        self.nSTSMu = 0
+        for u in range(0, nUser):
+            self.mMu[u].procPktLenAggre(len(self.ampduMu[u]))
+            print("user %d symbol number %d" % (u, self.mMu[u].nSym))
+            self.nSymMu = max(self.nSymMu, self.mMu[u].nSym)
+            self.nSTSMu += self.mMu[u].nSTS
+        self.m = p8h.modulation(phyFormat=p8h.F.VHT, mcs=0, bw=mod0.bw, nSTS=self.nSTSMu, shortGi=mod0.sgi)
+        self.m.procPktLenAggreMu(0, self.nSymMu)
+        self.m.mu = True
+        print("VHT MU mod nSTS %d, nSS %d, nLTF %d" % (self.m.nSTS, self.m.nSS, self.m.nLtf))
         self.bfQ = bfQ
-
+        self.vhtGroupId = groupId       # multiple user, 1 to 62
         self.__genLegacyTraining()
         self.__genLegacySignal()
         self.__genVhtSignalA()
-        self.__genVhtTraining()
+        self.__genNonLegacyTraining()
         self.__genVhtSignalBMu()
-
         self.ssSymbolsMu = []
-        for n in range(0, self.nMuUser):
-            self.mpdu = self.mpduMu[n]
-            self.apepLen = len(self.mpdu)
-            self.f = self.fMu[n]
-            self.m = p8h.getMod(self.f)
-            self.vhtSigBCrcBits = self.vhtSigBCrcBitsMu[n]
+        for u in range(0, self.nUserMu):
+            self.ampdu = self.ampduMu[u]
+            self.m = self.mMu[u]
+            self.m.procPktLenAggreMu(len(self.ampdu), self.nSymMu)
+            self.vhtSigBCrcBits = self.vhtSigBCrcBitsMu[u]
             self.__genDataBits()
-            self.__genScrambledDataBits()
-            self.__genBccDataBits()
-            self.__genPuncturedDataBits()
+            self.__genCodedBits()
             self.__genStreamParserDataBits()
             self.__genInterleaveDataBits()
             self.__genConstellation()
             for each in self.ssSymbols:
                 self.ssSymbolsMu.append(each)
-
-        self.m = p8h.getMod(self.fMu[0])
-        self.nSSMu = sum([each.nSS for each in self.mMu])
-        self.m.nSS = self.nSSMu
-        self.f.type = 'vht'
-        self.f.nSTS = sum([each.nSTS for each in self.fMu])
+        self.m = p8h.modulation(phyFormat=p8h.F.VHT, mcs=0, bw=mod0.bw, nSTS=self.nSTSMu, shortGi=mod0.sgi)
+        self.m.procPktLenAggreMu(0, self.nSymMu)
+        self.m.mu = True
         self.__genOfdmSignalMu()
 
     def __genLegacyTraining(self):
-        self.ssLegacyPreamble = []
+        self.ssLegacyTraining = []
         for ssItr in range(0, self.m.nSS):
-            tmpStf = p8h.procToneScaling(p8h.procIDFT(
-                p8h.procLegacyCSD(p8h.procNonDataSC(self.h.STF_L[self.f.bw]), self.m.nSS, ssItr, self.m.spr)),
-                                         self.h.SCALENTF_STF_L[self.f.bw], self.m.nSS)
-            tmpLtf = p8h.procToneScaling(p8h.procIDFT(
-                p8h.procLegacyCSD(p8h.procNonDataSC(self.h.LTF_L[self.f.bw]), self.m.nSS, ssItr, self.m.spr)),
-                                         self.h.SCALENTF_LTF_L[self.f.bw], self.m.nSS)
+            tmpStf = p8h.procToneScaling(p8h.procFftMod(
+                p8h.procLegacyCSD(p8h.procNonDataSC(p8h.C_STF_L[self.m.bw.value]), self.m.nSS, ssItr, self.m.spr)),
+                                         p8h.C_SCALENTF_STF_L[self.m.bw.value], self.m.nSS)
+            tmpLtf = p8h.procToneScaling(p8h.procFftMod(
+                p8h.procLegacyCSD(p8h.procNonDataSC(p8h.C_LTF_L[self.m.bw.value]), self.m.nSS, ssItr, self.m.spr)),
+                                         p8h.C_SCALENTF_LTF_L[self.m.bw.value], self.m.nSS)
             tmpStf = tmpStf[int(len(tmpStf)/2):] + tmpStf + tmpStf
             tmpLtf = tmpLtf[int(len(tmpLtf)/2):] + tmpLtf + tmpLtf
-            self.ssLegacyPreamble.append(p8h.procConcat2Symbol(tmpStf, tmpLtf))
-        print("legacy training sample len %d" % (len(self.ssLegacyPreamble[0])))
+            self.ssLegacyTraining.append(p8h.procConcat2Symbol(tmpStf, tmpLtf))
+        print("cloud phy80211, legacy training sample len %d" % (len(self.ssLegacyTraining[0])))
 
     def __genLegacySignal(self):
+        # ieee 80211 2016 ofdm phy, sec 17.3.4
         self.ssLegacySig = []
         tmpHeaderBits = []
         # legacy rate
-        for i in range(0, 4):
-            tmpHeaderBits.append((self.m.legacyRate>>i) & (1))
+        if(self.m.phyFormat == p8h.F.L):
+            tmpHeaderBits += p8h.C_LEGACY_RATE_BIT[self.m.mcs]      # legacy use mcs
+        else:
+            tmpHeaderBits += p8h.C_LEGACY_RATE_BIT[0]               # ht vht use 6M
         # legacy reserved
         tmpHeaderBits.append(0)
-        # legacy length
-        if(self.f.type == 'l'):
-            tmpHeaderLength = self.psduLen
-        else:
-            tLegacyPreamble = 8 + 8
-            tLegacySig = 4
-            tHtSig = 8
-            tHtPreamble = 4 + self.m.nLtf * 4
-            tVhtSigA = 8
-            tVhtPreamble = 4 + self.m.nLtf * 4
-            tVhtSigB = 4
-            tSymL = 4
-            txTime = 0
-            if(self.f.type == 'ht'):
-                self.nSym = self.m.nSym
-                txTime = tLegacyPreamble + tLegacySig + tHtSig + tHtPreamble + self.nSym * tSymL
-            elif(self.f.type == 'vht'):
-                self.nSym = self.m.nSym
-                txTime = tLegacyPreamble + tLegacySig + tVhtSigA + tVhtPreamble + tVhtSigB + self.nSym * tSymL
-            print(txTime)
-            tmpHeaderLength = int(np.ceil((txTime - 20) / 4)) * 3 - 3
         # add length bits
         for i in range(0, 12):
-            tmpHeaderBits.append((tmpHeaderLength >> i) & (1))
+            tmpHeaderBits.append((self.m.legacyLen >> i) & (1))
         # add parity bit
         tmpHeaderBits.append(sum(tmpHeaderBits)%2)
         # add 6 tail bits
         tmpHeaderBits += [0] * 6
-        print("legacy length:", tmpHeaderLength)
+        print("legacy len:", self.m.legacyLen)
         print("legacy sig bit length:", len(tmpHeaderBits))
         print(tmpHeaderBits)
-        # convolution of header bits, no scrambling for header
-        tmpHeaderConvolvedBits = [0] * 48
-        tmpState = 0
-        for i in range(0, len(tmpHeaderBits)):
-            tmpState = ((tmpState << 1) & 0x7e) | tmpHeaderBits[i]
-            tmpHeaderConvolvedBits[i*2] = (bin(tmpState & 0o155).count("1")) % 2
-            tmpHeaderConvolvedBits[i * 2 + 1] = (bin(tmpState & 0o117).count("1")) % 2
-        # interleave of header bits from wime
-        print("legacy sig convolved bits: %d" % (len(tmpHeaderConvolvedBits)))
-        print(tmpHeaderConvolvedBits)
+        # convolution of sig bits, no scrambling for header
+        tmpHeaderCodedBits = p8h.procBcc(tmpHeaderBits, p8h.CR.CR12)
+        # interleave of header bits
+        print("legacy sig coded bits: %d" % (len(tmpHeaderCodedBits)))
+        print(tmpHeaderCodedBits)
         # interleave of header using standard method
-        tmpHeaderInterleaveBits = [0] * len(tmpHeaderConvolvedBits)
-        s = 1
-        # k is original index
-        for k in range(0, 48):
-            i = int((48/16) * (k % 16) + np.floor(k/16))
-            j = int(s * np.float(i/s) + (int(i + 48 - np.floor(16 * i / 48)) % s))
-            tmpHeaderInterleaveBits[j] = tmpHeaderConvolvedBits[k]
+        tmpHeaderInterleaveBits = p8h.procInterleaveSigL(tmpHeaderCodedBits)
         print("legacy sig interleaved bits %s" % (len(tmpHeaderInterleaveBits)))
         print(tmpHeaderInterleaveBits)
         tmpHeaderQam = []
         for each in tmpHeaderInterleaveBits:
-            tmpHeaderQam.append(self.h.QAM_MODU_TAB[self.h.QAM_BPSK][int(each)])
+            tmpHeaderQam.append(p8h.C_QAM_MODU_TAB[p8h.M.BPSK.value][int(each)])
         # add pilot
-        tmpHeaderQam = tmpHeaderQam[0:5] + [1] + tmpHeaderQam[5:18] + [1] + tmpHeaderQam[18:30] + [1] + tmpHeaderQam[30:43] + [-1] + tmpHeaderQam[43:48]
-        # add DC
+        tmpHeaderQam = p8h.procPilotInsert(tmpHeaderQam, [1, 1, 1, -1])
+        # add non data sc
         tmpHeaderQam = p8h.procNonDataSC(p8h.procDcInsert(tmpHeaderQam))
-        if (self.f.bw == self.h.BW_20):
+        if (self.m.bw == p8h.BW.BW20):
             tmpHeaderQam = tmpHeaderQam
-        elif (self.f.bw == self.h.BW_40):
+        elif (self.m.bw == p8h.BW.BW40):
             tmpHeaderQam = tmpHeaderQam * 2
-        elif (self.f.bw == self.h.BW_80):
+        else:   # 80
             tmpHeaderQam = tmpHeaderQam * 4
-        else:
-            print("len error")
         for ssItr in range(0, self.m.nSS):
-            self.ssLegacySig.append(p8h.procGi(p8h.procToneScaling(p8h.procIDFT(p8h.procLegacyCSD(tmpHeaderQam, self.m.nSS, ssItr, self.m.spr)), self.h.SCALENTF_SIG_L[self.f.bw], self.m.nSS)))
+            self.ssLegacySig.append(p8h.procGi(p8h.procToneScaling(p8h.procFftMod(p8h.procLegacyCSD(tmpHeaderQam, self.m.nSS, ssItr, self.m.spr)), p8h.C_SCALENTF_SIG_L[self.m.bw.value], self.m.nSS)))
         print("legacy sig sample len %d" % (len(self.ssLegacySig[0])))
+
+    def __genHtSignal(self):
+        self.ssHtSig = []
+        tmpHtSigBits = []
+        # mcs
+        for i in range(0, 7):
+            tmpHtSigBits.append((self.m.mcs >> i) & (1))
+        # bw
+        if(self.m.bw == p8h.BW.BW20):
+            tmpHtSigBits.append(0)
+        elif(self.m.bw == p8h.BW.BW40):
+            tmpHtSigBits.append(1)
+        else:
+            print("cloud phy80211, phy80211 genHtSignal input bw error")
+        # len
+        for i in range(0, 16):
+            tmpHtSigBits.append((self.m.psduLen >> i) & (1))
+        # channel smoothing
+        tmpHtSigBits.append(1)
+        # not sounding
+        tmpHtSigBits.append(1)
+        # reserved
+        tmpHtSigBits.append(1)
+        # aggregation
+        if(self.m.ampdu):
+            tmpHtSigBits.append(1)
+        else:
+            tmpHtSigBits.append(0)
+        # stbc not supported
+        tmpHtSigBits += [0, 0]
+        # only bcc is supported
+        tmpHtSigBits.append(0)
+        # short GI
+        if(self.m.sgi):
+            tmpHtSigBits.append(1)
+        else:
+            tmpHtSigBits.append(0)
+        # no ess
+        tmpHtSigBits += [0, 0]
+        # crc 8
+        tmpHtSigBits += p8h.genBitBitCrc8(tmpHtSigBits)
+        # tail
+        tmpHtSigBits += [0] * 6
+        print("HT signal bits: %d" % (len(tmpHtSigBits)))
+        print(tmpHtSigBits)
+        # coding
+        tmpHtSigCodedBits = p8h.procBcc(tmpHtSigBits, p8h.CR.CR12)
+        print("HT coded bits: %d" % (len(tmpHtSigCodedBits)))
+        print(tmpHtSigCodedBits)
+        # interleave
+        tmpHtSigIntedBits = p8h.procInterleaveSigL(tmpHtSigCodedBits[0:48]) + p8h.procInterleaveSigL(tmpHtSigCodedBits[48:96])
+        print("HT interleaved bits: %d" % (len(tmpHtSigIntedBits)))
+        print(tmpHtSigIntedBits)
+        # bpsk modulation
+        tmpSig1Qam = [p8h.C_QAM_MODU_TAB[p8h.M.QBPSK.value][each] for each in tmpHtSigIntedBits[0:48]]
+        tmpSig2Qam = [p8h.C_QAM_MODU_TAB[p8h.M.QBPSK.value][each] for each in tmpHtSigIntedBits[48:96]]
+        # insert pilot and non data sc
+        tmpSig1Qam = p8h.procNonDataSC(p8h.procDcInsert(p8h.procPilotInsert(tmpSig1Qam, [1,1,1,-1])))
+        tmpSig2Qam = p8h.procNonDataSC(p8h.procDcInsert(p8h.procPilotInsert(tmpSig2Qam, [1,1,1,-1])))
+        # higher bw
+        if (self.m.bw == p8h.BW.BW40):
+            tmpSig1Qam = tmpSig1Qam * 2
+            tmpSig2Qam = tmpSig2Qam * 2
+        for ssItr in range(0, self.m.nSS):
+            self.ssHtSig.append(
+                p8h.procConcat2Symbol(
+                p8h.procGi(p8h.procToneScaling(p8h.procFftMod(p8h.procLegacyCSD(tmpSig1Qam, self.m.nSS, ssItr, self.m.spr)),p8h.C_SCALENTF_SIG_HT[self.m.bw.value], self.m.nSS)),
+                p8h.procGi(p8h.procToneScaling(p8h.procFftMod(p8h.procLegacyCSD(tmpSig2Qam, self.m.nSS, ssItr, self.m.spr)),p8h.C_SCALENTF_SIG_HT[self.m.bw.value], self.m.nSS))))
 
     def __genVhtSignalA(self):
         self.ssVhtSigA = []
         tmpVhtSigABits = []
         # b 0 1, bw
         for i in range(0, 2):
-            tmpVhtSigABits.append((self.f.bw >> i) & (1))
+            tmpVhtSigABits.append((self.m.bw.value >> i) & (1))
         # b 2, reserved
         tmpVhtSigABits.append(1)
-        # b 3, STBC
+        # b 3, STBC not supported
         tmpVhtSigABits.append(0)
         # b 4 9, group id
         for i in range(0, 6):
             tmpVhtSigABits.append((self.vhtGroupId >> i) & (1))
-        if(self.ifMu):
+        if(self.m.mu):
             # multiple user mimo
             # b 10 21, user nSTS, 3 bits per user
-            for u in range(0, self.nMuUser):
-                print("user ", u, ", nSTS ", self.fMu[u].nSTS)
+            for u in range(0, self.nUserMu):
                 for i in range(0, 3):
-                    tmpVhtSigABits.append((self.fMu[u].nSTS >> i) & (1))
-            for u in range(0, 4 - self.nMuUser):
+                    tmpVhtSigABits.append((self.mMu[u].nSTS >> i) & (1))
+            for u in range(0, 4 - self.nUserMu):
                 for i in range(0, 3):
                     tmpVhtSigABits.append(0)
         else:
             # single user
             # b 10 12, SU nSTS
             for i in range(0, 3):
-                tmpVhtSigABits.append(((self.f.nSTS - 1) >> i) & (1))
+                tmpVhtSigABits.append(((self.m.nSTS - 1) >> i) & (1))
             # b 13 21, Partial AID
             for i in range(0, 9):
-                tmpVhtSigABits.append((self.vhtPartialAid >> i) & (1))     # matlab use 275 as partial AID
+                tmpVhtSigABits.append((self.vhtPartialAid >> i) & (1))
         # b 22 txop ps not allowed, set 0, allowed
         tmpVhtSigABits.append(0)
         # b 23 reserved
         tmpVhtSigABits.append(1)
-
-        # b 0 short GI, 0
-        tmpVhtSigABits.append(0)
+        # b 0 short GI
+        if(self.m.sgi):
+            tmpVhtSigABits.append(1)
+        else:
+            tmpVhtSigABits.append(0)
         # b 1 short GI disam
-        tmpVhtSigABits.append(0)
-        if (self.ifMu):
-            # b 2 MU 0 coding, BCC
+        if(self.m.sgi and (self.m.nSym%10) == 9):
+            tmpVhtSigABits.append(1)
+        else:
+            tmpVhtSigABits.append(0)
+        # b 2 coding
+        if (self.m.mu):
+            # MU user 0 coding, BCC
             tmpVhtSigABits.append(0)
         else:
-            # b 2 SU coding, BCC
+            # SU coding, BCC
             tmpVhtSigABits.append(0)
         # b 3 LDPC extra
         tmpVhtSigABits.append(0)
-        if (self.ifMu):
+        # b 4 8
+        if (self.m.mu):
             # b 4 6, MU 1 3 coding
             # if user in pos, then bcc
-            for u in range(1, self.nMuUser):
+            for u in range(1, self.nUserMu):
                 tmpVhtSigABits.append(0)
             # others reserved
-            for u in range(0, 4 - self.nMuUser):
+            for u in range(0, 4 - self.nUserMu):
                 tmpVhtSigABits.append(1)
             # b 7, MU reserved
             tmpVhtSigABits.append(1)
@@ -318,439 +388,332 @@ class phy80211():
         else:
             # b 4 7, MCS
             for i in range(0, 4):
-                tmpVhtSigABits.append((self.f.mcs >> i) & (1))
+                tmpVhtSigABits.append((self.m.mcs >> i) & (1))
             # b 8, beamformed
             tmpVhtSigABits.append(0)
         # b 9, reserved
         tmpVhtSigABits.append(1)
         # b 10 17 crc
-        tmpVhtSigABits += p8h.getBitCrc8(tmpVhtSigABits)
+        tmpVhtSigABits += p8h.genBitBitCrc8(tmpVhtSigABits)
         # b 18 23 tail
         tmpVhtSigABits += [0] * 6
-        print("VHT signal A bits: %d" % (len(tmpVhtSigABits)))
-        print(tmpVhtSigABits[0:24])
-        print(tmpVhtSigABits[24:48])
-        tmpConvolvedBits = [0]*96
-        tmpState = 0
-        for i in range(0, len(tmpVhtSigABits)):
-            tmpState = ((tmpState << 1) & 0x7e) | tmpVhtSigABits[i]
-            tmpConvolvedBits[i*2] = (bin(tmpState & 0o155).count("1")) % 2
-            tmpConvolvedBits[i * 2 + 1] = (bin(tmpState & 0o117).count("1")) % 2
-        tmpInterleavedBits = [0]*96
-        tmpSeq1 = [0] * 48
-        tmpSeq2 = [0] * 48
-        s = 1
-        for i in range(0, 48):
-            tmpSeq1[i] = int(s * int(i / s) + ((i + np.floor(16.0 * i / 48)) % s))
-            tmpSeq2[i] = int(16 * i - (48 - 1) * np.floor(16 * i / 48))
-        for i in range(0, 2):
-            for j in range(0, 48):
-                tmpInterleavedBits[int(i * 48 + j)] = tmpConvolvedBits[
-                    int(i * 48 + tmpSeq2[int(tmpSeq1[j])])]
-        print("VHT sig A interleaved")
-        print(tmpInterleavedBits)
-        tmpSig1Qam = [self.h.QAM_MODU_TAB[self.h.QAM_BPSK][each] for each in tmpInterleavedBits[0:48]]
-        tmpSig2Qam = [self.h.QAM_MODU_TAB[self.h.QAM_QBPSK][each] for each in tmpInterleavedBits[48:96]]
-        # insert pilot and DC
-        tmpSig1Qam = p8h.procDcInsert(p8h.procPilotInsert(tmpSig1Qam, [1,1,1,-1]))
-        tmpSig2Qam = p8h.procDcInsert(p8h.procPilotInsert(tmpSig2Qam, [1,1,1,-1]))
-        # copy to other sc for higher bandwidth
-        if (self.f.bw == self.h.BW_40):
+        print("VHT sig A bits: %d" % (len(tmpVhtSigABits)))
+        print(tmpVhtSigABits)
+        tmpCodedBits = p8h.procBcc(tmpVhtSigABits, p8h.CR.CR12)
+        print("VHT sig A coded bits: %d" % len(tmpCodedBits))
+        print(tmpCodedBits)
+        tmpIntedBits = p8h.procInterleaveSigL(tmpCodedBits[0:48]) + p8h.procInterleaveSigL(tmpCodedBits[48:96])
+        print("VHT sig A interleaved bits: %d" % len(tmpIntedBits))
+        print(tmpIntedBits)
+        # bpsk modulation
+        tmpSig1Qam = [p8h.C_QAM_MODU_TAB[p8h.M.BPSK.value][each] for each in tmpIntedBits[0:48]]
+        tmpSig2Qam = [p8h.C_QAM_MODU_TAB[p8h.M.QBPSK.value][each] for each in tmpIntedBits[48:96]]
+        # insert pilot and non data sc
+        tmpSig1Qam = p8h.procNonDataSC(p8h.procDcInsert(p8h.procPilotInsert(tmpSig1Qam, [1,1,1,-1])))
+        tmpSig2Qam = p8h.procNonDataSC(p8h.procDcInsert(p8h.procPilotInsert(tmpSig2Qam, [1,1,1,-1])))
+        # higher bw
+        if (self.m.bw == p8h.BW.BW40):
             tmpSig1Qam = tmpSig1Qam * 2
             tmpSig2Qam = tmpSig2Qam * 2
-        elif (self.f.bw == self.h.BW_80):
+        elif (self.m.bw == p8h.BW.BW80):
             tmpSig1Qam = tmpSig1Qam * 4
             tmpSig2Qam = tmpSig2Qam * 4
-        print("VHT signal A sig after DC sample len %d %d" % (len(tmpSig1Qam), len(tmpSig2Qam)))
         for ssItr in range(0, self.m.nSS):
             self.ssVhtSigA.append(
                 p8h.procConcat2Symbol(
-                p8h.procGi(p8h.procToneScaling(p8h.procIDFT(p8h.procLegacyCSD(p8h.procNonDataSC(tmpSig1Qam), self.m.nSS, ssItr, self.m.spr)),self.h.SCALENTF_SIG_VHT_A[self.f.bw], self.m.nSS)),
-                p8h.procGi(p8h.procToneScaling(p8h.procIDFT(p8h.procLegacyCSD(p8h.procNonDataSC(tmpSig2Qam), self.m.nSS, ssItr, self.m.spr)),self.h.SCALENTF_SIG_VHT_A[self.f.bw], self.m.nSS))
-                ))
-        print("VHT signal A sample len %d" % len(self.ssVhtSigA[0]))
+                p8h.procGi(p8h.procToneScaling(p8h.procFftMod(p8h.procLegacyCSD(tmpSig1Qam, self.m.nSS, ssItr, self.m.spr)),p8h.C_SCALENTF_SIG_VHT_A[self.m.bw.value], self.m.nSS)),
+                p8h.procGi(p8h.procToneScaling(p8h.procFftMod(p8h.procLegacyCSD(tmpSig2Qam, self.m.nSS, ssItr, self.m.spr)),p8h.C_SCALENTF_SIG_VHT_A[self.m.bw.value], self.m.nSS))))
 
-    # def __genVhtTraining(self):
-    #     self.ssVhtPreamble = []
-    #     for ssItr in range(0, self.m.nSS):
-    #         tmpVhtStf = p8h.procCSD(p8h.procNonDataSC(self.h.STF_VHT[self.f.bw]), self.m.nSS, ssItr, self.m.spr)
-    #
-    #         tmpVhtPreamble = p8h.procGi(p8h.procToneScaling(p8h.procIDFT(tmpVhtStf),self.h.SCALENTF_STF_VHT[self.f.bw], self.m.nSS))
-    #         if (self.m.nLtf <= 4):
-    #             for i in range(0, self.m.nLtf):
-    #                 # VHT LTF P and R !!!!!!!!
-    #                 tmpVhtLtf = []
-    #                 for j in range(0, len(self.h.LTF_VHT[self.f.bw])):
-    #                     if (self.f.bw == self.h.BW_20 and (j - 28) in [-21, -7, 7, 21]):
-    #                         tmpVhtLtf.append(self.h.LTF_VHT[self.f.bw][j] * self.h.R_LTF_VHT_4[i])
-    #                     elif(self.f.bw == self.h.BW_40 and (j - 58) in [-53, -25, -11, 11, 25, 53]):
-    #                         tmpVhtLtf.append(self.h.LTF_VHT[self.f.bw][j] * self.h.R_LTF_VHT_4[i])
-    #                     elif (self.f.bw == self.h.BW_80 and (j - 122) in [-103, -75, -39, -11, 11, 39, 75, 103]):
-    #                         tmpVhtLtf.append(self.h.LTF_VHT[self.f.bw][j] * self.h.R_LTF_VHT_4[i])
-    #                     else:
-    #                         tmpVhtLtf.append(self.h.LTF_VHT[self.f.bw][j] * self.h.P_LTF_VHT_4[ssItr][i])
-    #                 tmpVhtLtf = p8h.procGi(p8h.procToneScaling(p8h.procIDFT(p8h.procCSD(
-    #                     p8h.procNonDataSC(tmpVhtLtf), self.m.nSS, ssItr, self.m.spr)),
-    #                                      self.h.SCALENTF_LTF_VHT[self.f.bw], self.m.nSS))
-    #                 tmpVhtPreamble = p8h.procConcat2Symbol(tmpVhtPreamble, tmpVhtLtf)
-    #         self.ssVhtPreamble.append(tmpVhtPreamble)
-    #     print("VHT training sample len %d" % len(self.ssVhtPreamble[0]))
+    
 
-    def procSpatialMapping(self, inSigSs, inQ):
-        tmpNSs = len(inSigSs)
-        print("spatial mapping, fft len:", len(inQ))
-        outSigSs = []
-        for j in range(0, tmpNSs):
-            outSigSs.append([])
-        for k in range(0, len(inQ)):
-            tmpX = []
-            for j in range(0, tmpNSs):
-                tmpX.append([inSigSs[j][k]])
-            tmpX = np.array(tmpX)
-            tmpQX = np.matmul(inQ[k], tmpX)
-            for j in range(0, tmpNSs):
-                outSigSs[j].append(tmpQX[j][0])
-        return outSigSs
-
-
-    def __genVhtTraining(self):
-        self.ssVhtPreamble = []
+    def __genNonLegacyTraining(self):
+        tmpSsNonLegacyTraining = []
+        for i in range(0, self.m.nSS):
+            tmpSsNonLegacyTraining.append([])
+        # short training field, consider the beamforming spatial mapping
+        tmpStf = []
         for ssItr in range(0, self.m.nSS):
-            self.ssVhtPreamble.append([])
-        tmpVhtStf = []
+            tmpStf.append(p8h.procCSD(p8h.procNonDataSC(p8h.C_STF_VHT[self.m.bw.value]), self.m.nSS, ssItr, self.m.spr))
+        if(self.m.phyFormat == p8h.F.VHT and self.m.mu):
+            tmpStf = p8h.procSpatialMapping(tmpStf, self.bfQ)
         for ssItr in range(0, self.m.nSS):
-            tmpVhtStf.append(p8h.procCSD(p8h.procNonDataSC(self.h.STF_VHT[self.f.bw]), self.m.nSS, ssItr, self.m.spr))
-        if(self.ifMu):
-            tmpVhtStfQ = self.procSpatialMapping(tmpVhtStf, self.bfQ)
-        else:
-            tmpVhtStfQ = tmpVhtStf
-        for ssItr in range(0, self.m.nSS):
-            self.ssVhtPreamble[ssItr] = p8h.procGi(
-                p8h.procToneScaling(p8h.procIDFT(tmpVhtStfQ[ssItr]), self.h.SCALENTF_STF_VHT[self.f.bw], self.m.nSS))
-
+            tmpSsNonLegacyTraining[ssItr] = p8h.procGi(p8h.procToneScaling(p8h.procFftMod(tmpStf[ssItr]), p8h.C_SCALENTF_STF_VHT[self.m.bw.value], self.m.nSS))
+        # long training field, consider the vht different polarity setting and beamforming spatial mapping
         for ltfIter in range(0, self.m.nLtf):
-            tmpVhtLtfSs = []
+            # LTF is processed symbol by symbol
+            tmpLtfSs = []
             for ssItr in range(0, self.m.nSS):
-                tmpVhtLtf = []
-                for j in range(0, len(self.h.LTF_VHT[self.f.bw])):
-                    if (self.f.bw == self.h.BW_20 and (j - 28) in [-21, -7, 7, 21]):
-                        tmpVhtLtf.append(self.h.LTF_VHT[self.f.bw][j] * self.h.R_LTF_VHT_4[ltfIter])
-                    elif(self.f.bw == self.h.BW_40 and (j - 58) in [-53, -25, -11, 11, 25, 53]):
-                        tmpVhtLtf.append(self.h.LTF_VHT[self.f.bw][j] * self.h.R_LTF_VHT_4[ltfIter])
-                    elif (self.f.bw == self.h.BW_80 and (j - 122) in [-103, -75, -39, -11, 11, 39, 75, 103]):
-                        tmpVhtLtf.append(self.h.LTF_VHT[self.f.bw][j] * self.h.R_LTF_VHT_4[ltfIter])
-                    else:
-                        tmpVhtLtf.append(self.h.LTF_VHT[self.f.bw][j] * self.h.P_LTF_VHT_4[ssItr][ltfIter])
-                print("ltf n ", ltfIter, ", ss ", ssItr, p8h.procNonDataSC(tmpVhtLtf))
-                tmpVhtLtfSs.append(p8h.procCSD(p8h.procNonDataSC(tmpVhtLtf), self.m.nSS, ssItr, self.m.spr))
-
-            if (self.ifMu):
-                tmpVhtLtfSsQ = self.procSpatialMapping(tmpVhtLtfSs, self.bfQ)
-            else:
-                tmpVhtLtfSsQ = tmpVhtLtfSs
-
+                if(self.m.phyFormat == p8h.F.VHT):
+                    """
+                        vht uses different polarity in LTF for data sc and pilot sc
+                    """
+                    tmpVhtLtf = []
+                    for j in range(0, len(p8h.C_LTF_VHT[self.m.bw.value])):
+                        if (self.m.bw == p8h.BW.BW20 and (j - 28) in [-21, -7, 7, 21]):
+                            tmpVhtLtf.append(p8h.C_LTF_VHT[self.m.bw.value][j] * p8h.C_R_LTF_VHT_4[ltfIter])
+                        elif(self.m.bw == p8h.BW.BW40 and (j - 58) in [-53, -25, -11, 11, 25, 53]):
+                            tmpVhtLtf.append(p8h.C_LTF_VHT[self.m.bw.value][j] * p8h.C_R_LTF_VHT_4[ltfIter])
+                        elif (self.m.bw == p8h.BW.BW80 and (j - 122) in [-103, -75, -39, -11, 11, 39, 75, 103]):
+                            tmpVhtLtf.append(p8h.C_LTF_VHT[self.m.bw.value][j] * p8h.C_R_LTF_VHT_4[ltfIter])
+                        else:   # ht or vht non pilot sub carriers
+                            tmpVhtLtf.append(p8h.C_LTF_VHT[self.m.bw.value][j] * p8h.C_P_LTF_VHT_4[ssItr][ltfIter])
+                    print("ltf n ", ltfIter, ", ss ", ssItr, p8h.procNonDataSC(tmpVhtLtf))
+                    tmpLtfSs.append(p8h.procCSD(p8h.procNonDataSC(tmpVhtLtf), self.m.nSS, ssItr, self.m.spr))
+                else:
+                    tmpVhtLtf = []
+                    for eachSc in p8h.C_LTF_HT[self.m.bw.value]:
+                        tmpVhtLtf.append(eachSc * p8h.C_P_LTF_VHT_4[ssItr][ltfIter])
+                    tmpLtfSs.append(p8h.procCSD(p8h.procNonDataSC(tmpVhtLtf), self.m.nSS, ssItr, self.m.spr))
+            # spatial mapping for beamforming
+            if(self.m.phyFormat == p8h.F.VHT and self.m.mu):
+                tmpLtfSs = p8h.procSpatialMapping(tmpLtfSs, self.bfQ)
             for ssItr in range(0, self.m.nSS):
-                # for k in range(0, 64):
-                #     print(tmpVhtLtfSsQ[ssItr][k])
-                self.ssVhtPreamble[ssItr] = p8h.procConcat2Symbol(
-                    self.ssVhtPreamble[ssItr],
-                    p8h.procGi(p8h.procToneScaling(p8h.procIDFT(tmpVhtLtfSsQ[ssItr]), self.h.SCALENTF_LTF_VHT[self.f.bw], self.m.nSS)))
-
-        for each in self.ssVhtPreamble:
-            print("VHT training sample len %d" % len(each))
+                tmpSsNonLegacyTraining[ssItr] = p8h.procConcat2Symbol(
+                    tmpSsNonLegacyTraining[ssItr],
+                    p8h.procGi(p8h.procToneScaling(p8h.procFftMod(tmpLtfSs[ssItr]), p8h.C_SCALENTF_LTF_VHT[self.m.bw.value], self.m.nSS)))
+        if(self.m.phyFormat == p8h.F.VHT):
+            self.ssVhtTraining = tmpSsNonLegacyTraining
+        else:
+            self.ssHtTraining = tmpSsNonLegacyTraining
+        for ssIter in range(0, self.m.nSS):
+            print("non legacy training ss %d, sample len %d" % (ssIter, len(tmpSsNonLegacyTraining[ssIter])))
+            print(tmpSsNonLegacyTraining[ssIter])
 
     def __genVhtSignalB(self):
         self.ssVhtSigB = []
         tmpVhtSigBBits = []
         # bits for length
         # compute APEP Len first, single user, use mpdu byte number as APEP len
-        tmpSigBLen = int(np.ceil(self.apepLen/4))
+        tmpSigBLen = int(np.ceil(self.m.ampduLen/4))
         print("sig b len: %d" % tmpSigBLen)
-        tmpLenBitN = 17
-        tmpReservedBitN = 3
-        tmpSigBnBPSCS = 1
-        tmpSigBnCBPS = 52
-        tmpSigBnCBPSSI = 52
-        tmpSigBnIntlevCol = 13
-        tmpSigBnIntlevRow = 4 * tmpSigBnBPSCS
-        if(self.f.bw == self.h.BW_40):
+        if(self.m.bw == p8h.BW.BW20):
+            tmpLenBitN = 17
+            tmpReservedBitN = 3
+            tmpSigBMod = p8h.modulation(phyFormat=p8h.F.VHT, mcs=0, bw=p8h.BW.BW20, nSTS=1, shortGi=False)
+        elif(self.m.bw == p8h.BW.BW40):
             tmpLenBitN = 19
             tmpReservedBitN = 2
-            tmpSigBnBPSCS = 1
-            tmpSigBnCBPS = 108
-            tmpSigBnCBPSSI = 108
-            tmpSigBnIntlevCol = 18
-            tmpSigBnIntlevRow = 6 * tmpSigBnBPSCS
-        elif(self.f.bw == self.h.BW_80):
+            tmpSigBMod = p8h.modulation(phyFormat=p8h.F.VHT, mcs=0, bw=p8h.BW.BW40, nSTS=1, shortGi=False)
+        else:   # bw 80
             tmpLenBitN = 21
             tmpReservedBitN = 2
-            tmpSigBnBPSCS = 1
-            tmpSigBnCBPS = 234
-            tmpSigBnCBPSSI = 234
-            tmpSigBnIntlevCol = 26
-            tmpSigBnIntlevRow = 9 * tmpSigBnBPSCS
-        if(self.apepLen > 0):
+            tmpSigBMod = p8h.modulation(phyFormat=p8h.F.VHT, mcs=0, bw=p8h.BW.BW80, nSTS=1, shortGi=False)
+        tmpSigBMod.nSym = 1 # for interleave
+        if(self.m.ampduLen > 0):
             for i in range(0, tmpLenBitN):
                 tmpVhtSigBBits.append((tmpSigBLen >> i) & (1))
             # bits for reserved
             tmpVhtSigBBits = tmpVhtSigBBits + [1] * tmpReservedBitN
             # crc 8 for sig b used in data
-            self.vhtSigBCrcBits = p8h.getBitCrc8(tmpVhtSigBBits)
+            self.vhtSigBCrcBits = p8h.genBitBitCrc8(tmpVhtSigBBits)
         else:
-            tmpVhtSigBBits = self.h.NDP_SIG_B[self.f.bw]
+            tmpVhtSigBBits = p8h.C_NDP_SIG_B[self.m.bw.value]
         # bits for tail
         tmpVhtSigBBits = tmpVhtSigBBits + [0] * 6
-        if(self.f.bw == self.h.BW_40):
+        if(self.m.bw == p8h.BW.BW40):
             tmpVhtSigBBits = tmpVhtSigBBits * 2
-        elif(self.f.bw == self.h.BW_80):
+        elif(self.m.bw == p8h.BW.BW80):
             tmpVhtSigBBits = tmpVhtSigBBits * 2 + [0]
         print("vht sig b bits: %d" % len(tmpVhtSigBBits))
         print(tmpVhtSigBBits)
         # convolution
-        tmpHeaderConvolvedBits = [0] * tmpSigBnCBPS
-        tmpState = 0
-        for i in range(0, len(tmpVhtSigBBits)):
-            tmpState = ((tmpState << 1) & 0x7e) | tmpVhtSigBBits[i]
-            tmpHeaderConvolvedBits[i * 2] = (bin(tmpState & 0o155).count("1")) % 2
-            tmpHeaderConvolvedBits[i * 2 + 1] = (bin(tmpState & 0o117).count("1")) % 2
-        print("vht sig b convolved bits: %d" % (len(tmpHeaderConvolvedBits)))
-        print(tmpHeaderConvolvedBits)
+        tmpVhtSigBCodedBits = p8h.procBcc(tmpVhtSigBBits, p8h.CR.CR12)
+        print("vht sig b convolved bits: %d" % (len(tmpVhtSigBCodedBits)))
+        print(tmpVhtSigBCodedBits)
         # no segment parse, interleave
-        s = 1
-        tmpInterleavedBits = [0] * len(tmpHeaderConvolvedBits)
-        for k in range(0, tmpSigBnCBPSSI):
-            i = tmpSigBnIntlevRow * (k % tmpSigBnIntlevCol) + int(np.floor(k / tmpSigBnIntlevCol))
-            j = s * int(np.floor(i / s)) + (i + tmpSigBnCBPSSI - int(np.floor(tmpSigBnIntlevCol * i / tmpSigBnCBPSSI))) % s
-            r = j
-            tmpInterleavedBits[r] = tmpHeaderConvolvedBits[k]
-        print("VHT sig b interleaved")
-        print(tmpInterleavedBits)
+        tmpIntedBits = p8h.procInterleaveNonLegacy([tmpVhtSigBCodedBits], tmpSigBMod)[0]
+        print("VHT sig b interleaved bits: %d" % len(tmpIntedBits))
+        print(tmpIntedBits)
         # modulation
         for ssItr in range(0, self.m.nSS):
-            tmpSigQam = [self.h.QAM_MODU_TAB[self.h.QAM_BPSK][each] for each in tmpInterleavedBits]
+            tmpSigQam = [p8h.C_QAM_MODU_TAB[p8h.M.BPSK.value][each] for each in tmpIntedBits]
             # map constellations to user specific P_VHT_LTF, actually only flip the BPSK when nSS is 4, 7 or 8
             if(self.m.nSS in [4, 7, 8]):
-                tmpSigQam = [each * self.h.P_SIG_B_NSTS478[ssItr] for each in tmpSigQam]
-            tmpSigQam = p8h.procDcInsert(p8h.procPilotInsert(tmpSigQam, self.h.PILOT_VHT[self.f.bw]))
+                tmpSigQam = [each * p8h.C_P_SIG_B_NSTS478[ssItr] for each in tmpSigQam]
+            tmpSigQam = p8h.procNonDataSC(p8h.procDcInsert(p8h.procPilotInsert(tmpSigQam, p8h.C_PILOT_VHT[self.m.bw.value])))
             self.ssVhtSigB.append(p8h.procGi(p8h.procToneScaling(
-                p8h.procIDFT(p8h.procCSD(p8h.procNonDataSC(tmpSigQam), self.m.nSS, ssItr, self.m.spr)),
-                self.h.SCALENTF_SIG_VHT_B[self.f.bw], self.m.nSS)))
-        print("VHT signal B: %d" % len(self.ssVhtSigB[0]))
+                p8h.procFftMod(p8h.procCSD(tmpSigQam, self.m.nSS, ssItr, self.m.spr)),
+                p8h.C_SCALENTF_SIG_VHT_B[self.m.bw.value], self.m.nSS)))
+        for ssIter in range(0, self.m.nSS):
+            print("ss %d VHT signal B: %d" % (ssIter, len(self.ssVhtSigB[ssIter])))
+            print(self.ssVhtSigB[ssIter])
 
     def __genVhtSignalBMu(self):
         self.ssVhtSigB = []
         self.vhtSigBCrcBitsMu = []
         tmpSsSigQam = []
-        for n in range(0, self.nMuUser):
+        for u in range(0, self.nUserMu):
             tmpVhtSigBBits = []
             # compute APEP Len first, single user, use mpdu byte number as APEP len
-            tmpSigBLen = int(len(self.mpduMu[n])/4)
-            print("sig b len: %d" % tmpSigBLen)
-            tmpLenBitN = 16
+            tmpSigBLen = int(len(self.ampduMu[u])/4)
+            print("user %d sig b len: %d" % (u, tmpSigBLen))
+            if(self.m.bw == p8h.BW.BW20):
+                tmpLenBitN = 16
+                tmpSigBMod = p8h.modulation(phyFormat=p8h.F.VHT, mcs=0, bw=p8h.BW.BW20, nSTS=1, shortGi=False)
+            elif(self.m.bw == p8h.BW.BW40):
+                tmpLenBitN = 17
+                tmpSigBMod = p8h.modulation(phyFormat=p8h.F.VHT, mcs=0, bw=p8h.BW.BW40, nSTS=1, shortGi=False)
+            else:   # bw 80
+                tmpLenBitN = 19
+                tmpSigBMod = p8h.modulation(phyFormat=p8h.F.VHT, mcs=0, bw=p8h.BW.BW80, nSTS=1, shortGi=False)
+            tmpSigBMod.nSym = 1 # for interleave
             tmpMcsBitN = 4
-            tmpSigBnBPSCS = 1
-            tmpSigBnCBPS = 52
-            tmpSigBnCBPSSI = 52
-            tmpSigBnIntlevCol = 13
-            tmpSigBnIntlevRow = 4 * tmpSigBnBPSCS
             # bits for length
             for i in range(0, tmpLenBitN):
                 tmpVhtSigBBits.append((tmpSigBLen >> i) & (1))
             # bits for mcs
             for i in range(0, tmpMcsBitN):
-                tmpVhtSigBBits.append((self.fMu[n].mcs >> i) & (1))
+                tmpVhtSigBBits.append((self.mMu[u].mcs >> i) & (1))
             # crc 8 for sig b used in data
-            self.vhtSigBCrcBitsMu.append(p8h.getBitCrc8(tmpVhtSigBBits))
-            print("vht sig b crc bits:", self.vhtSigBCrcBitsMu[n])
+            self.vhtSigBCrcBitsMu.append(p8h.genBitBitCrc8(tmpVhtSigBBits))
+            print("vht sig b crc bits:", self.vhtSigBCrcBitsMu[u])
             # bits for tail
             tmpVhtSigBBits = tmpVhtSigBBits + [0] * 6
+            if(self.m.bw == p8h.BW.BW40):
+                tmpVhtSigBBits = tmpVhtSigBBits * 2
+            elif(self.m.bw == p8h.BW.BW80):
+                tmpVhtSigBBits = tmpVhtSigBBits * 2 + [0]
             print("vht sig b bits: %d" % len(tmpVhtSigBBits))
             print(tmpVhtSigBBits)
             # convolution
-            tmpHeaderConvolvedBits = [0] * tmpSigBnCBPS
-            tmpState = 0
-            for i in range(0, len(tmpVhtSigBBits)):
-                tmpState = ((tmpState << 1) & 0x7e) | tmpVhtSigBBits[i]
-                tmpHeaderConvolvedBits[i * 2] = (bin(tmpState & 0o155).count("1")) % 2
-                tmpHeaderConvolvedBits[i * 2 + 1] = (bin(tmpState & 0o117).count("1")) % 2
-            print("vht sig b convolved bits: %d" % (len(tmpHeaderConvolvedBits)))
-            print(tmpHeaderConvolvedBits)
+            tmpVhtSigBCodedBits = p8h.procBcc(tmpVhtSigBBits, p8h.CR.CR12)
+            print("vht sig b convolved bits: %d" % (len(tmpVhtSigBCodedBits)))
+            print(tmpVhtSigBCodedBits)
             # no segment parse, interleave
-            s = 1
-            tmpInterleavedBits = [0] * len(tmpHeaderConvolvedBits)
-            for k in range(0, tmpSigBnCBPSSI):
-                i = tmpSigBnIntlevRow * (k % tmpSigBnIntlevCol) + int(np.floor(k / tmpSigBnIntlevCol))
-                j = s * int(np.floor(i / s)) + (i + tmpSigBnCBPSSI - int(np.floor(tmpSigBnIntlevCol * i / tmpSigBnCBPSSI))) % s
-                r = j
-                tmpInterleavedBits[r] = tmpHeaderConvolvedBits[k]
-            print("VHT sig b interleaved")
-            print(tmpInterleavedBits)
+            tmpIntedBits = p8h.procInterleaveNonLegacy([tmpVhtSigBCodedBits], tmpSigBMod)[0]
+            print("VHT sig b interleaved bits: %d" % len(tmpIntedBits))
+            print(tmpIntedBits)
             # modulation
-            for ssItr in range(0, self.mMu[n].nSS):
-                tmpSigQam = [self.h.QAM_MODU_TAB[self.h.QAM_BPSK][each] for each in tmpInterleavedBits]
+            for ssItr in range(0, self.mMu[u].nSS):
+                tmpSigQam = [p8h.C_QAM_MODU_TAB[p8h.M.BPSK.value][each] for each in tmpIntedBits]
                 tmpSsSigQam.append(tmpSigQam)
         for ssItr in range(0, self.m.nSS):
-            # map constellations to user specific P_VHT_LTF, actually only flip the BPSK when nSS is 4, 7 or 8
-            # if(self.m.nSS in [4, 7, 8]):
-            #     tmpSsSigQam[ssItr] = [each * self.h.P_SIG_B_NSTS478[ssItr] for each in tmpSsSigQam[ssItr]]
-            tmpSsSigQam[ssItr] = p8h.procDcInsert(p8h.procPilotInsert(tmpSsSigQam[ssItr], self.h.PILOT_VHT[self.f.bw]))
+            """
+            - map constellations to user specific P_VHT_LTF, actually only flip the BPSK when nSS is 4, 7 or 8
+            - beacause the P_VHT_LTF first column has -1
+            """
+            if(self.m.nSS in [4, 7, 8]):
+                tmpSsSigQam[ssItr] = [each * p8h.C_P_SIG_B_NSTS478[ssItr] for each in tmpSsSigQam[ssItr]]
+            tmpSsSigQam[ssItr] = p8h.procDcInsert(p8h.procPilotInsert(tmpSsSigQam[ssItr], p8h.C_PILOT_VHT[self.m.bw.value]))
             tmpSsSigQam[ssItr] = p8h.procCSD(p8h.procNonDataSC(tmpSsSigQam[ssItr]), self.m.nSS, ssItr, self.m.spr)
         # add spatial mapping
-        tmpSsSigQamQ = self.procSpatialMapping(tmpSsSigQam, self.bfQ)
+        tmpSsSigQamQ = p8h.procSpatialMapping(tmpSsSigQam, self.bfQ)
         for ssItr in range(0, self.m.nSS):
             self.ssVhtSigB.append(p8h.procGi(p8h.procToneScaling(
-                    p8h.procIDFT(tmpSsSigQamQ[ssItr]),
-                    self.h.SCALENTF_SIG_VHT_B[self.f.bw], self.m.nSS)))
+                    p8h.procFftMod(tmpSsSigQamQ[ssItr]),
+                    p8h.C_SCALENTF_SIG_VHT_B[self.m.bw.value], self.m.nSS)))
         for each in self.ssVhtSigB:
             print("VHT signal B: %d" % len(each))
             print(each)
 
     def __genDataBits(self):
-        # structure is: service, psdu, pad, tail is added after scrambling
         self.dataBits = []
-        tmpDataBitStrForM = ""
-        tmpPsduBitStrForM = ""
-        # service bits, scrambler init
-        self.dataBits += [0] * 7
-        # service bits, reserved
-        self.dataBits += [0]
-        # service bits, sig b crc
-        self.dataBits += self.vhtSigBCrcBits
-        print("data service bit len: %d" % len(self.dataBits))
+        if(self.m.phyFormat == p8h.F.VHT):
+            """ 
+            - psdu is multiple of 8 bits, exclude service 16, include ampdu, inlcude eof pad n*4, include pad octects 0-3 * 8, exclude the pad bits 0-7, exclude tail bits nES*6 
+            - input of bcc includes service, psdu and pad bits, after coding the tails are added
+            - vht is scrambled first then add tail bits and then coded
+            """
+            print("vht data apep len: %d, psdu len: %d, pad eof: %d, pad octets: %d, pad bits: %d, totoal bits: %d" % (self.m.ampduLen, self.m.psduLen, self.m.nPadEof, self.m.nPadOctet, self.m.nPadBits, (self.m.nSym * self.m.nDBPS)))
+            # convert MAC data
+            tmpAmpduBits = []
+            for each in self.ampdu:
+                for i in range(0,8):
+                    tmpAmpduBits.append((each>>i) & (1))
+            # service bits, 7 scrambler init, 1 reserved, sig b crc
+            tmpServiceBits = [0] * 8 + self.vhtSigBCrcBits
+            print("vht service bits: ", tmpServiceBits)
+            # to do the eof padding
+            # tmpPsduBits = tmpAmpduBits + p8h.C_VHT_EOF * self.m.nPadEof + [0] * 8 * self.m.nPadOctet
+            # matlab method
+            tmpPsduBits = tmpAmpduBits + tmpAmpduBits[0:int(self.m.psduLen * 8 - self.m.ampduLen * 8)]
+            self.dataBits = tmpServiceBits + tmpPsduBits + [0] * self.m.nPadBits
+        else:
+            """
+            - legacy and ht, just service, psdu is mpdu, tail bits nES*6 and padded bits 
+            - legacy and ht, first scramble all and reset the tail and then coded
+            """
+            # convert MAC data
+            
+            if(self.m.ampdu):
+                tmpAmpduBits = []
+                for each in self.ampdu:
+                    for i in range(0,8):
+                        tmpAmpduBits.append((each>>i) & (1))
+                tmpPsduBits = tmpAmpduBits
+            else:
+                tmpMpduBits = []
+                for each in self.mpdu:
+                    for i in range(0,8):
+                        tmpMpduBits.append((each>>i) & (1))
+                tmpPsduBits = tmpMpduBits
+            # service bits
+            tmpServiceBits = [0] * 16
+            self.dataBits = tmpServiceBits + tmpPsduBits + [0] * 6 * self.m.nES + [0] * self.m.nPadBits
+        print("data bits: %d" % len(self.dataBits))
         print(self.dataBits)
-        nService = 16
-        nTail = 6
-        self.nPad = int(self.nSym * self.m.nDBPS - 8*self.m.psduLen - nService - nTail * self.m.nES)
-        print("data pad bits number: %d" % self.nPad)
-        # convert MAC data
-        tmpPsdu = []
-        for each in self.mpdu:
-            for i in range(0,8):
-                tmpPsdu.append((each>>i) & (1))
-                tmpDataBitStrForM += str((each>>i) & (1))
-                tmpDataBitStrForM += " "
-        print("vht data apep len:", self.m.pktLen, ", psdu len:", self.m.psduLen, ", mpdu len:", len(self.mpdu))
-        tmpPsdu = tmpPsdu + tmpPsdu[0:int(self.m.psduLen * 8 - self.m.pktLen * 8)]
-        for each in tmpPsdu:
-            tmpPsduBitStrForM += str(each)
-            tmpPsduBitStrForM += " "
-        # add 6 tail bits
-        print("pure data bits for matlab", len(self.mpdu) * 8)
-        print(tmpDataBitStrForM)
-        print("psdu data bits for matlab", len(tmpPsdu))
-        print(tmpPsduBitStrForM)
-        self.dataBits = self.dataBits + tmpPsdu
-        # add pad zero
-        for i in range(0, self.nPad):
-            self.dataBits.append(0)
-        print("vht data bits (not include tail bits):", len(self.dataBits))
-        print(self.dataBits)
 
-    def __genScrambledDataBits(self):
-        self.dataScrambledBits = []
-        tmpScrambler = self.dataScrambler
-        # scrambling
-        for i in range(0, len(self.dataBits)):
-            tmpFeedback = int(not not(tmpScrambler & 64)) ^ int(not not(tmpScrambler & 8))
-            self.dataScrambledBits.append(tmpFeedback ^ self.dataBits[i])
-            tmpScrambler = ((tmpScrambler << 1) & 0x7e) | tmpFeedback
-        # no tail bits reset for vht, tail bits added in next part depending on nES
-        print("scrambled data bits:", len(self.dataScrambledBits), ", scrambler: ", self.dataScrambler)
-        print(self.dataScrambledBits)
-
-    def __genBccDataBits(self):
-        # separate bits into coders
-        self.dataConvolvedBits = []
-        nTail = 6
-        for i in range(0, self.m.nES):
-            self.dataConvolvedBits.append([])
-            # divide bits into bcc coders
-            tmpDividedBits = [self.dataScrambledBits[each] for each in range((0+i), int(self.m.nDBPS * self.nSym / self.m.nES - nTail), self.m.nES)]
-            tmpDividedBits = tmpDividedBits + [0] * nTail
-            # coding
-            tmpState = 0
-            self.dataConvolvedBits[i] = [0]*(len(tmpDividedBits)*2)
-            for j in range(0, len(tmpDividedBits)):
-                tmpState = ((tmpState << 1) & 0x7e) | tmpDividedBits[j]
-                self.dataConvolvedBits[i][j*2] = (bin(tmpState & 0o155).count("1")) % 2
-                self.dataConvolvedBits[i][j * 2 + 1] = (bin(tmpState & 0o117).count("1")) % 2
-        print("convolutional data bits:", len(self.dataConvolvedBits[0]))
-        print(self.dataConvolvedBits[0])
-
-    def __genPuncturedDataBits(self):
-        tmpIndex = 0
-        self.dataPuncturedBits = []
-        for i in range(0, self.m.nES):
-            self.dataPuncturedBits.append([])
-            if(self.m.cr == self.h.CR_12):
-                for each in self.dataConvolvedBits[i]:
-                    self.dataPuncturedBits[i].append(each)
-            elif(self.m.cr == self.h.CR_23):
-                for each in self.dataConvolvedBits[i]:
-                    if((tmpIndex%4) != 3):
-                        self.dataPuncturedBits[i].append(each)
-                    tmpIndex += 1
-            elif(self.m.cr == self.h.CR_34):
-                for each in self.dataConvolvedBits[i]:
-                    if ((tmpIndex % 6) in [3, 4]):
-                        pass
-                    else:
-                        self.dataPuncturedBits[i].append(each)
-                    tmpIndex += 1
-            elif (self.m.cr == self.h.CR_56):
-                for each in self.dataConvolvedBits[i]:
-                    if ((tmpIndex % 10) in [3, 4, 7, 8]):
-                        pass
-                    else:
-                        self.dataPuncturedBits[i].append(each)
-                    tmpIndex += 1
-        print("punctured data bits", len(self.dataPuncturedBits[0]))
-        print(self.dataPuncturedBits[0])
+    def __genCodedBits(self):
+        self.esCodedBits = []
+        tmpScrambledBits = p8h.procScramble(self.dataBits, self.dataScrambler)
+        print("scrambled bits: %d" % len(tmpScrambledBits))
+        print(tmpScrambledBits)
+        if(self.m.phyFormat == p8h.F.VHT):
+            for i in range(0, self.m.nES):
+                # divide scrambled bits for bcc coders, since tail is not added yet, minus 6
+                tmpDividedBits = [tmpScrambledBits[each] for each in range((0+i), int(self.m.nDBPS * self.m.nSym / self.m.nES - 6), self.m.nES)]
+                # add tail bits to it
+                tmpDividedBits = tmpDividedBits + [0] * 6
+                # coding and puncturing
+                self.esCodedBits.append(p8h.procBcc(tmpDividedBits, self.m.cr))
+        else:
+            # legacy and ht, reset the tail bits
+            for i in range(0, self.m.nES * 6):
+                tmpScrambledBits[16 + self.m.psduLen*8 + i] = 0
+            print("scrambled bits after reset tail: %d" % len(tmpScrambledBits))
+            print(tmpScrambledBits)
+            for i in range(0, self.m.nES):
+                # divide scrambled bits for bcc coders, for HT bits are divided alternatively
+                tmpDividedBits = [tmpScrambledBits[each] for each in range((0+i), int(self.m.nDBPS * self.m.nSym / self.m.nES), self.m.nES)]
+                # coding and puncturing
+                self.esCodedBits.append(p8h.procBcc(tmpDividedBits, self.m.cr))
+        for each in self.esCodedBits:
+            print("coded bits: %d" % len(each))
+            print(each)
 
     def __genStreamParserDataBits(self):
-        # each round, get S
-        self.ssStreamParserBits = []
-        for i in range(0, self.m.nSS):
-            self.ssStreamParserBits.append([0] * self.nSym * self.m.nCBPSS)
-        s = int(max(1, self.m.nBPSCS/2))
-        S = self.m.nSS * s
-        nBlock = int(np.floor(self.m.nCBPS/(self.m.nES * S)))
-        M = int((self.m.nCBPS - nBlock * self.m.nES * S)/(s * self.m.nES))
-        # 20/40/80 4x4, nBlock * nES * S is smaller than nCBPSS
-        for sIter in range(0, self.nSym):
-            for iss in range(0, self.m.nSS):
-                for k in range(0, int(self.m.nCBPSS)):
-                    if(k < int(nBlock * self.m.nES * s)):
+        """
+            each round get S bits from one encoder, then assign the S bits to the streams
+            this works for HT and VHT usual conditions
+            for vht 20/40/80 4x4, nBlock * nES * S is smaller than nCBPSS
+        """
+        self.ssStreamBits = []
+        if(self.m.phyFormat == p8h.F.L):
+            self.ssStreamBits = self.esCodedBits
+        else:
+            for i in range(0, self.m.nSS):
+                self.ssStreamBits.append([0] * self.m.nSym * self.m.nCBPSS)
+            s = int(max(1, self.m.nBPSCS/2))
+            cs = self.m.nSS * s     # cs is the capital S used in standard
+            for isym in range(0, self.m.nSym):
+                for iss in range(0, self.m.nSS):
+                    for k in range(0, int(self.m.nCBPSS)):
                         j = int(np.floor(k/s)) % self.m.nES
-                        i = (iss) * s + S * int(np.floor(k/(self.m.nES * s))) + int(k % s)
-                    else:
-                        k_ = int(k - nBlock * self.m.nES * s)
-                        L = int(np.floor(k_/s)) * self.m.nSS + (iss) # if iss start from 1, then it is iss - 1
-                        j = int(np.floor(L/M))
-                        i = int(L % M) * s + nBlock * S + int(k % s)
-                    # print(iss, k, i)
-                    self.ssStreamParserBits[iss][k + int(sIter * self.m.nCBPSS)] = self.dataPuncturedBits[j][i + int(sIter * self.m.nCBPS)]
-        for each in self.ssStreamParserBits:
+                        i = (iss) * s + cs * int(np.floor(k/(self.m.nES * s))) + int(k % s)
+                        self.ssStreamBits[iss][k + int(isym * self.m.nCBPSS)] = self.esCodedBits[j][i + int(isym * self.m.nCBPS)]
+        for each in self.ssStreamBits:
             print("stream parser bits:", len(each))
             print(each)
 
     def __genInterleaveDataBits(self):
-        # stream parser
-        self.ssInterleaveBits = []
+        self.ssIntedBits = []
         for i in range(0, self.m.nSS):
-            self.ssInterleaveBits.append([])
-        s = int(max(1, self.m.nBPSCS/2))
-        for ssItr in range(0, self.m.nSS):
-            self.ssInterleaveBits[ssItr] = [0] * len(self.ssStreamParserBits[ssItr])
-            for symPtr in range(0, self.nSym):
-                for k in range(0, self.m.nCBPSS):
-                    i = self.m.nIntlevRow * (k % self.m.nIntlevCol) + int(np.floor(k/self.m.nIntlevCol))
-                    j = s * int(np.floor(i/s)) + (i + self.m.nCBPSS - int(np.floor(self.m.nIntlevCol * i / self.m.nCBPSS))) % s
-                    r = j
-                    if(self.m.nSS >=2):
-                        r = int((j-(((ssItr)*2)%3 + 3*int(np.floor((ssItr)/3)))*self.m.nIntlevRot*self.m.nBPSCS)) % self.m.nCBPSS
-                    self.ssInterleaveBits[ssItr][r + symPtr * self.m.nCBPSS] = self.ssStreamParserBits[ssItr][k + symPtr * self.m.nCBPSS]
-        for each in self.ssInterleaveBits:
+            self.ssIntedBits.append([])
+        if(self.m.phyFormat == p8h.F.L):
+            self.ssIntedBits = p8h.procInterleaveLegacy(self.ssStreamBits, self.m)
+        else:
+            self.ssIntedBits = p8h.procInterleaveNonLegacy(self.ssStreamBits, self.m)
+        for each in self.ssIntedBits:
             print("interleaved stream bits:", len(each))
             print(each)
 
@@ -758,41 +721,41 @@ class phy80211():
         self.ssSymbols = []
         for i in range(0, self.m.nSS):
             self.ssSymbols.append([])
-        tmpCarrierNumStream = int(self.m.nCBPSS * self.nSym/self.m.nBPSCS)
+        tmpCarrierNumStream = int(self.m.nSD * self.m.nSym)
         for ssItr in range(0, self.m.nSS):
             for i in range(0, tmpCarrierNumStream):
                 tmpCarrierChip = 0
                 for j in range(0, self.m.nBPSCS):
-                    tmpCarrierChip += self.ssInterleaveBits[ssItr][i * self.m.nBPSCS + j] * (2 ** j)
-                self.ssSymbols[ssItr].append(self.h.QAM_MODU_TAB[self.m.mod][tmpCarrierChip])
-        for ssItr in range(0, self.m.nSS):
-            print("constellation data", len(self.ssSymbols[ssItr]))
-            print(self.ssSymbols[ssItr])
+                    tmpCarrierChip += self.ssIntedBits[ssItr][i * self.m.nBPSCS + j] * (2 ** j)
+                self.ssSymbols[ssItr].append(p8h.C_QAM_MODU_TAB[self.m.mod.value][tmpCarrierChip])
+            print(ssItr, ssItr, ssItr)
+            # print(self.ssSymbols)
+        for each in self.ssSymbols:
+            print("constellation data", len(each))
+            # print(each)
 
     def __genOfdmSignalMu(self):
         self.ssPhySig = []
         for i in range(0, self.m.nSS):
             self.ssPhySig.append([])
         for ssItr in range(0, self.m.nSS):
-            self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssLegacyPreamble[ssItr], self.ssLegacySig[ssItr])
+            self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssLegacyTraining[ssItr], self.ssLegacySig[ssItr])
             self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssPhySig[ssItr], self.ssVhtSigA[ssItr])
-            self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssPhySig[ssItr], self.ssVhtPreamble[ssItr])
+            self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssPhySig[ssItr], self.ssVhtTraining[ssItr])
             self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssPhySig[ssItr], self.ssVhtSigB[ssItr])
 
-        tmpPilot = self.h.PILOT_VHT[self.f.bw]
+        tmpPilot = p8h.C_PILOT_VHT[self.m.bw.value]
         tmpPilotPIdx = 4
-        for i in range(0, self.nSym):
+        for symIter in range(0, self.m.nSym):
             tmpSsDataSig = []
             for ssItr in range(0, self.m.nSS):
-                tmpPilotAdded = p8h.procPilotInsert(self.ssSymbolsMu[ssItr][int(i * self.m.nSD): int((i + 1) * self.m.nSD)],
-                                                    [each * self.h.PILOT_PS[tmpPilotPIdx] for each in tmpPilot])
-                tmpPilotAdded = tmpPilotAdded[0:int(len(tmpPilotAdded) / 2)] + [0] + tmpPilotAdded[int(len(tmpPilotAdded) / 2):]
-                tmpSsDataSig.append(p8h.procCSD(p8h.procNonDataSC(tmpPilotAdded), self.m.nSS, ssItr, self.m.spr))
-            tmpSsDataSigQ = self.procSpatialMapping(tmpSsDataSig, self.bfQ)
+                tmpPilotAdded = p8h.procPilotInsert(self.ssSymbolsMu[ssItr][int(symIter*self.m.nSD): int((symIter+1)*self.m.nSD)], [each * p8h.C_PILOT_PS[tmpPilotPIdx] for each in tmpPilot])
+                tmpSsDataSig.append(p8h.procCSD(p8h.procNonDataSC(p8h.procDcInsert(tmpPilotAdded)), self.m.nSS, ssItr, self.m.spr))
+            tmpSsDataSigQ = p8h.procSpatialMapping(tmpSsDataSig, self.bfQ)
             for ssItr in range(0, self.m.nSS):
                 self.ssPhySig[ssItr] = p8h.procConcat2Symbol(
                     self.ssPhySig[ssItr],
-                    p8h.procGi(p8h.procToneScaling(p8h.procIDFT(tmpSsDataSigQ[ssItr]), self.h.SCALENTF_DATA_VHT[self.f.bw], self.m.nSS)))
+                    p8h.procGi(p8h.procToneScaling(p8h.procFftMod(tmpSsDataSigQ[ssItr]), p8h.C_SCALENTF_DATA_VHT[self.m.bw.value], self.m.nSS)))
             tmpPilotPIdx = (tmpPilotPIdx + 1) % 127
             tmpPilot = tmpPilot[1:] + [tmpPilot[0]]
 
@@ -801,39 +764,46 @@ class phy80211():
         for i in range(0, self.m.nSS):
             self.ssPhySig.append([])
         for ssItr in range(0, self.m.nSS):
-            self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssLegacyPreamble[ssItr], self.ssLegacySig[ssItr])
-            self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssPhySig[ssItr], self.ssVhtSigA[ssItr])
-            self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssPhySig[ssItr], self.ssVhtPreamble[ssItr])
-            self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssPhySig[ssItr], self.ssVhtSigB[ssItr])
-            tmpPilot = self.h.PILOT_L
-            tmpPilotPIdx = 1
-            if(self.f.type == 'ht'):
-                tmpPilot = self.h.PILOT_HT[self.f.bw][self.m.nSS][ssItr]
-                tmpPilotPIdx = 3
-            elif(self.f.type == 'vht'):
-                tmpPilot = self.h.PILOT_VHT[self.f.bw]
+            self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssLegacyTraining[ssItr], self.ssLegacySig[ssItr])
+            if(self.m.phyFormat == p8h.F.VHT):
+                self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssPhySig[ssItr], self.ssVhtSigA[ssItr])
+                self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssPhySig[ssItr], self.ssVhtTraining[ssItr])
+                self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssPhySig[ssItr], self.ssVhtSigB[ssItr])
+                tmpPilot = p8h.C_PILOT_VHT[self.m.bw.value]
                 tmpPilotPIdx = 4
-            for i in range(0, self.nSym):
-                tmpPilotAdded = p8h.procPilotInsert(self.ssSymbols[ssItr][int(i*self.m.nSD): int((i+1)*self.m.nSD)], [each * self.h.PILOT_PS[tmpPilotPIdx] for each in tmpPilot])
-                tmpPilotAdded = tmpPilotAdded[0:int(len(tmpPilotAdded)/2)] + [0] + tmpPilotAdded[int(len(tmpPilotAdded)/2):]
+                tmpDataScaleFactor = p8h.C_SCALENTF_DATA_VHT[self.m.bw.value]
+            elif(self.m.phyFormat == p8h.F.HT):
+                self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssPhySig[ssItr], self.ssHtSig[ssItr])
+                self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssPhySig[ssItr], self.ssHtTraining[ssItr])
+                tmpPilot = p8h.C_PILOT_HT[self.m.bw.value][self.m.nSS - 1][ssItr]
+                tmpPilotPIdx = 3
+                # print("cloud phy80211, gen ofdm get ht pilot: ", tmpPilot)
+                tmpDataScaleFactor = p8h.C_SCALENTF_DATA_HT[self.m.bw.value]
+            else:
+                tmpPilot = p8h.C_PILOT_L
+                tmpPilotPIdx = 1
+                tmpDataScaleFactor = 52
+            for symIter in range(0, self.m.nSym):
+                tmpPilotAdded = p8h.procPilotInsert(self.ssSymbols[ssItr][int(symIter*self.m.nSD): int((symIter+1)*self.m.nSD)], [each * p8h.C_PILOT_PS[tmpPilotPIdx] for each in tmpPilot])
                 self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssPhySig[ssItr], p8h.procGi(p8h.procToneScaling(
-                p8h.procIDFT(p8h.procCSD(p8h.procNonDataSC(tmpPilotAdded), self.m.nSS, ssItr, self.m.spr)),
-                self.h.SCALENTF_DATA_VHT[self.f.bw], self.m.nSS)))
+                p8h.procFftMod(p8h.procCSD(p8h.procNonDataSC(p8h.procDcInsert(tmpPilotAdded)), self.m.nSS, ssItr, self.m.spr)),
+                tmpDataScaleFactor, self.m.nSS)))
                 tmpPilotPIdx = (tmpPilotPIdx + 1) % 127
-                tmpPilot = tmpPilot[1:] + [tmpPilot[0]]
-
+                if(not(self.m.phyFormat == p8h.F.L)):
+                    tmpPilot = tmpPilot[1:] + [tmpPilot[0]]
 
     def __genOfdmSignalNdp(self):
         self.ssPhySig = []
         for i in range(0, self.m.nSS):
             self.ssPhySig.append([])
         for ssItr in range(0, self.m.nSS):
-            self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssLegacyPreamble[ssItr], self.ssLegacySig[ssItr])
+            self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssLegacyTraining[ssItr], self.ssLegacySig[ssItr])
             self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssPhySig[ssItr], self.ssVhtSigA[ssItr])
-            self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssPhySig[ssItr], self.ssVhtPreamble[ssItr])
+            self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssPhySig[ssItr], self.ssVhtTraining[ssItr])
             self.ssPhySig[ssItr] = p8h.procConcat2Symbol(self.ssPhySig[ssItr], self.ssVhtSigB[ssItr])
 
     def __genSignalWithCfo(self, inSig, cfoHz):
+        self.cfohz = cfoHz
         tmpRadStep = cfoHz * 2.0 * np.pi / 20000000.0
         outSig = []
         for i in range(0, len(inSig)):
@@ -852,9 +822,12 @@ class phy80211():
             self.ssPhySig[ssItr] = [each * multiplier for each in self.ssPhySig[ssItr]]
 
     def genFinalSig(self, multiplier = 1.0, cfoHz = 0.0, num = 1, gap = True, gapLen = 10000):
+        if not self.ssPhySig:
+            print("cloud phy80211, genFinalSig phy sig is empty")
+            return
         self.ssFinalSig = []
         if(num < 1):
-            print("gen final sig num error")
+            print("cloud phy80211, genFinalSig input param error")
             return
         for ssItr in range(0, self.m.nSS):
             tmpSig = self.__genSignalWithAmp(self.ssPhySig[ssItr], multiplier)
@@ -868,231 +841,66 @@ class phy80211():
         
 
     def genSigBinFile(self, ssSig, fileAddr="", draw = False):
-        print("write signal into bin file")
         if(len(fileAddr)<1):
-            print("error: file address not given")
+            print("cloud phy80211, genSigBinFile file address not given")
             return
-
+        if not ssSig:
+            print("cloud phy80211, genSigBinFile input sig empty")
+            return
+        print("write signal into bin file")
         for ssItr in range(0, len(ssSig)):
-            binF = open(fileAddr + "_" + str(self.f.nSTS) + "x" + str(self.f.nSTS) + "_" + str(ssItr) + ".bin", "wb")
+            tmpFilePathStr = fileAddr + "_" + str(len(ssSig)) + "x" + str(len(ssSig)) + "_" + str(ssItr) + ".bin"
+            binF = open(tmpFilePathStr, "wb")
             tmpSig = ssSig[ssItr]
             print("%d sample number %d" % (ssItr, len(tmpSig)))
             for i in range(0, len(tmpSig)):
                binF.write(struct.pack("f", np.real(tmpSig[i])))
                binF.write(struct.pack("f", np.imag(tmpSig[i])))
             binF.close()
-            print("written in " + (fileAddr + "_" + str(ssItr)))
+            print("written in " + tmpFilePathStr)
             if(draw):
                 plt.figure(100 + ssItr)
+                plt.ylim([-1, 1])
+                plt.plot(np.real(tmpSig))
+                plt.plot(np.imag(tmpSig))
+        if(draw):
+            plt.show()
+    
+    def genMultiSigBinFile(self, ssSigList, fileAddr="", draw = False):
+        if(len(fileAddr)<1):
+            print("cloud phy80211, genSigBinFile file address not given")
+            return
+        if not ssSigList:
+            print("cloud phy80211, genSigBinFile input sig empty")
+            return
+        print("write multiple signal into bin file")
+        tmpSsNum = len(ssSigList[0])
+        ssSigConcate = []
+        for ssItr in range(0, tmpSsNum):
+            ssSigConcate.append([])
+        for eachSsSig in ssSigList:
+            if(len(eachSsSig) != tmpSsNum):
+                print("cloud phy80211, genMultiSigBinFile input sssig item len error")
+                return
+            for ssItr in range(0, tmpSsNum):
+                ssSigConcate[ssItr] += eachSsSig[ssItr]
+        for ssItr in range(0, tmpSsNum):
+            tmpFilePathStr = fileAddr + "_" + str(tmpSsNum) + "x" + str(tmpSsNum) + "_" + str(ssItr) + ".bin"
+            binF = open(tmpFilePathStr, "wb")
+            tmpSig = ssSigConcate[ssItr]
+            print("%d sample number %d" % (ssItr, len(tmpSig)))
+            for i in range(0, len(tmpSig)):
+               binF.write(struct.pack("f", np.real(tmpSig[i])))
+               binF.write(struct.pack("f", np.imag(tmpSig[i])))
+            binF.close()
+            print("written in " + tmpFilePathStr)
+            if(draw):
+                plt.figure(100 + ssItr)
+                plt.ylim([-1, 1])
                 plt.plot(np.real(tmpSig))
                 plt.plot(np.imag(tmpSig))
         if(draw):
             plt.show()
 
-def genMac80211UdpMPDU(udpPayload):
-    udpIns = mac80211.udp("10.10.0.6",  # sour ip
-                          "10.10.0.1",  # dest ip
-                          39379,  # sour port
-                          8889,  # dest port
-                          bytearray(udpPayload, 'utf-8'))  # bytes payload
-    udpPacket = udpIns.genPacket()
-    print("udp packet")
-    print(udpPacket.hex())
-    ipv4Ins = mac80211.ipv4(43778,  # identification
-                            64,  # TTL
-                            "10.10.0.6",
-                            "10.10.0.1",
-                            udpPacket)
-    ipv4Packet = ipv4Ins.genPacket()
-    print("ipv4 packet")
-    print(ipv4Packet.hex())
-    llcIns = mac80211.llc()
-    llcPacket = llcIns.genPacket() + ipv4Packet
-    print("llc packet")
-    print(llcPacket.hex())
-    mac80211nIns = mac80211.mac80211(2,  # type
-                                     8,  # sub type, 8 = QoS Data
-                                     1,  # to DS, station to AP
-                                     0,  # from DS
-                                     0,  # retry
-                                     0,  # protected
-                                     'f4:69:d5:80:0f:a0',  # dest add
-                                     '00:c0:ca:b1:5b:e1',  # sour add
-                                     'f4:69:d5:80:0f:a0',  # recv add
-                                     2704,  # sequence
-                                     llcPacket, True)
-    mac80211Packet = mac80211nIns.genPacket()
-    print("mac packet: ", len(mac80211Packet))
-    print(mac80211Packet.hex())
-    return mac80211Packet
-
-udpPayload  = "123456789012345678901234567890"
-udpPayload500  = "123456789012345678901234567890abcdefghijklmnopqrst" * 10
-udpPayload1 = "This is packet for station 001"
-udpPayload2 = "This is packet for station 002"
-
 if __name__ == "__main__":
-    h = p8h.phy80211header()
-    phy80211Ins = phy80211()
-
-
-
-
-    pkt = genMac80211UdpMPDU(udpPayload500)
-    phy80211Ins.genVht(pkt, p8h.phy80211format('vht', mcs=0, bw=h.BW_20, nSTS=2, pktLen=len(pkt), shortGi=False))
-    ssFinal = phy80211Ins.genFinalSig(100.0, 311233, 2000, True, 10000)
-    phy80211Ins.genSigBinFile(ssFinal, "/home/cloud/sdr/sig80211VhtGenCfo100", False)
-
-
-
-
-    # mcsSigFinal = [[]]
-    # pkt = genMac80211UdpMPDU(udpPayload500)
-    # for mcsIter in range(0, 9):
-    #     phy80211Ins.genVht(pkt, p8h.phy80211format('vht', mcs=8-mcsIter, bw=h.BW_20, nSTS=1, pktLen=len(pkt), shortGi=False))
-    #     # 100 for 1.5 power in LTF, and 20 for max under 1
-    #     ssFinal = phy80211Ins.genFinalSig(100.0, 311233, 100, True, 10000)
-    #     mcsSigFinal[0] += ssFinal[0]
-    # phy80211Ins.genSigBinFile(mcsSigFinal, "/home/cloud/sdr/sig80211VhtGenCfoMcs100", False)
-
-
-
-
-
-
-
-
-
-
-
-    # NDP
-    # phyFormat = p8h.phy80211format('vht', mcs = 0, bw = h.BW_20, nSTS = 2, shortGi = False)
-    # sigg = phy80211Ins.genVht(b'', phyFormat, partialAid=0)
-
-    # # mu-mimo
-    # ndpRawDataR1 = p8h.readBinFileFromMatDouble("/home/cloud/sdr/gr-ieee80211/tools/ndp1r.bin")
-    # ndpRawDataI1 = p8h.readBinFileFromMatDouble("/home/cloud/sdr/gr-ieee80211/tools/ndp1i.bin")
-    # ndpRawDataR2 = p8h.readBinFileFromMatDouble("/home/cloud/sdr/gr-ieee80211/tools/ndp2r.bin")
-    # ndpRawDataI2 = p8h.readBinFileFromMatDouble("/home/cloud/sdr/gr-ieee80211/tools/ndp2i.bin")
-    # ndpRx1 = []
-    # ndpRx2 = []
-    # for i in range(0, len(ndpRawDataR1)):
-    #     ndpRx1.append(ndpRawDataR1[i] + ndpRawDataI1[i] * 1j)
-    #     ndpRx2.append(ndpRawDataR2[i] + ndpRawDataI2[i] * 1j)
-    # ltfIndex = 640
-
-    # # plt.figure(91)
-    # # plt.plot(np.real(ndpRx1[ltfIndex + 16: ltfIndex + 80]))
-    # # plt.plot(np.imag(ndpRx1[ltfIndex + 16: ltfIndex + 80]))
-    # # plt.figure(92)
-    # # plt.plot(np.real(ndpRx1[ltfIndex + 16+80: ltfIndex + 80+80]))
-    # # plt.plot(np.imag(ndpRx1[ltfIndex + 16+80: ltfIndex + 80+80]))
-    # # plt.figure(93)
-    # # plt.plot(np.real(ndpRx2[ltfIndex + 16: ltfIndex + 80]))
-    # # plt.plot(np.imag(ndpRx2[ltfIndex + 16: ltfIndex + 80]))
-    # # plt.figure(94)
-    # # plt.plot(np.real(ndpRx2[ltfIndex + 16+80: ltfIndex + 80+80]))
-    # # plt.plot(np.imag(ndpRx2[ltfIndex + 16+80: ltfIndex + 80+80]))
-
-    # # get symbols
-    # nScDataPilot = 56
-    # nSts = 2
-    # nRx = 1
-    # ltfSym = []
-    # ltfSym.append(p8h.procRemovePilots(p8h.procFftDemod(ndpRx1[ltfIndex + 16: ltfIndex + 80], nScDataPilot, nSts)))
-    # ltfSym.append(p8h.procRemovePilots(p8h.procFftDemod(ndpRx1[ltfIndex + 16 + 80: ltfIndex + 80 + 80], nScDataPilot, nSts)))
-    # # compute feedback
-    # vFb1 = p8h.procVhtChannelFeedback(ltfSym, nSts, nRx)
-    # print("feedback v 1")
-    # for each in vFb1:
-    #     print(each)
-    # ltfSym = []
-    # ltfSym.append(p8h.procRemovePilots(p8h.procFftDemod(ndpRx2[ltfIndex + 16: ltfIndex + 80], nScDataPilot, nSts)))
-    # ltfSym.append(p8h.procRemovePilots(p8h.procFftDemod(ndpRx2[ltfIndex + 16 + 80: ltfIndex + 80 + 80], nScDataPilot, nSts)))
-    # plt.figure(121)
-    # plt.plot(np.real(ndpRx2[ltfIndex + 16: ltfIndex + 80]))
-    # plt.plot(np.imag(ndpRx2[ltfIndex + 16: ltfIndex + 80]))
-    # plt.figure(122)
-    # plt.plot(np.real(ndpRx2[ltfIndex + 16 + 80: ltfIndex + 80 + 80]))
-    # plt.plot(np.imag(ndpRx2[ltfIndex + 16 + 80: ltfIndex + 80 + 80]))
-    # # compute feedback
-    # vFb2 = p8h.procVhtChannelFeedback(ltfSym, nSts, nRx)
-    # print("feedback v 2")
-    # for each in vFb2:
-    #     print(each)
-    # # combine the channel together
-    # bfH = []
-    # for k in range(0, nScDataPilot):
-    #     print("bfH", k)
-    #     bfH.append(np.concatenate((vFb1[k], vFb2[k]), axis=1))
-    #     print(bfH[k])
-    # # plt.figure(111)
-    # # plt.plot(np.real([each[0][0] for each in bfH]))
-    # # plt.plot(np.imag([each[0][0] for each in bfH]))
-    # # plt.figure(112)
-    # # plt.plot(np.real([each[0][1] for each in bfH]))
-    # # plt.plot(np.imag([each[0][1] for each in bfH]))
-    # # plt.figure(113)
-    # # plt.plot(np.real([each[1][0] for each in bfH]))
-    # # plt.plot(np.imag([each[1][0] for each in bfH]))
-    # # plt.figure(114)
-    # # plt.plot(np.real([each[1][1] for each in bfH]))
-    # # plt.plot(np.imag([each[1][1] for each in bfH]))
-    # plt.figure(111)
-    # plt.plot(np.real([each[0][0] for each in vFb1]))
-    # plt.plot(np.imag([each[0][0] for each in vFb1]))
-    # plt.figure(112)
-    # plt.plot(np.real([each[1][0] for each in vFb1]))
-    # plt.plot(np.imag([each[1][0] for each in vFb1]))
-    # plt.figure(113)
-    # plt.plot(np.real([each[0][0] for each in vFb2]))
-    # plt.plot(np.imag([each[0][0] for each in vFb2]))
-    # plt.figure(114)
-    # plt.plot(np.real([each[1][0] for each in vFb2]))
-    # plt.plot(np.imag([each[1][0] for each in vFb2]))
-    # # compute spatial matrix Q, ZF
-    # bfQTmp = []
-    # for k in range(0, nScDataPilot):
-    #     print("bfQ", k)
-    #     bfQTmp.append(np.matmul(bfH[k], np.linalg.inv(np.matmul(bfH[k].conjugate().T, bfH[k]))))
-    #     print(bfQTmp[k])
-    # # normalize Q
-    # bfQForFftNormd = []
-    # for k in range(0, nScDataPilot):
-    #     bfQForFftNormd.append(bfQTmp[k] / np.linalg.norm(bfQTmp[k]) * np.sqrt(nSts))
-    #     print("bfQNormd", k)
-    #     print(bfQForFftNormd[k])
-    # # map Q to FFT non-zero sub carriers
-    # bfQForFftNormdForFft = [np.ones_like(bfQForFftNormd[0])] * 3 + bfQForFftNormd[0:28] + [
-    #     np.ones_like(bfQForFftNormd[0])] + bfQForFftNormd[28:56] + [np.ones_like(bfQForFftNormd[0])] * 4
-
-    # # plt.figure(101)
-    # # plt.plot(np.real([each[0][0] for each in bfQForFftNormdForFft]))
-    # # plt.plot(np.imag([each[0][0] for each in bfQForFftNormdForFft]))
-    # # plt.figure(102)
-    # # plt.plot(np.real([each[0][1] for each in bfQForFftNormdForFft]))
-    # # plt.plot(np.imag([each[0][1] for each in bfQForFftNormdForFft]))
-    # # plt.figure(103)
-    # # plt.plot(np.real([each[1][0] for each in bfQForFftNormdForFft]))
-    # # plt.plot(np.imag([each[1][0] for each in bfQForFftNormdForFft]))
-    # # plt.figure(104)
-    # # plt.plot(np.real([each[1][1] for each in bfQForFftNormdForFft]))
-    # # plt.plot(np.imag([each[1][1] for each in bfQForFftNormdForFft]))
-
-    # pkt1 = genMac80211UdpMPDU(udpPayload1)
-    # pkt2 = genMac80211UdpMPDU(udpPayload2)
-    # print("pkt 1 byte numbers:", len(pkt1))
-    # print([int(each) for each in pkt1])
-    # print("pkt 2 byte numbers:", len(pkt2))
-    # print([int(each) for each in pkt2])
-    # sigg = phy80211Ins.genVhtMu([pkt1, pkt2], [p8h.phy80211format('vht', mcs=0, bw=h.BW_20, nSTS=1, pktLen=len(pkt1), shortGi=False), p8h.phy80211format('vht', mcs=0, bw=h.BW_20, nSTS=1, pktLen=len(pkt2), shortGi=False)], bfQ = bfQForFftNormdForFft, groupId=2)
-    # # phy80211Ins.genSigBinFile("sig80211VhtGenMu", False)
-
-    # plt.show()
-
-
-
-
-
-
-
+    pass

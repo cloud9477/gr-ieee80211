@@ -41,9 +41,11 @@ namespace gr {
       d_sDecode = DECODE_S_IDLE;
       d_nPktCorrect = 0;
       memset(d_vhtMcsCount, 0, sizeof(uint64_t) * 10);
-      d_debug = true;
-      dout << "decodesnr:"<<d_inParam<<std::endl;
-      dout << "ieee80211 decode, vht crc32 wrongg, total:0,0:0,1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0"<<std::endl;
+      memset(d_legacyMcsCount, 0, sizeof(uint64_t) * 8);
+      memset(d_htMcsCount, 0, sizeof(uint64_t) * 8);
+      d_debug = d_inParam;
+      // dout << "decodesnr:"<<d_inParam<<std::endl;
+      // dout << "ieee80211 decode, vht crc32 wrongg, total:0,0:0,1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0"<<std::endl;
 
       set_tag_propagation_policy(block::TPP_DONT);
     }
@@ -441,12 +443,67 @@ namespace gr {
           d_crc32.reset();
           d_crc32.process_bytes(d_pktBytes + 3, t_len);
           if (d_crc32.checksum() != 558161692) {
-            // dout << "ieee80211 decode, l-ht crc32 wrong, total:"<< d_nPktCorrect << std::endl;
+            if(t_format == C8P_F_L)
+            {
+              dout << "ieee80211 decode, legacy crc32 wrong, total:"<< d_nPktCorrect;
+              dout << ",0:"<<d_legacyMcsCount[0];
+              dout << ",1:"<<d_legacyMcsCount[1];
+              dout << ",2:"<<d_legacyMcsCount[2];
+              dout << ",3:"<<d_legacyMcsCount[3];
+              dout << ",4:"<<d_legacyMcsCount[4];
+              dout << ",5:"<<d_legacyMcsCount[5];
+              dout << ",6:"<<d_legacyMcsCount[6];
+              dout << ",7:"<<d_legacyMcsCount[7];
+              dout << std::endl;
+            }
+            else
+            {
+              dout << "ieee80211 decode, ht crc32 wrong, total:"<< d_nPktCorrect;
+              dout << ",0:"<<d_htMcsCount[0];
+              dout << ",1:"<<d_htMcsCount[1];
+              dout << ",2:"<<d_htMcsCount[2];
+              dout << ",3:"<<d_htMcsCount[3];
+              dout << ",4:"<<d_htMcsCount[4];
+              dout << ",5:"<<d_htMcsCount[5];
+              dout << ",6:"<<d_htMcsCount[6];
+              dout << ",7:"<<d_htMcsCount[7];
+              dout << std::endl;
+            }
           }
           else
           {
             d_nPktCorrect++;
-            // dout << "ieee80211 decode, l-ht crc32 correct, total:"<< d_nPktCorrect << std::endl;
+            if(t_mcs >= 0 && t_mcs < 8)
+            {
+              if(t_format == C8P_F_L)
+              {
+                d_legacyMcsCount[t_mcs]++;
+                dout << "ieee80211 decode, legacy crc32 correct, total:"<< d_nPktCorrect;
+                dout << ",0:"<<d_legacyMcsCount[0];
+                dout << ",1:"<<d_legacyMcsCount[1];
+                dout << ",2:"<<d_legacyMcsCount[2];
+                dout << ",3:"<<d_legacyMcsCount[3];
+                dout << ",4:"<<d_legacyMcsCount[4];
+                dout << ",5:"<<d_legacyMcsCount[5];
+                dout << ",6:"<<d_legacyMcsCount[6];
+                dout << ",7:"<<d_legacyMcsCount[7];
+                dout << std::endl;
+              }
+              else
+              {
+                d_htMcsCount[t_mcs]++;
+                dout << "ieee80211 decode, ht crc32 correct, total:"<< d_nPktCorrect;
+                dout << ",0:"<<d_htMcsCount[0];
+                dout << ",1:"<<d_htMcsCount[1];
+                dout << ",2:"<<d_htMcsCount[2];
+                dout << ",3:"<<d_htMcsCount[3];
+                dout << ",4:"<<d_htMcsCount[4];
+                dout << ",5:"<<d_htMcsCount[5];
+                dout << ",6:"<<d_htMcsCount[6];
+                dout << ",7:"<<d_htMcsCount[7];
+                dout << std::endl;
+              }
+            }
             pmt::pmt_t tmpMeta = pmt::make_dict();
             tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(t_len));
             pmt::pmt_t tmpPayload = pmt::make_blob(d_pktBytes, DECODE_UDP_LEN);

@@ -657,6 +657,7 @@ void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt)
 	// ht modulation related
 	// format
 	outMod->format = C8P_F_HT;
+	outMod->sumu = 0;
 	// short GI
 	outMod->nSymSamp = 80;
 	if(outSigHt->shortGi)
@@ -669,6 +670,7 @@ void signalParserHt(uint8_t* inBits, c8p_mod* outMod, c8p_sigHt* outSigHt)
 	{
 		outMod->ampdu = 1;
 	}
+	outMod->mcs = outSigHt->mcs;
 	switch(outSigHt->mcs % 8)
 	{
 		case 0:

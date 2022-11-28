@@ -83,7 +83,9 @@ namespace gr {
       uint8_t d_pktBytes[DECODE_D_MAX];
       int d_dataLen;
       // debug
+      uint64_t d_legacyMcsCount[8];
       uint64_t d_vhtMcsCount[10];
+      uint64_t d_htMcsCount[8];
       int d_inParam;
 
 

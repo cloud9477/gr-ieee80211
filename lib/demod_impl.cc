@@ -147,16 +147,16 @@ namespace gr {
             procDeintLegacyBpsk(d_sigVhtAIntedLlr, d_sigVhtACodedLlr);
             procDeintLegacyBpsk(&d_sigVhtAIntedLlr[48], &d_sigVhtACodedLlr[48]);
             SV_Decode_Sig(d_sigVhtACodedLlr, d_sigVhtABits, 48);
-            dout<<"sig vht a bits"<<std::endl;
-            for(int i=0;i<48;i++)
-            {
-              dout<<(int)d_sigVhtABits[i]<<" ";
-            }
-            dout<<std::endl;
             if(signalCheckVhtA(d_sigVhtABits))
             {
               // go to vht
               signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
+              dout<<"sig vht a bits"<<std::endl;
+              for(int i=0;i<48;i++)
+              {
+                dout<<(int)d_sigVhtABits[i]<<" ";
+              }
+              dout<<std::endl;
               dout<<"ieee80211 demod, vht a check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
               d_sDemod = DEMOD_S_VHT;
               d_nSampConsumed += 160;
@@ -171,6 +171,12 @@ namespace gr {
               if(signalCheckHt(d_sigHtBits))
               {
                 // go to ht
+                dout<<"sig ht bits"<<std::endl;
+                for(int i=0;i<48;i++)
+                {
+                  dout<<(int)d_sigHtBits[i]<<" ";
+                }
+                dout<<std::endl;
                 signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
                 dout<<"ieee80211 demod, ht check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
                 d_sDemod = DEMOD_S_HT;
@@ -397,9 +403,10 @@ namespace gr {
     void
     demod_impl::nonLegacyChanEstimate(const gr_complex* sig1)
     {
-      if(d_m.sumu)
+      if(d_m.format == C8P_F_VHT && d_m.sumu)
       {
         // mu-mimo 2x2
+        dout<<"non legacy mu-mimo channel estimate"<<std::endl;
         fft(&sig1[8], d_fftLtfOut1);
         fft(&sig1[8+80], d_fftLtfOut2);
         for(int i=0;i<64;i++)
@@ -422,25 +429,24 @@ namespace gr {
           }
         }
       }
-      else if(d_m.nSS == 1)
+      else if(d_m.nSS == 1 && d_m.nLTF == 1)
       {
-        if(d_m.nLTF == 1)
+        dout<<"non legacy siso channel estimate"<<std::endl;
+        fft(&sig1[8], d_fftLtfOut1);
+        for(int i=0;i<64;i++)
         {
-          fft(&sig1[8], d_fftLtfOut1);
-          for(int i=0;i<64;i++)
+          if(i==0 || (i>=29 && i<=35))
+          {}
+          else
           {
-            if(i==0 || (i>=29 && i<=35))
-            {}
-            else
-            {
-              d_H_NL[i][0] = d_fftLtfOut1[i] / LTF_NL_28_F_FLOAT[i];
-            }
+            d_H_NL[i][0] = d_fftLtfOut1[i] / LTF_NL_28_F_FLOAT[i];
           }
         }
       }
       else
       {
         // 1 ant, ant number and nss not corresponding, only check if NDP, keep LTF and only use first LTF to demod sig b
+        dout<<"non legacy mimo channel sounding"<<std::endl;
         memcpy(&d_mu2x1Chan[0], &sig1[8], sizeof(gr_complex) * 64);
         memcpy(&d_mu2x1Chan[64], &sig1[8+80], sizeof(gr_complex) * 64);
         fft(&sig1[8], d_fftLtfOut1);

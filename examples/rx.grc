@@ -62,13 +62,13 @@ blocks:
   parameters:
     affinity: ''
     alias: ''
-    amp: '1.5'
+    amp: '0.00001'
     comment: ''
     maxoutbuf: '0'
     minoutbuf: '0'
     noise_type: analog.GR_GAUSSIAN
     samples: '8192'
-    seed: '9527'
+    seed: int(time.time()*1000%1000)
     type: complex
   states:
     bus_sink: false
@@ -95,6 +95,60 @@ blocks:
     coordinate: [280, 144.0]
     rotation: 0
     state: true
+- name: blocks_file_sink_0
+  id: blocks_file_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    append: 'False'
+    comment: ''
+    file: /home/cloud/sdr/debug_trigger.bin
+    type: byte
+    unbuffered: 'False'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [728, 220.0]
+    rotation: 0
+    state: disabled
+- name: blocks_file_sink_0_0
+  id: blocks_file_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    append: 'False'
+    comment: ''
+    file: /home/cloud/sdr/debug_sync.bin
+    type: byte
+    unbuffered: 'False'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [728, 308.0]
+    rotation: 0
+    state: disabled
+- name: blocks_file_sink_0_0_0
+  id: blocks_file_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    append: 'False'
+    comment: ''
+    file: /home/cloud/sdr/debug_sig.bin
+    type: complex
+    unbuffered: 'False'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [912, 340.0]
+    rotation: 0
+    state: true
 - name: blocks_file_source_0
   id: blocks_file_source
   parameters:
@@ -102,7 +156,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/sig80211VhtGenCfoMcs100_1x1_0.bin
+    file: /home/cloud/sdr/sig80211GenMultipleSiso_1x1_0.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -133,84 +187,16 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [992, 132.0]
+    coordinate: [648, 156.0]
     rotation: 0
     state: enabled
-- name: channels_fading_model_0
-  id: channels_fading_model
-  parameters:
-    K: '4.0'
-    LOS: 'False'
-    N: '8'
-    affinity: ''
-    alias: ''
-    comment: ''
-    fDTs: 10.0/samp_rate
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    seed: '0'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [720, 308.0]
-    rotation: 0
-    state: true
-- name: channels_selective_fading_model2_0
-  id: channels_selective_fading_model2
-  parameters:
-    K: '4.0'
-    LOS: 'False'
-    N: '8'
-    affinity: ''
-    alias: ''
-    comment: ''
-    delay_maxdev: (0.5,0.7,0.9)
-    delay_std: (1e-4,1e-4,1e-4)
-    delays: (1.0,1.9,2.7)
-    fDTs: 0.2/samp_rate
-    mags: (1,0.95,0.8)
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    ntaps: '8'
-    seed: '0'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [496, 20.0]
-    rotation: 0
-    state: disabled
-- name: channels_selective_fading_model_0
-  id: channels_selective_fading_model
-  parameters:
-    K: '4.0'
-    LOS: 'False'
-    N: '8'
-    affinity: ''
-    alias: ''
-    comment: ''
-    delays: (0.0,0.1,1.3)
-    fDTs: 10.0/samp_rate
-    mags: (1,0.99,0.97)
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    ntaps: '8'
-    seed: '0'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [496, 188.0]
-    rotation: 0
-    state: disabled
 - name: ieee80211_decode_0
   id: ieee80211_decode
   parameters:
     affinity: ''
     alias: ''
     comment: ''
-    inpara: '0'
+    inpara: '1'
     maxoutbuf: '0'
     minoutbuf: '0'
   states:
@@ -279,7 +265,20 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [472, 392.0]
+    coordinate: [440, 392.0]
+    rotation: 0
+    state: true
+- name: import_0
+  id: import
+  parameters:
+    alias: ''
+    comment: ''
+    imports: import time
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [400, 20.0]
     rotation: 0
     state: true
 - name: network_udp_sink_0
@@ -344,7 +343,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1176, 132.0]
+    coordinate: [912, 156.0]
     rotation: 0
     state: true
 - name: virtual_source_0
@@ -363,18 +362,16 @@ blocks:
 
 connections:
 - [analog_fastnoise_source_x_0, '0', blocks_add_xx_0, '0']
-- [blocks_add_xx_0, '0', channels_fading_model_0, '0']
-- [blocks_add_xx_0, '0', channels_selective_fading_model2_0, '0']
-- [blocks_add_xx_0, '0', channels_selective_fading_model_0, '0']
+- [blocks_add_xx_0, '0', blocks_throttle_0_0, '0']
 - [blocks_file_source_0, '0', blocks_add_xx_0, '1']
 - [blocks_throttle_0_0, '0', virtual_sink_0, '0']
-- [channels_fading_model_0, '0', blocks_throttle_0_0, '0']
-- [channels_selective_fading_model2_0, '0', blocks_throttle_0_0, '0']
-- [channels_selective_fading_model_0, '0', blocks_throttle_0_0, '0']
 - [ieee80211_decode_0, out, pdu_pdu_to_tagged_stream_0, pdus]
 - [ieee80211_demod_0, '0', ieee80211_decode_0, '0']
+- [ieee80211_signal_0, '0', blocks_file_sink_0_0_0, '0']
 - [ieee80211_signal_0, '0', ieee80211_demod_0, '0']
+- [ieee80211_sync_0, '0', blocks_file_sink_0_0, '0']
 - [ieee80211_sync_0, '0', ieee80211_signal_0, '0']
+- [ieee80211_trigger_0, '0', blocks_file_sink_0, '0']
 - [ieee80211_trigger_0, '0', ieee80211_sync_0, '0']
 - [pdu_pdu_to_tagged_stream_0, '0', network_udp_sink_0, '0']
 - [presiso_0, '0', ieee80211_trigger_0, '0']

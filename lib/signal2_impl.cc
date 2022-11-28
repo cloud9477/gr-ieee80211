@@ -41,7 +41,7 @@ namespace gr {
               gr::io_signature::make(2, 2, sizeof(gr_complex))),
               d_ofdm_fft(64,1)
     {
-      d_debug = true;
+      d_debug = false;
       d_nProc = 0;
       d_nSigPktSeq = 0;
       d_sSignal = S_TRIGGER;
@@ -169,7 +169,7 @@ namespace gr {
             d_nSymbol = (d_nSigLen*8 + 16 + 6)/d_nSigDBPS + (((d_nSigLen*8 + 16 + 6)%d_nSigDBPS) != 0);
             d_nSample = d_nSymbol * 80;
             d_nSampleCopied = 0;
-            dout<<"ieee80211 signal, cfo:"<<(d_cfoRad) * 20000000.0f / 2.0f / M_PI<<", mcs: "<<d_nSigMcs<<", len:"<<d_nSigLen<<", nSym:"<<d_nSymbol<<", nSample:"<<d_nSample<<std::endl;
+            dout<<"ieee80211 signal2, cfo:"<<(d_cfoRad) * 20000000.0f / 2.0f / M_PI<<", mcs: "<<d_nSigMcs<<", len:"<<d_nSigLen<<", nSym:"<<d_nSymbol<<", nSample:"<<d_nSample<<std::endl;
             // add info into tag
             d_nSigPktSeq++;
             if(d_nSigPktSeq >= 1000000000){d_nSigPktSeq = 0;}
@@ -258,7 +258,7 @@ namespace gr {
         }
       }
 
-      dout<<"ieee80211 signal, state error, go back to idle"<<std::endl;
+      dout<<"ieee80211 signal2, state error, go back to idle"<<std::endl;
       d_sSignal = S_TRIGGER;
       consume_each(d_nProc);
       return d_nProc;

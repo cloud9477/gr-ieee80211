@@ -156,18 +156,17 @@ namespace gr {
             procDeintLegacyBpsk(d_sigVhtAIntedLlr, d_sigVhtACodedLlr);
             procDeintLegacyBpsk(&d_sigVhtAIntedLlr[48], &d_sigVhtACodedLlr[48]);
             SV_Decode_Sig(d_sigVhtACodedLlr, d_sigVhtABits, 48);
-            dout<<"sig vht a bits"<<std::endl;
-            for(int i=0;i<48;i++)
-            {
-              dout<<(int)d_sigVhtABits[i]<<" ";
-            }
-            dout<<std::endl;
             if(signalCheckVhtA(d_sigVhtABits))
             {
-              dout<<"sig vht a bits check passed"<<std::endl;
               // go to vht
+              dout<<"sig vht a bits"<<std::endl;
+              for(int i=0;i<48;i++)
+              {
+                dout<<(int)d_sigVhtABits[i]<<" ";
+              }
+              dout<<std::endl;
               signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
-              dout<<"sig vht a bits parser done, nLTF:"<<d_m.nLTF<<std::endl;
+              dout<<"ieee80211 demod, vht a check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
               d_sDemod = DEMOD_S_VHT;
               d_nSampConsumed += 160;
               consume_each(160);
@@ -181,7 +180,14 @@ namespace gr {
               if(signalCheckHt(d_sigHtBits))
               {
                 // go to ht
+                dout<<"sig ht bits"<<std::endl;
+                for(int i=0;i<48;i++)
+                {
+                  dout<<(int)d_sigHtBits[i]<<" ";
+                }
+                dout<<std::endl;
                 signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
+                dout<<"ieee80211 demod, ht check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
                 d_sDemod = DEMOD_S_HT;
                 d_nSampConsumed += 160;
                 consume_each(160);

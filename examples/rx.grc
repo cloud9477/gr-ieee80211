@@ -95,60 +95,6 @@ blocks:
     coordinate: [280, 144.0]
     rotation: 0
     state: true
-- name: blocks_file_sink_0
-  id: blocks_file_sink
-  parameters:
-    affinity: ''
-    alias: ''
-    append: 'False'
-    comment: ''
-    file: /home/cloud/sdr/debug_trigger.bin
-    type: byte
-    unbuffered: 'False'
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [728, 220.0]
-    rotation: 0
-    state: disabled
-- name: blocks_file_sink_0_0
-  id: blocks_file_sink
-  parameters:
-    affinity: ''
-    alias: ''
-    append: 'False'
-    comment: ''
-    file: /home/cloud/sdr/debug_sync.bin
-    type: byte
-    unbuffered: 'False'
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [728, 308.0]
-    rotation: 0
-    state: disabled
-- name: blocks_file_sink_0_0_0
-  id: blocks_file_sink
-  parameters:
-    affinity: ''
-    alias: ''
-    append: 'False'
-    comment: ''
-    file: /home/cloud/sdr/debug_sig.bin
-    type: complex
-    unbuffered: 'False'
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [912, 340.0]
-    rotation: 0
-    state: true
 - name: blocks_file_source_0
   id: blocks_file_source
   parameters:
@@ -203,7 +149,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1072, 436.0]
+    coordinate: [1080, 364.0]
     rotation: 0
     state: enabled
 - name: ieee80211_demod_0
@@ -220,7 +166,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [872, 428.0]
+    coordinate: [880, 356.0]
     rotation: 0
     state: enabled
 - name: ieee80211_signal_0
@@ -235,7 +181,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [760, 424.0]
+    coordinate: [768, 352.0]
     rotation: 0
     state: true
 - name: ieee80211_sync_0
@@ -250,7 +196,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [632, 392.0]
+    coordinate: [640, 320.0]
     rotation: 0
     state: true
 - name: ieee80211_trigger_0
@@ -265,7 +211,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [440, 392.0]
+    coordinate: [448, 320.0]
     rotation: 0
     state: true
 - name: import_0
@@ -330,7 +276,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [264, 392.0]
+    coordinate: [272, 320.0]
     rotation: 0
     state: true
 - name: virtual_sink_0
@@ -356,7 +302,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [48, 452.0]
+    coordinate: [56, 380.0]
     rotation: 0
     state: true
 
@@ -367,11 +313,8 @@ connections:
 - [blocks_throttle_0_0, '0', virtual_sink_0, '0']
 - [ieee80211_decode_0, out, pdu_pdu_to_tagged_stream_0, pdus]
 - [ieee80211_demod_0, '0', ieee80211_decode_0, '0']
-- [ieee80211_signal_0, '0', blocks_file_sink_0_0_0, '0']
 - [ieee80211_signal_0, '0', ieee80211_demod_0, '0']
-- [ieee80211_sync_0, '0', blocks_file_sink_0_0, '0']
 - [ieee80211_sync_0, '0', ieee80211_signal_0, '0']
-- [ieee80211_trigger_0, '0', blocks_file_sink_0, '0']
 - [ieee80211_trigger_0, '0', ieee80211_sync_0, '0']
 - [pdu_pdu_to_tagged_stream_0, '0', network_udp_sink_0, '0']
 - [presiso_0, '0', ieee80211_trigger_0, '0']

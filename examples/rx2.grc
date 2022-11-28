@@ -11,7 +11,7 @@ options:
     gen_linking: dynamic
     generate_options: no_gui
     hier_block_src_path: '.:'
-    id: wifirx
+    id: wifirx2
     max_nouts: '0'
     output_language: python
     placement: (0,0)
@@ -52,7 +52,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/sig80211VhtGenCfo100_2x2_0.bin
+    file: /home/cloud/sdr/sig80211GenMultipleMimo_2x2_0.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -74,7 +74,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/sig80211VhtGenCfo100_2x2_1.bin
+    file: /home/cloud/sdr/sig80211GenMultipleMimo_2x2_1.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -133,7 +133,7 @@ blocks:
     affinity: ''
     alias: ''
     comment: ''
-    inpara: '0'
+    inpara: '1'
     maxoutbuf: '0'
     minoutbuf: '0'
   states:

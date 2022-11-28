@@ -473,9 +473,9 @@ namespace gr {
           else
           {
             d_nPktCorrect++;
-            if(t_mcs >= 0 && t_mcs < 8)
+            if(t_mcs >= 0)
             {
-              if(t_format == C8P_F_L)
+              if(t_format == C8P_F_L && t_mcs < 8)
               {
                 d_legacyMcsCount[t_mcs]++;
                 dout << "ieee80211 decode, legacy crc32 correct, total:"<< d_nPktCorrect;
@@ -489,9 +489,9 @@ namespace gr {
                 dout << ",7:"<<d_legacyMcsCount[7];
                 dout << std::endl;
               }
-              else
+              else if(t_format == C8P_F_HT && t_mcs < 16)
               {
-                d_htMcsCount[t_mcs]++;
+                d_htMcsCount[t_mcs%8]++;
                 dout << "ieee80211 decode, ht crc32 correct, total:"<< d_nPktCorrect;
                 dout << ",0:"<<d_htMcsCount[0];
                 dout << ",1:"<<d_htMcsCount[1];
@@ -503,6 +503,14 @@ namespace gr {
                 dout << ",7:"<<d_htMcsCount[7];
                 dout << std::endl;
               }
+              else
+              {
+                dout << "ieee80211 decode, format "<<t_format<<" mcs error: "<< t_mcs<<std::endl;
+              }
+            }
+            else
+            {
+              dout << "ieee80211 decode, format "<<t_format<<" mcs error: "<< t_mcs<<std::endl;
             }
             pmt::pmt_t tmpMeta = pmt::make_dict();
             tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(t_len));

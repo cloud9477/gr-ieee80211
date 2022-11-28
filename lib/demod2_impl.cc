@@ -44,7 +44,7 @@ namespace gr {
               d_ofdm_fft(64,1)
     {
       d_nProc = 0;
-      d_debug = true;
+      d_debug = false;
       d_sDemod = DEMOD_S_RDTAG;
       set_tag_propagation_policy(block::TPP_DONT);
     }

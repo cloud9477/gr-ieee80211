@@ -1691,7 +1691,7 @@ void procSymDepasNL(float in[C8P_MAX_N_SS][C8P_MAX_N_CBPSS], float* out, c8p_mod
 {
 	// this ver only for 2 ss
 	int s = std::max(mod->nBPSCS/2, 1);
-	for(int i=0; i<mod->nSD; i++)
+	for(int i=0; i<int(mod->nCBPSS/s); i++)
 	{
 		memcpy(&out[i*2*s], &in[0][i*s], sizeof(float)*s);
 		memcpy(&out[(i*2+1)*s], &in[1][i*s], sizeof(float)*s);

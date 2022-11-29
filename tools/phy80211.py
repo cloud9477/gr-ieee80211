@@ -901,6 +901,33 @@ class phy80211():
                 plt.plot(np.imag(tmpSig))
         if(draw):
             plt.show()
+    
+    def genSigOwTextFile(self, ssSig, fileAddr="", draw = False):
+        if(len(fileAddr)<1):
+            print("cloud phy80211, genSigBinFile file address not given")
+            return
+        if not ssSig:
+            print("cloud phy80211, genSigBinFile input sig empty")
+            return
+        print("write signal into bin file")
+        for ssItr in range(0, len(ssSig)):
+            tmpFilePathStr = fileAddr + "_" + str(len(ssSig)) + "x" + str(len(ssSig)) + "_" + str(ssItr) + ".txt"
+            textF = open(tmpFilePathStr, "w")
+            tmpSig = ssSig[ssItr]
+            print("stream %d sample number %d" % (ssItr, len(tmpSig)))
+            for i in range(0, len(tmpSig)):
+               tmpSig[i] = int(np.real(tmpSig[i])) + int(np.imag(tmpSig[i])) * 1j
+            for i in range(0, len(tmpSig)):
+               tmpStr = str(int(np.real(tmpSig[i]))) + " " + str(int(np.imag(tmpSig[i]))) + "\n"
+               textF.write(tmpStr)
+            textF.close()
+            print("written in " + tmpFilePathStr)
+            if(draw):
+                plt.figure(100 + ssItr)
+                plt.plot(np.real(tmpSig))
+                plt.plot(np.imag(tmpSig))
+        if(draw):
+            plt.show()
 
 if __name__ == "__main__":
     pass

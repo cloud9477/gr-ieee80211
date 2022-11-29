@@ -71,6 +71,7 @@ namespace gr {
       gr_complex d_fftLtfOut1[64];
       gr_complex d_fftLtfOut2[64];
       gr_complex d_fftSigOut[64];
+      size_t d_fftSize;
 
      public:
       signal2_impl();
@@ -83,7 +84,7 @@ namespace gr {
            gr_vector_int &ninput_items,
            gr_vector_const_void_star &input_items,
            gr_vector_void_star &output_items);
-
+      void fftDemod(gr_complex* in, gr_complex* out);
     };
 
   } // namespace ieee80211

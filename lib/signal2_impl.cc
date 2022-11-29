@@ -45,6 +45,7 @@ namespace gr {
       d_nProc = 0;
       d_nSigPktSeq = 0;
       d_sSignal = S_TRIGGER;
+      d_fftSize = sizeof(gr_complex)*64;
 
       set_tag_propagation_policy(block::TPP_DONT);
     }
@@ -86,9 +87,6 @@ namespace gr {
         {
           if(sync[i])
           {
-            d_sSignal = S_DEMOD;
-            // d_cfoRad = inCfoRad[i];
-
             std::vector<gr::tag_t> tags;
             get_tags_in_range(tags, 0, nitems_read(0) + i, nitems_read(0) + i + 1);
             if (tags.size())
@@ -100,11 +98,12 @@ namespace gr {
               t_rad = (float)pmt::to_double(pmt::dict_ref(d_meta, pmt::mp("rad"), pmt::from_double(0.0)));
               d_cfoRad = t_rad;
               t_snr = (float)pmt::to_double(pmt::dict_ref(d_meta, pmt::mp("snr"), pmt::from_double(0.0)));
+              d_sSignal = S_DEMOD;
               dout<<"ieee80211 signal2, rd tag cfo:"<<(t_rad) * 20000000.0f / 2.0f / M_PI<<", snr:"<<t_snr<<std::endl;
             }
             else
             {
-              dout<<"ieee80211 signal2, error: sync no tag !!!!!!!!!!!!!!"<<std::endl;
+              std::cout<<"ieee80211 signal2, error: input sync with no tag !!!!!!!!!!!!!!"<<std::endl;
             }
 
             break;
@@ -123,15 +122,9 @@ namespace gr {
             tmpRadStep = (float)i * d_cfoRad;
             d_sigAfterCfoComp[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));
           }
-          memcpy(d_ofdm_fft.get_inbuf(), &d_sigAfterCfoComp[8], sizeof(gr_complex)*64);
-          d_ofdm_fft.execute();
-          memcpy(d_fftLtfOut1, d_ofdm_fft.get_outbuf(), sizeof(gr_complex)*64);
-          memcpy(d_ofdm_fft.get_inbuf(), &d_sigAfterCfoComp[8+64], sizeof(gr_complex)*64);
-          d_ofdm_fft.execute();
-          memcpy(d_fftLtfOut2, d_ofdm_fft.get_outbuf(), sizeof(gr_complex)*64);
-          memcpy(d_ofdm_fft.get_inbuf(), &d_sigAfterCfoComp[8+64+80], sizeof(gr_complex)*64);
-          d_ofdm_fft.execute();
-          memcpy(d_fftSigOut, d_ofdm_fft.get_outbuf(), sizeof(gr_complex)*64);
+          fftDemod(&d_sigAfterCfoComp[8], d_fftLtfOut1);
+          fftDemod(&d_sigAfterCfoComp[72], d_fftLtfOut2);
+          fftDemod(&d_sigAfterCfoComp[152], d_fftSigOut);
 
           for(int i=0;i<64;i++)
           {
@@ -258,11 +251,17 @@ namespace gr {
         }
       }
 
-      dout<<"ieee80211 signal2, state error, go back to idle"<<std::endl;
+      std::cout<<"ieee80211 signal2, state error, go back to idle !!!!!!!!!!!!!!"<<std::endl;
       d_sSignal = S_TRIGGER;
       consume_each(d_nProc);
       return d_nProc;
     }
 
+    void signal2_impl::fftDemod(gr_complex* in, gr_complex* out)
+    {
+      memcpy(d_ofdm_fft.get_inbuf(), in, d_fftSize);
+      d_ofdm_fft.execute();
+      memcpy(out, d_ofdm_fft.get_outbuf(), d_fftSize);
+    }
   } /* namespace ieee80211 */
 } /* namespace gr */

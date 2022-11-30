@@ -342,47 +342,37 @@ namespace gr {
           int o2 = 0;
           while(((o1 + d_m.nSymSamp) < d_nProc) && ((o2 + d_m.nCBPS) < d_nGen) && (d_nSymProcd < d_m.nSym))
           {
-            // channel equlizer
             if(d_m.format == C8P_F_L)
             {
               legacyChanUpdate(&inSig1[o1]);
-            }
-            else if(d_m.format == C8P_F_VHT)
-            {
-              vhtChanUpdate(&inSig1[o1], &inSig2[o1]);
-            }
-            else
-            {
-              htChanUpdate(&inSig1[o1], &inSig2[o1]);
-            }
-            // qam disassemble to llr
-            if(d_m.nSS == 1)
-            {
               procSymQamToLlr(d_qam[0], d_llrInted[0], &d_m);
-            }
-            else
-            {
-              procSymQamToLlr(d_qam[0], d_llrInted[0], &d_m);
-              procSymQamToLlr(d_qam[1], d_llrInted[1], &d_m);
-            }
-            // deint and deparse
-            if(d_m.format == C8P_F_L)
-            {
               procSymDeintL(d_llrInted[0], &outLlrs[o2], &d_m);
             }
             else
             {
-              if(d_m.nSS == 1)
+              if(d_m.format == C8P_F_VHT)
               {
-                procSymDeintNL(d_llrInted[0], &outLlrs[o2], &d_m, 0);
+                vhtChanUpdate(&inSig1[o1], &inSig2[o1]);
               }
               else
               {
-                procSymDeintNL(d_llrInted[0], d_llrSpasd[0], &d_m, 0);
-                procSymDeintNL(d_llrInted[1], d_llrSpasd[1], &d_m, 1);
+                htChanUpdate(&inSig1[o1], &inSig2[o1]);
+              }
+              if(d_m.nSS == 1)
+              {
+                procSymQamToLlr(d_qam[0], d_llrInted[0], &d_m);
+                procSymDeintNL2SS1(d_llrInted[0], &outLlrs[o2], &d_m);
+              }
+              else
+              {
+                procSymQamToLlr(d_qam[0], d_llrInted[0], &d_m);
+                procSymQamToLlr(d_qam[1], d_llrInted[1], &d_m);
+                procSymDeintNL2SS1(d_llrInted[0], d_llrSpasd[0], &d_m);
+                procSymDeintNL2SS2(d_llrInted[1], d_llrSpasd[1], &d_m);
                 procSymDepasNL(d_llrSpasd, &outLlrs[o2], &d_m);
               }
             }
+
             d_nSymProcd += 1;
             o1 += d_m.nSymSamp;
             o2 += d_m.nCBPS;
@@ -403,7 +393,6 @@ namespace gr {
 
         case DEMOD_S_CLEAN:
         {
-          // dout << "ieee80211 demod, nProc: "<< d_nProc <<", samp consumed: "<<d_nSampConsumed<<", samp to be consumed: "<< d_nSigLSamp - d_nSampConsumed << std::endl;
           if(d_nProc >= (d_nSigLSamp - d_nSampConsumed))
           {
             consume_each(d_nSigLSamp - d_nSampConsumed);

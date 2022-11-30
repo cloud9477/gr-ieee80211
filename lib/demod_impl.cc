@@ -333,23 +333,19 @@ namespace gr {
         {
           int o1 = 0;
           int o2 = 0;
-          //dout << d_nProc << " " << d_nGen << " " << std::endl;
           while(((o1 + d_m.nSymSamp) < d_nProc) && ((o2 + d_m.nCBPS) < d_nGen) && (d_nSymProcd < d_m.nSym))
           {
-            //dout << d_nSymProcd << " " << d_m.nSym << std::endl;
-            // channel equlizer
             if(d_m.format == C8P_F_L)
             {
               legacyChanUpdate(&inSig1[o1]);
-              procSymQamToLlr(d_qam[0], d_llrInted[0], &d_m);         // qam disassemble to llr
-              procSymDeintL(d_llrInted[0], &outLlrs[o2], &d_m);       // deint and deparse
+              procSymQamToLlr(d_qam[0], d_llrInted[0], &d_m);
+              procSymDeintL(d_llrInted[0], &outLlrs[o2], &d_m);
             }
             else
             {
               nonLegacyChanUpdate(&inSig1[o1]);
-              procSymQamToLlr(d_qam[0], d_llrInted[0], &d_m);         // qam disassemble to llr
-              //procSymDeintNL(d_llrInted[0], &outLlrs[o2], &d_m, 0);   // deint
-              procSymDeintNL2S(d_llrInted[0], &outLlrs[o2], &d_m);
+              procSymQamToLlr(d_qam[0], d_llrInted[0], &d_m);
+              procSymDeintNL2SS1(d_llrInted[0], &outLlrs[o2], &d_m);
             }
 
             d_nSymProcd += 1;
@@ -372,7 +368,6 @@ namespace gr {
 
         case DEMOD_S_CLEAN:
         {
-          // dout << "ieee80211 demod, nProc: "<< d_nProc <<", samp consumed: "<<d_nSampConsumed<<", samp to be consumed: "<< d_nSigLSamp - d_nSampConsumed << std::endl;
           if(d_nProc >= (d_nSigLSamp - d_nSampConsumed))
           {
             consume_each(d_nSigLSamp - d_nSampConsumed);

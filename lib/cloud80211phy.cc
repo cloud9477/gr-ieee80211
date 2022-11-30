@@ -1693,9 +1693,9 @@ void procSymDeintNL(float* in, float* out, c8p_mod* mod, int iSS_1)		// iSS_1 is
 	}
 }
 
-void procSymDeintNL2S(float* in, float* out, c8p_mod* mod)		// iSS_1 is: iSS - 1 in standard
+void procSymDeintNL2SS1(float* in, float* out, c8p_mod* mod)
 {
-	switch(mod->nCBPS)
+	switch(mod->nCBPSS)
 	{
 		case 52:
 		{
@@ -1734,6 +1734,57 @@ void procSymDeintNL2S(float* in, float* out, c8p_mod* mod)		// iSS_1 is: iSS - 1
 			for(int i=0; i<416; i++)
 			{
 				out[mapDeintNonlegacy256Qam[i]] = in[i];
+			}
+			return;
+		}
+		default:
+		{
+			return;
+		}
+	}
+}
+
+void procSymDeintNL2SS2(float* in, float* out, c8p_mod* mod)
+{
+	switch(mod->nCBPSS)
+	{
+		case 52:
+		{
+			for(int i=0; i<52; i++)
+			{
+				out[mapDeintNonlegacyBpsk2[i]] = in[i];
+			}
+			return;
+		}
+		case 104:
+		{
+			for(int i=0; i<104; i++)
+			{
+				out[mapDeintNonlegacyQpsk2[i]] = in[i];
+			}
+			return;
+		}
+		case 208:
+		{
+			for(int i=0; i<208; i++)
+			{
+				out[mapDeintNonlegacy16Qam2[i]] = in[i];
+			}
+			return;
+		}
+		case 312:
+		{
+			for(int i=0; i<312; i++)
+			{
+				out[mapDeintNonlegacy64Qam2[i]] = in[i];
+			}
+			return;
+		}
+		case 416:
+		{
+			for(int i=0; i<416; i++)
+			{
+				out[mapDeintNonlegacy256Qam2[i]] = in[i];
 			}
 			return;
 		}

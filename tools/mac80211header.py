@@ -105,12 +105,33 @@ class FC_SUBTPYE_EXT(Enum):
     def has_value(cls, value):
         return value in cls._value2member_map_
 
+class MGMT_ELE(Enum):
+    SSID = 0
+    SUPOTRATE = 1
+    DSSSPARAM = 3
+    TIM = 5
+    COUNTRY = 7
+    BSSLOAD = 11
+    HTCAP = 45
+    RSN = 48
+    HTOPS = 61
+    ANTENNA = 64
+    RMENABLED = 70
+    EXTCAP = 127
+    VHTCAP = 191
+    VHTOPS = 192
+    TXPOWER = 195
+    VENDOR = 221
+
+    @classmethod
+    def has_value(cls, value):
+        return value in cls._value2member_map_
+
 # some define
 C_FC_SUBTYPE_MGMT_STR = ["Association Request", "Association Response", "Reassociation Request", "Reassociation Response", "Probe Request", "Probe Response", "Timing Advertisement", "Reserved", "Beacon", "ATIM", "Disassociation", "Authentication", "Deauthentication", "Action", "Action No Ack", "Reserved"]
 C_FC_SUBTYPE_CTRL_STR = ["Reserved", "Reserved", "Reserved", "Reserved", "Beamforming Report Poll", "VHT NDP Announcement", "Control Frame Extension", "Control Wrapper", "Block Ack Request (BlockAckReq)", "Block Ack (BlockAck)", "PS-Poll", "RTS", "CTS", "Ack", "CF-End", "CF-End +CF-Ack"]
 C_FC_SUBTYPE_DATA_STR = ["Data", "Data +CF-Ack", "Data +CF-Poll", "Data +CF-Ack +CF-Poll", "Null (no data)", "CF-Ack (no data)", "CF-Poll (no data)", "CF-Ack +CF-Poll (no data)", "QoS Data", "QoS Data +CF-Ack", "QoS Data +CF-Poll", "QoS Data +CF-Ack +CF-Poll", "QoS Null (no data)", "Reserved", "QoS CF-Poll (no data)", "QoS CF-Ack +CF-Poll (no data)"]
 C_FC_SUBTYPE_EXT_STR = ["DMG Beacon", "Reserved", "Reserved", "Reserved", "Reserved","Reserved", "Reserved", "Reserved", "Reserved","Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved"]
-C_FC_SUBTYPE_MGMT_BEACON = 8
 
 class frameControl:
     def __init__(self, fc):
@@ -149,19 +170,26 @@ class frameControl:
         else:
             print("cloud mac80211header, FC type error")
 
-def elementParser(inbytes):
-    if(isinstance(inbytes, (bytes, bytearray))):
-        if(inbytes[0] == 0):
-            tmpLen = inbytes[1]
-            if(len(inbytes) == (tmpLen+2)):
-                tmpSsidStr = inbytes[2:2+tmpLen].decode("utf-8")
-                return tmpSsidStr
+def mgmtElementParser(inbytes):
+    if(isinstance(inbytes, (bytes, bytearray)) and len(inbytes) > 0):
+        elementIter = 0
+        tmpMgmtElements = []
+        while(elementIter < len(inbytes)):
+            if(MGMT_ELE.has_value(inbytes[elementIter])):
+                tmpElement = MGMT_ELE(inbytes[elementIter])
+                elementIter += 1
+                tmpLen = inbytes[elementIter]
+                if(tmpElement == MGMT_ELE.SSID):
+                    pass
+                elementIte += tmpLen
             else:
-                print("cloud mac80211header, elementParserSSID len error")
-                return ""
-        else:
-            print("cloud mac80211header, elementParserSSID type error")
-            return ""
+                elementIter += 1
+                tmpLen = inbytes[elementIter]
+                elementIte += tmpLen
+        return tmpMgmtElements
+    print("cloud mac80211header, mgmtParser input type error")
+    return []
+
 
 def pktParser(pkt):
     if(isinstance(pkt, (bytes, bytearray))):
@@ -189,9 +217,17 @@ def pktParser(pkt):
             if(procdLen <= pktLen):
                 hdr_seqCtrl= struct.unpack('<H', pkt[procdLen-2:procdLen])[0]
                 print("Management sequence control %d" % hdr_seqCtrl)
-            
             if(hdr_fc.subType == FC_SUBTPYE_MGMT.BEACON):
-                pass
+                # Timestamp, Beacon Interval, Cap
+                procdLen += 12
+                if(procdLen <= pktLen):
+                    beacon_timestamp = struct.unpack('<Q', pkt[procdLen-12:procdLen-4])[0]
+                    beacon_interval = struct.unpack('<Q', pkt[procdLen-4:procdLen-2])[0]
+                    beacon_cap = struct.unpack('<Q', pkt[procdLen-2:procdLen])[0]
+                # Elements
+                if(procdLen <= pktLen):
+                    beaconElements = mgmtElementParser(pkt[procdLen:])
+
             elif(hdr_fc.subType == FC_SUBTPYE_MGMT.PROBEREQ):
                 pass
             elif(hdr_fc.subType == FC_SUBTPYE_MGMT.PROBERES):

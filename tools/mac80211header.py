@@ -174,18 +174,44 @@ def mgmtElementParser(inbytes):
     if(isinstance(inbytes, (bytes, bytearray)) and len(inbytes) > 0):
         elementIter = 0
         tmpMgmtElements = []
-        while(elementIter < len(inbytes)):
+        inPutLen = len(inbytes)
+        while((elementIter+2) < inPutLen):  # one byte type, one byte len
             if(MGMT_ELE.has_value(inbytes[elementIter])):
                 tmpElement = MGMT_ELE(inbytes[elementIter])
                 elementIter += 1
                 tmpLen = inbytes[elementIter]
-                if(tmpElement == MGMT_ELE.SSID):
-                    pass
-                elementIte += tmpLen
+                elementIter += 1
+                if((elementIter+tmpLen) < inPutLen):
+                    if(tmpElement == MGMT_ELE.SSID):
+                        tmpStr = inbytes[elementIter:elementIter+tmpLen].decode("utf-8")
+                        tmpMgmtElements.append("SSID: " + tmpStr)
+                    elif(tmpElement == MGMT_ELE.SUPOTRATE):
+                        tmpStr = ""
+                        for i in range(0, tmpLen):
+                            tmpStr += str(inbytes[elementIter+i]*500/1000)
+                            tmpStr += "Mbps "
+                        tmpMgmtElements.append("Suppoprted Rates: " + tmpStr)
+                    elif(tmpElement == MGMT_ELE.DSSSPARAM):
+                        tmpStr = str(inbytes[elementIter])
+                        tmpMgmtElements.append("DS Channel: " + tmpStr)
+                    elif(tmpElement == MGMT_ELE.TIM):
+                        tmpMgmtElements.append("TIM: To be added")
+                    elif(tmpElement == MGMT_ELE.COUNTRY):
+                        tmpStr = inbytes[elementIter:elementIter+3].decode("utf-8")
+                        tmpMgmtElements.append("Country: " + tmpStr)
+                    elif(tmpElement == MGMT_ELE.BSSLOAD):
+                        tmpStaCount = struct.unpack('<H', inbytes[elementIter:elementIter+2])[0]
+                        tmpChanUtil = int(inbytes[elementIter+2])
+                        tmpAvailAdmCap = struct.unpack('<H', inbytes[elementIter+3:elementIter+5])[0]
+                        tmpMgmtElements.append("BSS Load, Station Count: " + str(tmpStaCount) + ", Channel Utilization: " + str(tmpChanUtil) + ", Available Admission Capacity: " + str(tmpAvailAdmCap))
+                    elif(tmpElement == MGMT_ELE.RSN):
+                        tmpMgmtElements.append("RSN: To be added")
+
+                elementIter += tmpLen
             else:
                 elementIter += 1
                 tmpLen = inbytes[elementIter]
-                elementIte += tmpLen
+                elementIter += tmpLen
         return tmpMgmtElements
     print("cloud mac80211header, mgmtParser input type error")
     return []

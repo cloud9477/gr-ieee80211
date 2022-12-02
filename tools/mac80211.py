@@ -3,7 +3,6 @@ import struct
 import socket
 import binascii
 import zlib
-from matplotlib import pyplot as plt
 
 """
     the simulation generates the IEEE 802.11a/g/n/ac MAC data packet and PHY data signal from transportation layer (UDP)

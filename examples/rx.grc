@@ -133,7 +133,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [648, 156.0]
+    coordinate: [544, 156.0]
     rotation: 0
     state: enabled
 - name: ieee80211_decode_0

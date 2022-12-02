@@ -172,6 +172,8 @@ void procSymDeintL2(float* in, float* out, c8p_mod* mod);
 void procSymDeintNL(float* in, float* out, c8p_mod* mod, int iSS_1);
 void procSymDeintNL2SS1(float* in, float* out, c8p_mod* mod);
 void procSymDeintNL2SS2(float* in, float* out, c8p_mod* mod);
+void procSymIntelNL2SS1(float* in, float* out, c8p_mod* mod);
+void procSymIntelNL2SS2(float* in, float* out, c8p_mod* mod);
 void procSymDepasNL(float in[C8P_MAX_N_SS][C8P_MAX_N_CBPSS], float* out, c8p_mod* mod);
 int nCodedToUncoded(int nCoded, c8p_mod* mod);
 int nUncodedToCoded(int nUncoded, c8p_mod* mod);

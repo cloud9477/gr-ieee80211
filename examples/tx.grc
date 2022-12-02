@@ -60,7 +60,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1136, 300.0]
+    coordinate: [1128, 252.0]
     rotation: 0
     state: true
 - name: blocks_file_sink_0_0
@@ -78,7 +78,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1136, 380.0]
+    coordinate: [1128, 332.0]
     rotation: 0
     state: true
 - name: blocks_message_strobe_0
@@ -111,7 +111,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [448, 312.0]
+    coordinate: [400, 272.0]
     rotation: 0
     state: true
 - name: ieee80211_modulation_0
@@ -126,7 +126,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [792, 320.0]
+    coordinate: [784, 272.0]
     rotation: 0
     state: true
 
@@ -139,3 +139,4 @@ connections:
 
 metadata:
   file_format: 1
+  grc_version: 3.10.4.0

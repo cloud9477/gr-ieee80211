@@ -88,9 +88,9 @@ namespace gr {
           t_nProcd = 0;
           // dout<<"ieee80211 decode, tag f:"<<t_format<<", ampdu:"<<t_ampdu<<", len:"<<t_len<<", total:"<<t_nTotal<<", cr:"<<t_cr<<", tr:"<<v_trellis<<std::endl;
           
-          if(t_len > DECODE_LEN_MAX)
+          if(t_len > DECODE_B_MAX)
           {
-            // dout<<"ieee80211 decode, packet len too long not supported." << std::endl;
+            dout<<"ieee80211 decode, packet len " << t_len << " too long not supported." << std::endl;
             d_sDecode = DECODE_S_CLEAN;
           }
           else
@@ -100,7 +100,7 @@ namespace gr {
               d_sDecode = DECODE_S_CLEAN;
               d_tagMu2x1Chan = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("mu2x1chan"), pmt::PMT_NIL));
               std::copy(d_tagMu2x1Chan.begin(), d_tagMu2x1Chan.end(), d_mu2x1Chan);
-              int tmpLen = sizeof(float)*256;
+              int tmpLen = sizeof(float)*256 + 3;
               d_mu2x1ChanFloatBytes[0] = C8P_F_VHT_NDP;
               d_mu2x1ChanFloatBytes[1] = tmpLen%256;  // byte 1-2 packet len
               d_mu2x1ChanFloatBytes[2] = tmpLen/256;
@@ -114,7 +114,7 @@ namespace gr {
               dout<<"ieee80211 decode, vht NDP 2x1 channel report:"<<tmpLen<<std::endl;
               pmt::pmt_t tmpMeta = pmt::make_dict();
               tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(tmpLen));
-              pmt::pmt_t tmpPayload = pmt::make_blob((uint8_t*)d_mu2x1ChanFloatBytes, DECODE_UDP_LEN);
+              pmt::pmt_t tmpPayload = pmt::make_blob((uint8_t*)d_mu2x1ChanFloatBytes, tmpLen);
               message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
             }
             vstb_init();
@@ -402,12 +402,10 @@ namespace gr {
               dout << ",9:"<<d_vhtMcsCount[9];
               dout << std::endl;
               // 1 byte packet format
-              // dout << "ieee80211 decode, vht ampdu subf len:"<<tmpLen<<std::endl;
               tmpLen += 3;
-              memset(&d_pktBytes[tmpLen], 0, (DECODE_UDP_LEN - tmpLen));
               pmt::pmt_t tmpMeta = pmt::make_dict();
-              tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(DECODE_UDP_LEN));
-              pmt::pmt_t tmpPayload = pmt::make_blob(d_pktBytes, DECODE_UDP_LEN);
+              tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(tmpLen));
+              pmt::pmt_t tmpPayload = pmt::make_blob(d_pktBytes, tmpLen);
               message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
             }
 
@@ -513,8 +511,8 @@ namespace gr {
               dout << "ieee80211 decode, format "<<t_format<<" mcs error: "<< t_mcs<<std::endl;
             }
             pmt::pmt_t tmpMeta = pmt::make_dict();
-            tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(t_len));
-            pmt::pmt_t tmpPayload = pmt::make_blob(d_pktBytes, DECODE_UDP_LEN);
+            tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(t_len+3));
+            pmt::pmt_t tmpPayload = pmt::make_blob(d_pktBytes, t_len+3);
             message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
           }
         }

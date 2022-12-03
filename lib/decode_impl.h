@@ -31,10 +31,25 @@
 #define DECODE_S_DECODE 1
 #define DECODE_S_CLEAN 2
 
-#define DECODE_V_MAX 16000
-#define DECODE_D_MAX 2000
-#define DECODE_UDP_LEN 1400
-#define DECODE_LEN_MAX 1300
+/*
+Legacy  max MPDU 4095
+HT      max MPDU 7935     AMPDU 65535
+VHT     max MPDU 11454    AMPDU 1048575
+
+The max ampdu len can receive is indicated by different devices in HT Cap or VHT Cap
+For VHT, max is 2^20-1=1048575, the minimal su packet apeplen/4 is 2^17=131072, 131072*4=524288
+This phy only supports 20MHz, so we use 524288 here
+However, for real usage, this may not necessary
+
+#define DECODE_B_MAX 524288
+#define DECODE_V_MAX 4196000    // max llr len
+#define DECODE_D_MAX 11454      // max mpdu len
+
+*/
+
+#define DECODE_B_MAX 5000
+#define DECODE_V_MAX 41000    // max llr len
+#define DECODE_D_MAX 1600      // max mpdu len
 
 namespace gr {
   namespace ieee80211 {
@@ -60,7 +75,7 @@ namespace gr {
       int t_mcs;
       // NDP channel
       gr_complex d_mu2x1Chan[128];
-      uint8_t d_mu2x1ChanFloatBytes[1400];
+      uint8_t d_mu2x1ChanFloatBytes[1027];
       std::vector<gr_complex> d_tagMu2x1Chan;
       // viterbi
       float v_accum_err0[64];
@@ -77,9 +92,7 @@ namespace gr {
       int v_cr_p, v_cr_len;
       uint8_t v_scramBits[DECODE_V_MAX];
       uint8_t v_unCodedBits[DECODE_V_MAX];
-      uint8_t d_dataBytes[DECODE_D_MAX];
       boost::crc_32_type d_crc32;
-      // mac packet
       uint8_t d_pktBytes[DECODE_D_MAX];
       int d_dataLen;
       // debug

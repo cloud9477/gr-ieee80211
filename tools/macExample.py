@@ -1,19 +1,14 @@
 import socket
 import mac80211
 import phy80211header as p8h
-# from matplotlib import pyplot as plt
-import numpy as np
-import time
-import struct
+import mac80211header as m8h
 
 # device info
 staID = 0
 print("cloud mac80211 example starts")
 
-phyRxIp = "127.0.0.2"
+phyRxIp = "127.0.0.1"
 phyRxPort = 9527
-phyTxIp = "127.0.0.2"
-phyTxPort = 9528
 phyRxSocket = socket.socket(family = socket.AF_INET, type = socket.SOCK_DGRAM)
 phyRxSocket.bind((phyRxIp, phyRxPort))
 
@@ -25,7 +20,7 @@ while(True):
     tmpPktType = int(rxPkt[0])
     tmpPktLen = int(rxPkt[1]) + int(rxPkt[2]) * 256
     tmpPkt = rxPkt[3:(3+tmpPktLen)]
-    print(len(rxPkt), rxAddr, packetSeq, tmpPktType, tmpPktLen)
+    # print(len(rxPkt), tmpPktLen+3, tmpPktLen, tmpPktType, packetSeq, rxAddr)
     if(tmpPktType == 20):
         print("cloud mac80211 NDP received, channel info saved")
         # tmpChanPkt = rxPkt[3:1024 + 3]
@@ -41,13 +36,10 @@ while(True):
             print("cloud mac80211 received HT packet")
         elif(tmpPktType == 2):
             print("cloud mac80211 received VHT packet")
-        
-        if(mac80211.procCheckCrc32(tmpPkt[:-4], tmpPkt[-4:])):
-            pass
-        else:
-            print("cloud mac80211 crc32 fail")
+        m8h.pktParser(tmpPkt[:-4])
     else:
         print("cloud mac80211 packet type error")
+    print("--------------------------------------------------------")
 
         
 

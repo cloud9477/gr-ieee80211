@@ -135,7 +135,7 @@ C_FC_SUBTYPE_EXT_STR = ["DMG Beacon", "Reserved", "Reserved", "Reserved", "Reser
 
 class frameControl:
     def __init__(self, fc):
-        print("cloud mac80211header fc, input 16bit hex: %s", hex(fc))
+        self.fcValue = fc
         self.protocalVer = fc & 3
         self.type = FC_TPYE((fc >> 2) & 3)
         if(self.type == FC_TPYE.MGMT):
@@ -158,17 +158,7 @@ class frameControl:
         self.htcOrder = (fc >> 15) & 1      # in non qos data set 1 for order, in qos data set 1 for htc
     
     def printInfo(self):
-        print("cloud mac80211header, FC Info protocol:%d, type:%s, sub type:%s, to DS:%d, from DS:%d, more frag:%d, retry:%d" % (self.protocalVer, self.type, self.subType, self.toDs, self.fromDs, self.moreFrag, self.retry))
-        if(self.type == FC_TPYE.MGMT):
-            print("cloud mac80211header, FC Info %s, %s" % (self.type, C_FC_SUBTYPE_MGMT_STR[self.subType.value]))
-        elif(self.type == FC_TPYE.CTRL):
-            print("cloud mac80211header, FC Info %s, %s" % (self.type, C_FC_SUBTYPE_CTRL_STR[self.subType.value]))
-        elif(self.type == FC_TPYE.DATA):
-            print("cloud mac80211header, FC Info %s, %s" % (self.type, C_FC_SUBTYPE_DATA_STR[self.subType.value]))
-        elif(self.type == FC_TPYE.EXT):
-            print("cloud mac80211header, FC Info %s, %s" % (self.type, C_FC_SUBTYPE_EXT_STR[self.subType.value]))
-        else:
-            print("cloud mac80211header, FC type error")
+        print("cloud mac80211header, value %s, FC Info protocol:%d, type:%s, sub type:%s, to DS:%d, from DS:%d, more frag:%d, retry:%d" % (hex(self.fcValue), self.protocalVer, self.type, self.subType, self.toDs, self.fromDs, self.moreFrag, self.retry))
 
 def mgmtElementParser(inbytes):
     if(isinstance(inbytes, (bytes, bytearray)) and len(inbytes) > 0):
@@ -176,6 +166,7 @@ def mgmtElementParser(inbytes):
         tmpMgmtElements = []
         inPutLen = len(inbytes)
         while((elementIter+2) < inPutLen):  # one byte type, one byte len
+            # print("Element at %d, ID %d, Len %d" % (elementIter, inbytes[elementIter], inbytes[elementIter+1]))
             if(MGMT_ELE.has_value(inbytes[elementIter])):
                 tmpElement = MGMT_ELE(inbytes[elementIter])
                 elementIter += 1
@@ -183,13 +174,18 @@ def mgmtElementParser(inbytes):
                 elementIter += 1
                 if((elementIter+tmpLen) < inPutLen):
                     if(tmpElement == MGMT_ELE.SSID):
+                        print(inbytes[elementIter:elementIter+tmpLen].hex())
                         tmpStr = inbytes[elementIter:elementIter+tmpLen].decode("utf-8")
                         tmpMgmtElements.append("SSID: " + tmpStr)
                     elif(tmpElement == MGMT_ELE.SUPOTRATE):
                         tmpStr = ""
                         for i in range(0, tmpLen):
-                            tmpStr += str(inbytes[elementIter+i]*500/1000)
-                            tmpStr += "Mbps "
+                            if(inbytes[elementIter+i] >= 0x80):
+                                tmpStr += str((inbytes[elementIter+i]-0x80)*500/1000)
+                                tmpStr += "Mbps(Basic) "
+                            else:
+                                tmpStr += str(inbytes[elementIter+i]*500/1000)
+                                tmpStr += "Mbps "
                         tmpMgmtElements.append("Suppoprted Rates: " + tmpStr)
                     elif(tmpElement == MGMT_ELE.DSSSPARAM):
                         tmpStr = str(inbytes[elementIter])
@@ -206,11 +202,59 @@ def mgmtElementParser(inbytes):
                         tmpMgmtElements.append("BSS Load, Station Count: " + str(tmpStaCount) + ", Channel Utilization: " + str(tmpChanUtil) + ", Available Admission Capacity: " + str(tmpAvailAdmCap))
                     elif(tmpElement == MGMT_ELE.RSN):
                         tmpMgmtElements.append("RSN: To be added")
-
+                    elif(tmpElement == MGMT_ELE.HTCAP):
+                        tmpHtCapInfo = struct.unpack('<H', inbytes[elementIter:elementIter+2])[0]
+                        tmpMgmtElements.append("HT CAP Info, LDPC %d, Chan Width %d, GF %d, SGI20 %d, SGI40 %d, TXSTBC %d" % (
+                            (tmpHtCapInfo >> 0) & 1,
+                            (tmpHtCapInfo >> 1) & 1,
+                            (tmpHtCapInfo >> 4) & 1,
+                            (tmpHtCapInfo >> 5) & 1,
+                            (tmpHtCapInfo >> 6) & 1,
+                            (tmpHtCapInfo >> 7) & 1
+                        ))
+                        tmpMcsBits = []
+                        for i in range(0, 10):
+                            for j in range(0, 8):
+                                tmpMcsBits.append((inbytes[elementIter+3+i] >> j) & 1)
+                        tmpMcsStr = "HT CAP MCS 0-31: "
+                        for i in range(0, 32):
+                            tmpMcsStr += str(tmpMcsBits[i])
+                        tmpMgmtElements.append(tmpMcsStr)
+                        tmpMcsStr = "HT CAP MCS 32-76: "
+                        for i in range(32, 77):
+                            tmpMcsStr += str(tmpMcsBits[i])
+                        tmpMgmtElements.append(tmpMcsStr)
+                    elif(tmpElement == MGMT_ELE.HTOPS):
+                        tmpMgmtElements.append("HT Operation: To be added")
+                    elif(tmpElement == MGMT_ELE.ANTENNA):
+                        tmpMgmtElements.append("Antenna: %d" % inbytes[elementIter])
+                    elif(tmpElement == MGMT_ELE.RMENABLED):
+                        tmpMgmtElements.append("RM Enable Cap: To be added")
+                    elif(tmpElement == MGMT_ELE.EXTCAP):
+                        tmpMgmtElements.append("Ext Cap: To be added")
+                    elif(tmpElement == MGMT_ELE.VHTCAP):
+                        tmpVhtCapInfo = struct.unpack('<I', inbytes[elementIter:elementIter+4])[0]
+                        tmpMgmtElements.append("VHT CAP Info, MAX MPDU Len %d, RX LDPC %d, TX STBC %d, RX STBC %d, Sounding Dim %d" % (
+                            (tmpVhtCapInfo >> 0) & 3,
+                            (tmpVhtCapInfo >> 4) & 1,
+                            (tmpVhtCapInfo >> 7) & 1,
+                            (tmpVhtCapInfo >> 8) & 7,
+                            (tmpVhtCapInfo >> 16) & 7
+                        ))
+                    elif(tmpElement == MGMT_ELE.VHTOPS):
+                        tmpMgmtElements.append("VHT Operation: To be added")
+                    elif(tmpElement == MGMT_ELE.TXPOWER):
+                        tmpMgmtElements.append("TX Power: Local Max Tx Pwr Count %d, Local Max Tx Pwr 20M %d" % (inbytes[elementIter] & 3, inbytes[elementIter+1]))
+                    elif(tmpElement == MGMT_ELE.VENDOR):
+                        tmpMgmtElements.append("Vendor: To be added")
+                    else:
+                        pass
                 elementIter += tmpLen
             else:
+                tmpElementByte = inbytes[elementIter]
                 elementIter += 1
                 tmpLen = inbytes[elementIter]
+                elementIter += 1
                 elementIter += tmpLen
         return tmpMgmtElements
     print("cloud mac80211header, mgmtParser input type error")
@@ -221,82 +265,104 @@ def pktParser(pkt):
     if(isinstance(pkt, (bytes, bytearray))):
         pktLen = len(pkt)
         procdLen = 0
-        procdLen += 2
         # fc
-        if(procdLen <= pktLen):
+        if((procdLen + 2) <= pktLen):
             hdr_fc = frameControl(struct.unpack('<H', pkt[0:2])[0])
             hdr_fc.printInfo()
+            procdLen += 2
         # duration
-        procdLen += 2
-        if(procdLen <= pktLen):
+        if((procdLen + 2) <= pktLen):
             hdr_duration = struct.unpack('<H', pkt[2:4])[0]
+            procdLen += 2
             print("Packet duration %d us" % hdr_duration)
         # check type
         if(hdr_fc.type == FC_TPYE.MGMT):
-            procdLen += 18
-            if(procdLen <= pktLen):
-                hdr_addRx = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen-18:procdLen-12])
-                hdr_addTx = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen-12:procdLen-6])
-                hdr_addDest = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen-6:procdLen])
+            if((procdLen + 18) <= pktLen):
+                hdr_addRx = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen:procdLen+6])
+                hdr_addTx = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen+6:procdLen+12])
+                hdr_addDest = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen+12:procdLen+18])
+                procdLen += 18
                 print("Management to %s from %s dest %s" % (hdr_addRx, hdr_addTx, hdr_addDest))
-            procdLen += 2
-            if(procdLen <= pktLen):
-                hdr_seqCtrl= struct.unpack('<H', pkt[procdLen-2:procdLen])[0]
+            if((procdLen + 2) <= pktLen):
+                hdr_seqCtrl= struct.unpack('<H', pkt[procdLen:procdLen+2])[0]
+                procdLen += 2
                 print("Management sequence control %d" % hdr_seqCtrl)
             if(hdr_fc.subType == FC_SUBTPYE_MGMT.BEACON):
                 # Timestamp, Beacon Interval, Cap
-                procdLen += 12
-                if(procdLen <= pktLen):
-                    beacon_timestamp = struct.unpack('<Q', pkt[procdLen-12:procdLen-4])[0]
-                    beacon_interval = struct.unpack('<Q', pkt[procdLen-4:procdLen-2])[0]
-                    beacon_cap = struct.unpack('<Q', pkt[procdLen-2:procdLen])[0]
+                if((procdLen + 12) <= pktLen):
+                    beacon_timestamp = struct.unpack('<Q', pkt[procdLen:procdLen+8])[0]
+                    beacon_interval = struct.unpack('<H', pkt[procdLen+8:procdLen+10])[0]
+                    beacon_cap = struct.unpack('<H', pkt[procdLen+10:procdLen+12])[0]
+                    procdLen += 12
+                    print("Management Beacon Timestamp %d, Interval %d, Cap %d" % (beacon_timestamp, beacon_interval, beacon_cap))
                 # Elements
                 if(procdLen <= pktLen):
                     beaconElements = mgmtElementParser(pkt[procdLen:])
-
+                    for each in beaconElements:
+                        print(each)
             elif(hdr_fc.subType == FC_SUBTPYE_MGMT.PROBEREQ):
-                pass
+                print("Management Probe Request")
             elif(hdr_fc.subType == FC_SUBTPYE_MGMT.PROBERES):
-                pass
+                print("Management Probe Response")
             else:
-                print("cloud mac80211header, not supported yet")
+                print("Management subtype, not supported yet")
         elif(hdr_fc.type == FC_TPYE.CTRL):
             if(hdr_fc.subType == FC_SUBTPYE_CTRL.ACK):
-                procdLen += 6
-                if(procdLen <= pktLen):
-                    hdr_addRx = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen-6:procdLen])
+                if((procdLen + 6) <= pktLen):
+                    hdr_addRx = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen:procdLen+6])
+                    procdLen += 6
                     print("ACK to %s" % hdr_addRx)
             elif(hdr_fc.subType == FC_SUBTPYE_CTRL.BLOCKACK):
-                procdLen += 12
-                if(procdLen <= pktLen):
-                    hdr_addRx = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen-12:procdLen-6])
-                    hdr_addTx = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen-6:procdLen])
+                if((procdLen + 12) <= pktLen):
+                    hdr_addRx = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen:procdLen+6])
+                    hdr_addTx = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen+6:procdLen+12])
+                    procdLen += 12
                     print("BLOCK ACK to %s from %s" % (hdr_addRx, hdr_addTx))
                     # details to be added
             elif(hdr_fc.subType == FC_SUBTPYE_CTRL.RTS):
-                procdLen += 12
-                if(procdLen <= pktLen):
-                    hdr_addRx = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen-12:procdLen-6])
-                    hdr_addTx = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen-6:procdLen])
+                if((procdLen + 12) <= pktLen):
+                    hdr_addRx = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen:procdLen+6])
+                    hdr_addTx = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen+6:procdLen+12])
+                    procdLen += 12
                     print("RTS to %s from %s" % (hdr_addRx, hdr_addTx))
             elif(hdr_fc.subType == FC_SUBTPYE_CTRL.CTS):
-                procdLen += 6
-                if(procdLen <= pktLen):
-                    hdr_addRx = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen-6:procdLen])
+                if((procdLen + 6) <= pktLen):
+                    hdr_addRx = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen:procdLen+6])
+                    procdLen += 6
                     print("CTS to %s" % hdr_addRx)
             else:
-                print("cloud mac80211header, not supported yet")
+                print("Control subtype, not supported yet")
         elif(hdr_fc.type == FC_TPYE.DATA):
+            if((procdLen + 18) <= pktLen):
+                hdr_addRx = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen:procdLen+6])
+                hdr_addTx = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen+6:procdLen+12])
+                hdr_addDest = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[procdLen+12:procdLen+18])
+                procdLen += 18
+                print("Data to %s from %s dest %s" % (hdr_addRx, hdr_addTx, hdr_addDest))
+            if((procdLen + 2) <= pktLen):
+                hdr_seqCtrl= struct.unpack('<H', pkt[procdLen:procdLen+2])[0]
+                procdLen += 2
+                print("Data sequence control %d" % hdr_seqCtrl)
             if(hdr_fc.subType == FC_SUBTPYE_DATA.DATA):
-                pass
+                print("Data")
+                if(procdLen <= pktLen):
+                    print(pkt[procdLen:].hex())
             elif(hdr_fc.subType == FC_SUBTPYE_DATA.QOSDATA):
-                pass
+                print("QoS Data")
+                if((procdLen+2) <= pktLen):
+                    print("QoS control " + pkt[procdLen:procdLen+2].hex())
+                    procdLen += 2
+                if(procdLen <= pktLen):
+                    print(pkt[procdLen:].hex())
             elif(hdr_fc.subType == FC_SUBTPYE_DATA.QOSNULL):
-                pass
+                print("QoS Null Data")
+                if((procdLen+2) <= pktLen):
+                    print("QoS control " + pkt[procdLen:procdLen+2].hex())
+                    procdLen += 2
             else:
-                print("cloud mac80211header, not supported yet")
+                print("Data subtype, not supported yet")
         else:
-            print("cloud mac80211header, not supported yet")
+            print("cloud mac80211header, type not supported yet")
 
 
 

@@ -81,23 +81,6 @@ blocks:
     coordinate: [1128, 332.0]
     rotation: 0
     state: true
-- name: blocks_message_strobe_0
-  id: blocks_message_strobe
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    msg: pmt.intern("TEST")
-    period: '2000'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [144, 276.0]
-    rotation: 0
-    state: true
 - name: ieee80211_encode_0
   id: ieee80211_encode
   parameters:
@@ -129,13 +112,33 @@ blocks:
     coordinate: [784, 272.0]
     rotation: 0
     state: true
+- name: network_socket_pdu_0
+  id: network_socket_pdu
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    host: 127.0.0.1
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    mtu: '65535'
+    port: '9528'
+    tcp_no_delay: 'False'
+    type: UDP_SERVER
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [160, 260.0]
+    rotation: 0
+    state: true
 
 connections:
-- [blocks_message_strobe_0, strobe, ieee80211_encode_0, pdus]
 - [ieee80211_encode_0, '0', ieee80211_modulation_0, '0']
 - [ieee80211_encode_0, '1', ieee80211_modulation_0, '1']
 - [ieee80211_modulation_0, '0', blocks_file_sink_0, '0']
 - [ieee80211_modulation_0, '1', blocks_file_sink_0_0, '0']
+- [network_socket_pdu_0, pdus, ieee80211_encode_0, pdus]
 
 metadata:
   file_format: 1

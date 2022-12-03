@@ -21,7 +21,6 @@ if __name__ == '__main__':
             print("Warning: failed to XInitThreads()")
 
 from gnuradio import blocks
-import pmt
 from gnuradio import gr
 from gnuradio.filter import firdes
 from gnuradio.fft import window
@@ -32,6 +31,7 @@ from argparse import ArgumentParser
 from gnuradio.eng_arg import eng_float, intx
 from gnuradio import eng_notation
 from gnuradio import ieee80211
+from gnuradio import network
 
 
 
@@ -78,9 +78,9 @@ class wifitx(gr.top_block, Qt.QWidget):
         ##################################################
         # Blocks
         ##################################################
+        self.network_socket_pdu_0 = network.socket_pdu('UDP_SERVER', '127.0.0.1', '9528', 65535, False)
         self.ieee80211_modulation_0 = ieee80211.modulation()
         self.ieee80211_encode_0 = ieee80211.encode('packet_len')
-        self.blocks_message_strobe_0 = blocks.message_strobe(pmt.intern("TEST"), 2000)
         self.blocks_file_sink_0_0 = blocks.file_sink(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211Gr1.bin', False)
         self.blocks_file_sink_0_0.set_unbuffered(False)
         self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211Gr0.bin', False)
@@ -90,7 +90,7 @@ class wifitx(gr.top_block, Qt.QWidget):
         ##################################################
         # Connections
         ##################################################
-        self.msg_connect((self.blocks_message_strobe_0, 'strobe'), (self.ieee80211_encode_0, 'pdus'))
+        self.msg_connect((self.network_socket_pdu_0, 'pdus'), (self.ieee80211_encode_0, 'pdus'))
         self.connect((self.ieee80211_encode_0, 0), (self.ieee80211_modulation_0, 0))
         self.connect((self.ieee80211_encode_0, 1), (self.ieee80211_modulation_0, 1))
         self.connect((self.ieee80211_modulation_0, 0), (self.blocks_file_sink_0, 0))

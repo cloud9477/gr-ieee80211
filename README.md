@@ -20,7 +20,7 @@
 
 Issue in TX
 ------------
-![alt text](https://github.com/cloud9477/gr-ieee80211/blob/main/figRmMisalign?raw=true)
+![alt text](https://github.com/cloud9477/gr-ieee80211/blob/main/figRmMisalign.png?raw=true)
 - As shown in the figure, when use USRP B210 with 2 TX channels to tranmsmit an MIMO packet, it shows the misalignment between the two spatial streams.
 
 # How to use

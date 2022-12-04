@@ -150,28 +150,28 @@ pkt = genMac80211UdpMPDU(udpPayload)
 pkts = genMac80211UdpAmpduVht([udpPayload])
 
 """packets of different formats or MCS SISO """
-for mcsIter in range(0, 8):
-    grPkt = phy80211.genPktGrData(pkt, p8h.modulation(phyFormat=p8h.F.L, mcs = mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
-    grSocket.sendto(grPkt, phyTxAddr)
-    time.sleep(1.0)
-for mcsIter in range(0, 8):
-    grPkt = phy80211.genPktGrData(pkt, p8h.modulation(phyFormat=p8h.F.HT, mcs = mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
-    grSocket.sendto(grPkt, phyTxAddr)
-    time.sleep(1.0)
-for mcsIter in range(0, 9):
-    grPkt = phy80211.genPktGrData(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs = mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
-    grSocket.sendto(grPkt, phyTxAddr)
-    time.sleep(1.0)
+# for mcsIter in range(0, 8):
+#     grPkt = phy80211.genPktGrData(pkt, p8h.modulation(phyFormat=p8h.F.L, mcs = mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
+#     grSocket.sendto(grPkt, phyTxAddr)
+#     time.sleep(1.0)
+# for mcsIter in range(0, 8):
+#     grPkt = phy80211.genPktGrData(pkt, p8h.modulation(phyFormat=p8h.F.HT, mcs = mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
+#     grSocket.sendto(grPkt, phyTxAddr)
+#     time.sleep(1.0)
+# for mcsIter in range(0, 9):
+#     grPkt = phy80211.genPktGrData(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs = mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
+#     grSocket.sendto(grPkt, phyTxAddr)
+#     time.sleep(1.0)
 
 """packets of different formats or MCS MIMO """
 for mcsIter in range(0, 8):
     grPkt = phy80211.genPktGrData(pkt, p8h.modulation(phyFormat=p8h.F.HT, mcs = mcsIter+8, bw=p8h.BW.BW20, nSTS=2, shortGi=False))
     grSocket.sendto(grPkt, phyTxAddr)
-    time.sleep(0.5)
+    time.sleep(1.0)
 for mcsIter in range(0, 9):
     grPkt = phy80211.genPktGrData(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs = mcsIter, bw=p8h.BW.BW20, nSTS=2, shortGi=False))
     grSocket.sendto(grPkt, phyTxAddr)
-    time.sleep(0.5)
+    time.sleep(1.0)
 
 """packet of NDP 2x2 """
 # grSocket.sendto(phy80211.genPktGrNdp(), phyTxAddr)

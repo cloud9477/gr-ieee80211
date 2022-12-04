@@ -53,12 +53,12 @@ class wifitx(gr.top_block):
         self.uhd_usrp_sink_0_0.set_center_freq(freq, 0)
         self.uhd_usrp_sink_0_0.set_antenna("TX/RX", 0)
         self.uhd_usrp_sink_0_0.set_bandwidth(20e6, 0)
-        self.uhd_usrp_sink_0_0.set_normalized_gain(0.9, 0)
+        self.uhd_usrp_sink_0_0.set_normalized_gain(0.7, 0)
 
         self.uhd_usrp_sink_0_0.set_center_freq(freq, 1)
         self.uhd_usrp_sink_0_0.set_antenna("TX/RX", 1)
         self.uhd_usrp_sink_0_0.set_bandwidth(20e6, 1)
-        self.uhd_usrp_sink_0_0.set_normalized_gain(0.9, 1)
+        self.uhd_usrp_sink_0_0.set_normalized_gain(0.7, 1)
         self.network_socket_pdu_0 = network.socket_pdu('UDP_SERVER', '127.0.0.1', '9528', 65535, False)
         self.ieee80211_modulation_0 = ieee80211.modulation()
         self.ieee80211_encode_0 = ieee80211.encode('packet_len')
@@ -68,10 +68,10 @@ class wifitx(gr.top_block):
         # Connections
         ##################################################
         self.msg_connect((self.network_socket_pdu_0, 'pdus'), (self.ieee80211_encode_0, 'pdus'))
-        self.connect((self.ieee80211_encode_0, 1), (self.ieee80211_modulation_0, 1))
         self.connect((self.ieee80211_encode_0, 0), (self.ieee80211_modulation_0, 0))
-        self.connect((self.ieee80211_modulation_0, 0), (self.uhd_usrp_sink_0_0, 0))
+        self.connect((self.ieee80211_encode_0, 1), (self.ieee80211_modulation_0, 1))
         self.connect((self.ieee80211_modulation_0, 1), (self.uhd_usrp_sink_0_0, 1))
+        self.connect((self.ieee80211_modulation_0, 0), (self.uhd_usrp_sink_0_0, 0))
 
 
     def get_samp_rate(self):

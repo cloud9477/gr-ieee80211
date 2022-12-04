@@ -21,43 +21,6 @@
 #include <gnuradio/io_signature.h>
 #include "encode_impl.h"
 
-uint8_t ttttttmpMcs = 0;
-
-uint8_t test_legacyPkt[99] = {
-  0, 0, 1, 94, 0,     // format 0, mcs 0, nss 1, len 100
-  8, 1, 110, 0, 244, 105, 213, 128, 15, 160, 0, 192, 202, 177, 91, 225, 244, 105, 213, 128, 15, 160, 0, 169, 170, 170, 3, 0, 0, 0, 8, 0, 69, 0, 0, 58, 171, 2, 64, 0, 64, 17, 123, 150, 10, 10, 0, 6, 10, 10, 0, 1, 153, 211, 34, 185, 0, 38, 16, 236, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 163, 93, 238, 236
-};
-
-uint8_t test_htPkt[99] = {
-  1, 8, 2, 94, 0,
-  8, 1, 110, 0, 244, 105, 213, 128, 15, 160, 0, 192, 202, 177, 91, 225, 244, 105, 213, 128, 15, 160, 0, 169, 170, 170, 3, 0, 0, 0, 8, 0, 69, 0, 0, 58, 171, 2, 64, 0, 64, 17, 123, 150, 10, 10, 0, 6, 10, 10, 0, 1, 153, 211, 34, 185, 0, 38, 16, 236, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 163, 93, 238, 236
-};
-
-uint8_t test_vhtPkt[105] = {
-  2, 0, 2, 100, 0,
-  1, 6, 157, 78, 136, 1, 110, 0, 244, 105, 213, 128, 15, 160, 0, 192, 202, 177, 
-  91, 225, 244, 105, 213, 128, 15, 160, 0, 169, 0, 0, 170, 170, 3, 0, 0, 0, 8, 
-  0, 69, 0, 0, 58, 171, 2, 64, 0, 64, 17, 123, 150, 10, 10, 0, 6, 10, 10, 0, 1, 
-  153, 211, 34, 185, 0, 38, 16, 236, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 49, 
-  50, 51, 52, 53, 54, 55, 56, 57, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 
-  41, 169, 161, 121
-};
-
-uint8_t test_vhtPktNdp[5] = {
-  // format 2, mcs 0, nss 2, len 0 0
-  2, 0, 2, 0, 0
-};
-
-// vht mu-mimo packet: format 1B, mcs0 1B, nss0 1B, len0 2B, mcs1 1B, nss1 1B, len1 2B, groupID 1B.
-
-uint8_t test_vhtPktMu[210] = {
-  3, 0, 1, 100, 0, 0, 1, 100, 0, 2,
-
-  1, 6, 157, 78, 136, 1, 110, 0, 244, 105, 213, 128, 15, 160, 0, 192, 202, 177, 91, 225, 244, 105, 213, 128, 15, 160, 0, 169, 0, 0, 170, 170, 3, 0, 0, 0, 8, 0, 69, 0, 0, 58, 171, 2, 64, 0, 64, 17, 123, 150, 10, 10, 0, 6, 10, 10, 0, 1, 153, 211, 34, 185, 0, 38, 75, 110, 84, 104, 105, 115, 32, 105, 115, 32, 112, 97, 99, 107, 101, 116, 32, 102, 111, 114, 32, 115, 116, 97, 116, 105, 111, 110, 32, 48, 48, 49, 192, 175, 19, 101,
-
-  1, 6, 157, 78, 136, 1, 110, 0, 244, 105, 213, 128, 15, 160, 0, 192, 202, 177, 91, 225, 244, 105, 213, 128, 15, 160, 0, 169, 0, 0, 170, 170, 3, 0, 0, 0, 8, 0, 69, 0, 0, 58, 171, 2, 64, 0, 64, 17, 123, 150, 10, 10, 0, 6, 10, 10, 0, 1, 153, 211, 34, 185, 0, 38, 75, 109, 84, 104, 105, 115, 32, 105, 115, 32, 112, 97, 99, 107, 101, 116, 32, 102, 111, 114, 32, 115, 116, 97, 116, 105, 111, 110, 32, 48, 48, 50, 9, 199, 50, 239
-};
-
 namespace gr {
   namespace ieee80211 {
 
@@ -68,7 +31,6 @@ namespace gr {
         );
     }
 
-
     /*
      * The private constructor
      */
@@ -77,7 +39,6 @@ namespace gr {
               gr::io_signature::make(0, 0, 0),
               gr::io_signature::make(2, 2, sizeof(uint8_t)), tsb_tag_key)
     {
-      //message_port_register_in(pdu::pdu_port_id());
       d_sEncode = ENCODE_S_IDLE;
       d_debug = true;
       d_pktSeq = 0;
@@ -104,17 +65,10 @@ namespace gr {
       pmt::pmt_t vector = pmt::cdr(msg);
       int tmpMsgLen = pmt::blob_length(vector);
       size_t tmpOffset(0);
-      // const uint8_t *tmpPkt = (const uint8_t *)pmt::uniform_vector_elements(vector, tmpOffset);
+      const uint8_t *tmpPkt = (const uint8_t *)pmt::uniform_vector_elements(vector, tmpOffset);
       if((tmpMsgLen < 5) || (tmpMsgLen > DECODE_D_MAX)){
         return;
       }
-      test_htPkt[1] = ttttttmpMcs+8;
-      ttttttmpMcs++;
-      if(ttttttmpMcs >= 8)
-      {
-        ttttttmpMcs = 0;
-      }
-      const uint8_t *tmpPkt = test_htPkt;
 
       int tmpFormat = (int)tmpPkt[0];
 
@@ -128,7 +82,7 @@ namespace gr {
       if(tmpFormat == C8P_F_VHT_BFQ_I)
       {
         memcpy(d_vhtBfQbytesI, &tmpPkt[1], 1024);
-        std::cout<<"beamforming Q real updated"<<std::endl;
+        std::cout<<"beamforming Q imag updated"<<std::endl;
         return;
       }
 
@@ -223,7 +177,6 @@ namespace gr {
           vhtSigB20BitsGenSU(d_vhtSigB, d_vhtSigBCoded, d_vhtSigBCrc8, &d_m);
           procIntelVhtB20(d_vhtSigBCoded, d_vhtSigBInted);
         }
-        
 
         if(d_m.nSym > 0)
         {
@@ -265,16 +218,6 @@ namespace gr {
           // tail pading, all 0, includes tail bits, when scrambling, do not scramble tail
           memset(tmpDataP, 0, (d_m.nSym * d_m.nDBPS - tmpPsduLen*8 - 16));
 
-          // dout<<"bits 1"<<std::endl;
-          // for(int i=0;i<d_m.nSym;i++)
-          // {
-          //   for(int j=0;j<d_m.nDBPS;j++)
-          //   {
-          //     dout<<(int)d_dataBits[i*d_m.nDBPS + j]<<" ";
-          //   }
-          //   dout<<std::endl;
-          // }
-
           if(d_m.sumu)
           {
             // set mod info to be user 1, this version no other users
@@ -304,15 +247,6 @@ namespace gr {
             // tail pading, all 0, includes tail bits, when scrambling, do not scramble tail
             memset(tmpDataP, 0, (d_m.nSym * d_m.nDBPS - tmpPsduLen*8 - 16));
 
-            // dout<<"bits 2"<<std::endl;
-            // for(int i=0;i<d_m.nSym;i++)
-            // {
-            //   for(int j=0;j<d_m.nDBPS;j++)
-            //   {
-            //     dout<<(int)d_dataBits2[i*d_m.nDBPS + j]<<" ";
-            //   }
-            //   dout<<std::endl;
-            // }
           }
         }
         else
@@ -586,20 +520,6 @@ namespace gr {
           {
             memcpy(&outChips1[o1], &d_qamChips1[d_nChipsGenProcd], d_m.nSD);
             memcpy(&outChips2[o1], &d_qamChips2[d_nChipsGenProcd], d_m.nSD);
-
-            // dout<<"gen: "<<d_nChipsGenProcd<<std::endl;
-            // dout<<"ss1: ";
-            // for(int j=0;j<d_m.nSD;j++)
-            // {
-            //   dout<<(int)outChips1[o1+j]<<" ";
-            // }
-            // dout<<std::endl;
-            // dout<<"ss2: ";
-            // for(int j=0;j<d_m.nSD;j++)
-            // {
-            //   dout<<(int)outChips2[o1+j]<<" ";
-            // }
-            // dout<<std::endl;
 
             o1 += d_m.nSD;
             d_nChipsGenProcd += d_m.nSD;

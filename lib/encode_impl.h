@@ -31,9 +31,9 @@
 #define ENCODE_S_COPY 3
 #define ENCODE_S_PAD 4
 
-#define DECODE_CB_MAX 32000   // max coded bits
-#define DECODE_B_MAX 16000    // max data bits
-#define DECODE_D_MAX 2000     // max payload bytes
+#define DECODE_CB_MAX 67000   // max coded bits
+#define DECODE_B_MAX 33000    // max ampdu bits
+#define DECODE_D_MAX 4095     // max ampdu bytes
 
 #define dout d_debug&&std::cout
 

@@ -74,6 +74,7 @@ class wifitx(gr.top_block, Qt.QWidget):
         # Variables
         ##################################################
         self.samp_rate = samp_rate = 20e6
+        self.freq = freq = 5500e6
 
         ##################################################
         # Blocks
@@ -91,8 +92,8 @@ class wifitx(gr.top_block, Qt.QWidget):
         # Connections
         ##################################################
         self.msg_connect((self.network_socket_pdu_0, 'pdus'), (self.ieee80211_encode_0, 'pdus'))
-        self.connect((self.ieee80211_encode_0, 0), (self.ieee80211_modulation_0, 0))
         self.connect((self.ieee80211_encode_0, 1), (self.ieee80211_modulation_0, 1))
+        self.connect((self.ieee80211_encode_0, 0), (self.ieee80211_modulation_0, 0))
         self.connect((self.ieee80211_modulation_0, 0), (self.blocks_file_sink_0, 0))
         self.connect((self.ieee80211_modulation_0, 1), (self.blocks_file_sink_0_0, 0))
 
@@ -110,6 +111,12 @@ class wifitx(gr.top_block, Qt.QWidget):
 
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
+
+    def get_freq(self):
+        return self.freq
+
+    def set_freq(self, freq):
+        self.freq = freq
 
 
 

@@ -47,8 +47,8 @@ However, for real usage, this may not necessary
 
 */
 
-#define DECODE_B_MAX 5000
-#define DECODE_V_MAX 41000    // max llr len
+#define DECODE_B_MAX 5000     // max apmdu len
+#define DECODE_V_MAX 82000    // max llr len
 #define DECODE_D_MAX 1600      // max mpdu len
 
 namespace gr {

@@ -15,11 +15,19 @@ ver 1.0
 support up to 4x4 80M (20M, 40M, 80M)
 """
 
+class GR_F(Enum):
+    L = 0
+    HT = 1
+    VHT = 2
+    MU = 3
+    QR = 10
+    QI = 11
+    NDP = 20
+
 class F(Enum):
     L = 0
     HT = 1
     VHT = 2
-    HE = 3
 
     @classmethod
     def has_value(cls, value):
@@ -1090,20 +1098,6 @@ def procSpatialMapping(inSigSs, inQ):
             for j in range(0, tmpnSS):
                 outSigSs[j].append(tmpQX[j][0])
         return outSigSs
-
-def readBinFileFromMatDouble(addr):
-    return np.fromfile(addr, '<f8')
-
-def procBfQMatrixToBytes(inBfQ, nSts):
-    print("convert mat Q")
-    tmpBytesR = b''
-    tmpBytesI = b''
-    for each in inBfQ:
-        for i in range(0, nSts):
-            for j in range(0, nSts):
-                tmpBytesR += struct.pack('<f', np.real(each[i][j]))
-                tmpBytesI += struct.pack('<f', np.imag(each[i][j]))
-    return [tmpBytesR, tmpBytesI]
 
 if __name__ == "__main__":
     pass

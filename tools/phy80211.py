@@ -929,5 +929,59 @@ class phy80211():
         if(draw):
             plt.show()
 
+def genPktGrData(mpdu, mod):
+    if(isinstance(mpdu, (bytes, bytearray)) and isinstance(mod, p8h.modulation) and len(mpdu) < 4096):
+        tmpBytes = b""
+        tmpBytes += struct.pack('<B', mod.phyFormat.value)
+        tmpBytes += struct.pack('<B', mod.mcs)
+        tmpBytes += struct.pack('<B', mod.nSTS)
+        tmpBytes += struct.pack('<H', len(mpdu))
+        tmpBytes += mpdu
+        return tmpBytes
+    else:
+        print("cloud 80211phy, genPktGrData input param error")
+        return b""
+
+def genPktGrDataMu(mpdu0, mod0, mpdu1, mod1, groupId):
+    if(
+        isinstance(mpdu0, (bytes, bytearray)) and 
+        isinstance(mpdu1, (bytes, bytearray)) and 
+        isinstance(mod0, p8h.modulation) and 
+        isinstance(mod1, p8h.modulation) and 
+        len(mpdu0) < 4096 and len(mpdu1) < 4096 and
+        groupId > 0 and groupId < 63):
+        tmpBytes = b""
+        tmpBytes += struct.pack('<B', p8h.GR_F.MU.value)
+        tmpBytes += struct.pack('<B', mod0.mcs)
+        tmpBytes += struct.pack('<B', 1)    # nSTS 1
+        tmpBytes += struct.pack('<H', len(mpdu0))
+        tmpBytes += struct.pack('<B', mod1.mcs)
+        tmpBytes += struct.pack('<B', 1)    # nSTS 1
+        tmpBytes += struct.pack('<H', len(mpdu1))
+        tmpBytes += struct.pack('<B', groupId)
+        tmpBytes += mpdu0
+        tmpBytes += mpdu1
+        return tmpBytes
+    else:
+        print("cloud 80211phy, genPktGrDataMu input param error")
+        return b""
+
+def genPktGrBfQ(bfQ):
+    if(isinstance(bfQ, list)):
+        tmpBytesR = b"" + struct.pack('<B', p8h.GR_F.QR.value)
+        tmpBytesI = b"" + struct.pack('<B', p8h.GR_F.QI.value)
+        for each in bfQ:
+            for i in range(0, 2):
+                for j in range(0, 2):
+                    tmpBytesR += struct.pack('<f', np.real(each[i][j]))
+                    tmpBytesI += struct.pack('<f', np.imag(each[i][j]))
+        return tmpBytesR, tmpBytesI
+    else:
+        print("cloud 80211phy, genPktGrData input param error")
+        return b"", b""
+
+def genPktGrNdp():
+    return b"\x02\x00\x02\x00\x00"  # vht packet mcs 0 nSTS 2 len 0
+
 if __name__ == "__main__":
     pass

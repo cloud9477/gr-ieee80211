@@ -2582,7 +2582,7 @@ void procToneScaling(gr_complex* sig, int ntf, int nss, int len)
 {
 	for(int i=0;i<len;i++)
 	{
-		sig[i] = sig[i] / sqrtf((float)ntf * (float)nss);
+		sig[i] = sig[i] / sqrtf((float)ntf * (float)nss) / 3.55555f;
 	}
 }
 

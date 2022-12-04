@@ -93,18 +93,15 @@ namespace gr {
         // byte 0 format, user0 1-4, user1 5-8, group ID 9
         tmpHeaderShift = 10;
         int tmpMcs0 = (int)tmpPkt[1];
-        int tmpNss0 = (int)tmpPkt[2];
+        // int tmpNss0 = (int)tmpPkt[2];
         int tmpLen0 = ((int)tmpPkt[4] * 256  + (int)tmpPkt[3]);
         int tmpMcs1 = (int)tmpPkt[5];
-        int tmpNss1 = (int)tmpPkt[6];
+        // int tmpNss1 = (int)tmpPkt[6];
         int tmpLen1 = ((int)tmpPkt[8] * 256  + (int)tmpPkt[7]);
         int tmpGroupId = (int)tmpPkt[9];
-        dout<<"ieee80211 encode, new msg, format:"<<tmpFormat<<std::endl;
-        dout<<"ieee80211 encode, new msg, mcs0:"<<tmpMcs0<<", nSS0:"<<tmpNss0<<", len0:"<<tmpLen0<<", mcs1:"<<tmpMcs1<<", nSS1:"<<tmpNss1<<", len1:"<<tmpLen1<<std::endl;
+        dout<<"ieee80211 encode, format: mu, mcs0:"<<tmpMcs0<<", nSS0:1, len0:"<<tmpLen0<<", mcs1:"<<tmpMcs1<<", nSS1:1, len1:"<<tmpLen1<<std::endl;
         formatToModMu(&d_m, tmpMcs0, 1, tmpLen0, tmpMcs1, 1, tmpLen1);
         d_m.groupId = tmpGroupId;
-        // convert bytes to Q
-        dout<<"ieee80211 encode, build Q"<<std::endl;
         float* tmpFloatPR = (float*)d_vhtBfQbytesR;
         float* tmpFloatPI = (float*)d_vhtBfQbytesI;
         d_tagBfQ.clear();
@@ -115,7 +112,6 @@ namespace gr {
           tmpQValue = gr_complex(*tmpFloatPR, *tmpFloatPI);
           tmpFloatPR += 1;
           tmpFloatPI += 1;
-          dout<<"bfQ"<<i<<" "<<tmpQValue<<std::endl;
           d_tagBfQ.push_back(tmpQValue);
         }
       }
@@ -125,14 +121,13 @@ namespace gr {
         int tmpMcs = (int)tmpPkt[1];
         int tmpNss = (int)tmpPkt[2];
         int tmpLen = ((int)tmpPkt[4] * 256  + (int)tmpPkt[3]);
-        dout<<"ieee80211 encode, new msg, format:"<<tmpFormat<<", mcs:"<<tmpMcs<<", nSS:"<<tmpNss<<", len:"<<tmpLen<<std::endl;
+        dout<<"ieee80211 encode, format:"<<tmpFormat<<", mcs:"<<tmpMcs<<", nSS:"<<tmpNss<<", len:"<<tmpLen<<std::endl;
         formatToModSu(&d_m, tmpFormat, tmpMcs, tmpNss, tmpLen);
       }
 
       if(d_m.format == C8P_F_L)
       {
         // legacy
-        dout<<"ieee80211 encode, legacy packet"<<std::endl;
         legacySigBitsGen(d_legacySig, d_legacySigCoded, d_m.mcs, d_m.len);
         procIntelLegacyBpsk(d_legacySigCoded, d_legacySigInted);
 
@@ -156,14 +151,7 @@ namespace gr {
       else if(d_m.format == C8P_F_VHT)
       {
         // vht
-        dout<<"ieee80211 encode, vht packet"<<std::endl;
         vhtSigABitsGen(d_vhtSigA, d_vhtSigACoded, &d_m);
-        dout<<"ieee80211 encode, vht packet sig a bits"<<std::endl;
-        for(int i=0;i<48;i++)
-        {
-          dout<<(int)d_vhtSigA[i]<<" ";
-        }
-        dout<<std::endl;
         procIntelLegacyBpsk(&d_vhtSigACoded[0], &d_vhtSigAInted[0]);
         procIntelLegacyBpsk(&d_vhtSigACoded[48], &d_vhtSigAInted[48]);
         if(d_m.sumu)
@@ -188,19 +176,15 @@ namespace gr {
 
           if(d_m.sumu)
           {
-            // set mod info to be user 0
-            vhtModMuToSu(&d_m, 0);
+            vhtModMuToSu(&d_m, 0);  // set mod info to be user 0
           }
-          // init pointer
-          uint8_t* tmpDataP = d_dataBits;
-          // 7 scrambler init, 1 reserved
+
+          uint8_t* tmpDataP = d_dataBits;   // data bits, service part
           memset(tmpDataP, 0, 8);
           tmpDataP += 8;
-          // 8 sig b crc8
           memcpy(tmpDataP, d_vhtSigBCrc8, 8);
           tmpDataP += 8;
-          // data
-          for(int i=0;i<d_m.len;i++)
+          for(int i=0;i<d_m.len;i++)        // data bits, psdu part
           {
             for(int j=0;j<8;j++)
             {
@@ -210,12 +194,9 @@ namespace gr {
           }
           tmpHeaderShift += d_m.len;
 
-          // general packet with payload
-          int tmpPsduLen = (d_m.nSym * d_m.nDBPS - 16 - 6)/8;
-          // EOF padding tmp, copy header bits to pad
-          memcpy(tmpDataP, &d_dataBits[16], (tmpPsduLen - d_m.len)*8);
-          tmpDataP += (tmpPsduLen - d_m.len)*8;
-          // tail pading, all 0, includes tail bits, when scrambling, do not scramble tail
+          int tmpPsduLen = (d_m.nSym * d_m.nDBPS - 16 - 6) / 8;           // 20M 2x2, nES is still 1
+          memcpy(tmpDataP, &d_dataBits[16], (tmpPsduLen - d_m.len)*8);    // EOF padding tmp, copy header bits to pad
+          tmpDataP += (tmpPsduLen - d_m.len)*8;                           // padded bits, all 0, includes 6 tail bits, when scrambling, do not scramble tail
           memset(tmpDataP, 0, (d_m.nSym * d_m.nDBPS - tmpPsduLen*8 - 16));
 
           if(d_m.sumu)
@@ -261,7 +242,6 @@ namespace gr {
       else
       {
         // ht
-        dout<<"ieee80211 encode, ht packet"<<std::endl;
         htSigBitsGen(d_htSig, d_htSigCoded, &d_m);
         procIntelLegacyBpsk(&d_htSigCoded[0], &d_htSigInted[0]);
         procIntelLegacyBpsk(&d_htSigCoded[48], &d_htSigInted[48]);
@@ -298,7 +278,7 @@ namespace gr {
     {
       if(d_sEncode == ENCODE_S_SCEDULE)
       {
-        dout<<"ieee80211 encode, schedule in calculate, nSym:"<<d_m.nSym<<", total:"<<(d_m.nSym * d_m.nSD)<<std::endl;
+        dout<<"ieee80211 encode, schedule in calculate, nSym:"<<d_m.nSym<<", total sample output:"<<(d_m.nSym * d_m.nSD)<<std::endl;
         d_nChipsGen = d_m.nSym * d_m.nSD;
         d_nChipsGenProcd = 0;
         d_sEncode = ENCODE_S_ENCODE;
@@ -447,7 +427,6 @@ namespace gr {
             dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_m.len));
           }
           dict = pmt::dict_add(dict, pmt::mp("seq"), pmt::from_long(d_pktSeq));
-          dout<<"encode total tag : "<<(d_nChipsGen + d_nChipsPadded)<<std::endl;
           dict = pmt::dict_add(dict, pmt::mp("total"), pmt::from_long(d_nChipsGen + d_nChipsPadded));   // chips with padded
           dict = pmt::dict_add(dict, pmt::mp("lsig"), pmt::init_u8vector(d_tagLegacyBits.size(), d_tagLegacyBits));
           d_pktSeq++;
@@ -525,7 +504,6 @@ namespace gr {
             d_nChipsGenProcd += d_m.nSD;
             if(d_nChipsGenProcd >= d_nChipsGen)
             {
-              dout<<"ieee80211 encode, copy done, go to pad"<<std::endl;
               d_sEncode = ENCODE_S_PAD;
               break;
             }
@@ -539,7 +517,6 @@ namespace gr {
           {
             memset(outChips1, 0, d_nChipsPadded);
             memset(outChips2, 0, d_nChipsPadded);
-            dout<<"ieee80211 encode, padding done:"<<d_nChipsPadded<<std::endl;
             d_sEncode = ENCODE_S_IDLE;
             return d_nChipsPadded;
           }

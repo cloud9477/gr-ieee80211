@@ -33,7 +33,7 @@ options:
     state: enabled
 
 blocks:
-- name: freq
+- name: freq_100
   id: variable
   parameters:
     comment: ''
@@ -43,6 +43,18 @@ blocks:
     bus_source: false
     bus_structure: null
     coordinate: [288, 12.0]
+    rotation: 0
+    state: enabled
+- name: freq_132
+  id: variable
+  parameters:
+    comment: ''
+    value: 5660e6
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [280, 76.0]
     rotation: 0
     state: enabled
 - name: samp_rate
@@ -109,7 +121,7 @@ blocks:
     bus_structure: null
     coordinate: [792, 192.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: ieee80211_encode_0
   id: ieee80211_encode
   parameters:
@@ -256,7 +268,7 @@ blocks:
     bw7: '0'
     bw8: '0'
     bw9: '0'
-    center_freq0: freq
+    center_freq0: freq_100
     center_freq1: '0'
     center_freq10: '0'
     center_freq11: '0'
@@ -463,7 +475,7 @@ blocks:
     bus_structure: null
     coordinate: [792, 12.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: uhd_usrp_sink_0_0
   id: uhd_usrp_sink
   parameters:
@@ -533,8 +545,8 @@ blocks:
     bw7: '0'
     bw8: '0'
     bw9: '0'
-    center_freq0: freq
-    center_freq1: freq
+    center_freq0: freq_132
+    center_freq1: freq_132
     center_freq10: '0'
     center_freq11: '0'
     center_freq12: '0'
@@ -577,8 +589,8 @@ blocks:
     comment: Sync and TSB Tag
     dev_addr: '""'
     dev_args: ''
-    gain0: '0.7'
-    gain1: '0.7'
+    gain0: '0.9'
+    gain1: '0.9'
     gain10: '0'
     gain11: '0'
     gain12: '0'
@@ -740,7 +752,7 @@ blocks:
     bus_structure: null
     coordinate: [792, 452.0]
     rotation: 0
-    state: disabled
+    state: enabled
 
 connections:
 - [ieee80211_encode_0, '0', ieee80211_modulation_0, '0']

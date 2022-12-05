@@ -339,7 +339,7 @@ namespace gr {
             {
               legacyChanUpdate(&inSig1[o1]);
               procSymQamToLlr(d_qam[0], d_llrInted[0], &d_m);
-              procSymDeintL(d_llrInted[0], &outLlrs[o2], &d_m);
+              procSymDeintL2(d_llrInted[0], &outLlrs[o2], &d_m);
             }
             else
             {

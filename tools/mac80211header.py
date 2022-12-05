@@ -289,11 +289,15 @@ def pktParser(pkt):
             hdr_fc = frameControl(struct.unpack('<H', pkt[0:2])[0])
             hdr_fc.printInfo()
             procdLen += 2
+        else:
+            return
         # duration
         if((procdLen + 2) <= pktLen):
             hdr_duration = struct.unpack('<H', pkt[2:4])[0]
             procdLen += 2
             print("Packet duration %d us" % hdr_duration)
+        else:
+            return
         # check type
         if(hdr_fc.type == FC_TPYE.MGMT):
             if((procdLen + 18) <= pktLen):

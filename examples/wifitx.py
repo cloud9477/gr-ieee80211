@@ -20,7 +20,6 @@ if __name__ == '__main__':
         except:
             print("Warning: failed to XInitThreads()")
 
-from gnuradio import blocks
 from gnuradio import gr
 from gnuradio.filter import firdes
 from gnuradio.fft import window
@@ -76,38 +75,43 @@ class wifitx(gr.top_block, Qt.QWidget):
         # Variables
         ##################################################
         self.samp_rate = samp_rate = 20e6
-        self.freq = freq = 5500e6
+        self.freq_132 = freq_132 = 5660e6
+        self.freq_100 = freq_100 = 5500e6
 
         ##################################################
         # Blocks
         ##################################################
-        self.uhd_usrp_sink_0 = uhd.usrp_sink(
+        self.uhd_usrp_sink_0_0 = uhd.usrp_sink(
             ",".join(("", '')),
             uhd.stream_args(
                 cpu_format="fc32",
                 args='',
-                channels=list(range(0,1)),
+                channels=list(range(0,2)),
             ),
             "len",
         )
-        self.uhd_usrp_sink_0.set_samp_rate(samp_rate)
-        _last_pps_time = self.uhd_usrp_sink_0.get_time_last_pps().get_real_secs()
+        self.uhd_usrp_sink_0_0.set_samp_rate(samp_rate)
+        _last_pps_time = self.uhd_usrp_sink_0_0.get_time_last_pps().get_real_secs()
         # Poll get_time_last_pps() every 50 ms until a change is seen
-        while(self.uhd_usrp_sink_0.get_time_last_pps().get_real_secs() == _last_pps_time):
+        while(self.uhd_usrp_sink_0_0.get_time_last_pps().get_real_secs() == _last_pps_time):
             time.sleep(0.05)
         # Set the time to PC time on next PPS
-        self.uhd_usrp_sink_0.set_time_next_pps(uhd.time_spec(int(time.time()) + 1.0))
+        self.uhd_usrp_sink_0_0.set_time_next_pps(uhd.time_spec(int(time.time()) + 1.0))
         # Sleep 1 second to ensure next PPS has come
         time.sleep(1)
 
-        self.uhd_usrp_sink_0.set_center_freq(freq, 0)
-        self.uhd_usrp_sink_0.set_antenna("TX/RX", 0)
-        self.uhd_usrp_sink_0.set_bandwidth(20e6, 0)
-        self.uhd_usrp_sink_0.set_normalized_gain(0.8, 0)
+        self.uhd_usrp_sink_0_0.set_center_freq(freq_132, 0)
+        self.uhd_usrp_sink_0_0.set_antenna("TX/RX", 0)
+        self.uhd_usrp_sink_0_0.set_bandwidth(20e6, 0)
+        self.uhd_usrp_sink_0_0.set_normalized_gain(0.9, 0)
+
+        self.uhd_usrp_sink_0_0.set_center_freq(freq_132, 1)
+        self.uhd_usrp_sink_0_0.set_antenna("TX/RX", 1)
+        self.uhd_usrp_sink_0_0.set_bandwidth(20e6, 1)
+        self.uhd_usrp_sink_0_0.set_normalized_gain(0.9, 1)
         self.network_socket_pdu_0 = network.socket_pdu('UDP_SERVER', '127.0.0.1', '9528', 65535, False)
         self.ieee80211_modulation_0 = ieee80211.modulation()
         self.ieee80211_encode_0 = ieee80211.encode('packet_len')
-        self.blocks_null_sink_0 = blocks.null_sink(gr.sizeof_gr_complex*1)
 
 
         ##################################################
@@ -116,8 +120,8 @@ class wifitx(gr.top_block, Qt.QWidget):
         self.msg_connect((self.network_socket_pdu_0, 'pdus'), (self.ieee80211_encode_0, 'pdus'))
         self.connect((self.ieee80211_encode_0, 0), (self.ieee80211_modulation_0, 0))
         self.connect((self.ieee80211_encode_0, 1), (self.ieee80211_modulation_0, 1))
-        self.connect((self.ieee80211_modulation_0, 1), (self.blocks_null_sink_0, 0))
-        self.connect((self.ieee80211_modulation_0, 0), (self.uhd_usrp_sink_0, 0))
+        self.connect((self.ieee80211_modulation_0, 0), (self.uhd_usrp_sink_0_0, 0))
+        self.connect((self.ieee80211_modulation_0, 1), (self.uhd_usrp_sink_0_0, 1))
 
 
     def closeEvent(self, event):
@@ -133,14 +137,21 @@ class wifitx(gr.top_block, Qt.QWidget):
 
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
-        self.uhd_usrp_sink_0.set_samp_rate(self.samp_rate)
+        self.uhd_usrp_sink_0_0.set_samp_rate(self.samp_rate)
 
-    def get_freq(self):
-        return self.freq
+    def get_freq_132(self):
+        return self.freq_132
 
-    def set_freq(self, freq):
-        self.freq = freq
-        self.uhd_usrp_sink_0.set_center_freq(self.freq, 0)
+    def set_freq_132(self, freq_132):
+        self.freq_132 = freq_132
+        self.uhd_usrp_sink_0_0.set_center_freq(self.freq_132, 0)
+        self.uhd_usrp_sink_0_0.set_center_freq(self.freq_132, 1)
+
+    def get_freq_100(self):
+        return self.freq_100
+
+    def set_freq_100(self, freq_100):
+        self.freq_100 = freq_100
 
 
 

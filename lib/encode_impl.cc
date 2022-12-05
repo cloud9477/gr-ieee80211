@@ -325,7 +325,7 @@ namespace gr {
             // interleave
             for(int i=0;i<d_m.nSym;i++)
             {
-              procInterNonLegacy(&d_punctBits[i*d_m.nCBPS], &d_IntedBits1[i*d_m.nCBPS], &d_m, 0);
+              procSymIntelNL2SS1(&d_punctBits[i*d_m.nCBPS], &d_IntedBits1[i*d_m.nCBPS], &d_m);
             }
             // bits to qam chips
             bitsToChips(d_IntedBits1, d_qamChips1, &d_m);
@@ -341,7 +341,7 @@ namespace gr {
             // interleave
             for(int i=0;i<d_m.nSym;i++)
             {
-              procInterNonLegacy(&d_punctBits2[i*d_m.nCBPS], &d_IntedBits2[i*d_m.nCBPS], &d_m, 0);
+              procSymIntelNL2SS1(&d_punctBits2[i*d_m.nCBPS], &d_IntedBits2[i*d_m.nCBPS], &d_m);
             }
             // bits to qam chips
             bitsToChips(d_IntedBits2, d_qamChips2, &d_m);
@@ -370,14 +370,14 @@ namespace gr {
               {
                 for(int i=0;i<d_m.nSym;i++)
                 {
-                  procInterLegacy(&d_punctBits[i*d_m.nCBPS], &d_IntedBits1[i*d_m.nCBPS], &d_m);
+                  procSymIntelL2(&d_punctBits[i*d_m.nCBPS], &d_IntedBits1[i*d_m.nCBPS], &d_m);
                 }
               }
               else
               {
                 for(int i=0;i<d_m.nSym;i++)
                 {
-                  procInterNonLegacy(&d_punctBits[i*d_m.nCBPS], &d_IntedBits1[i*d_m.nCBPS], &d_m, 0);
+                  procSymIntelNL2SS1(&d_punctBits[i*d_m.nCBPS], &d_IntedBits1[i*d_m.nCBPS], &d_m);
                 }
               }
               bitsToChips(d_IntedBits1, d_qamChips1, &d_m);
@@ -390,8 +390,8 @@ namespace gr {
               // interleave
               for(int i=0;i<d_m.nSym;i++)
               {
-                procInterNonLegacy(&d_parsdBits1[i*d_m.nCBPSS], &d_IntedBits1[i*d_m.nCBPSS], &d_m, 0);  // iss - 1 = 0
-                procInterNonLegacy(&d_parsdBits2[i*d_m.nCBPSS], &d_IntedBits2[i*d_m.nCBPSS], &d_m, 1);  // iss - 1 = 1
+                procSymIntelNL2SS1(&d_parsdBits1[i*d_m.nCBPSS], &d_IntedBits1[i*d_m.nCBPSS], &d_m);
+                procSymIntelNL2SS2(&d_parsdBits2[i*d_m.nCBPSS], &d_IntedBits2[i*d_m.nCBPSS], &d_m);
               }
               // convert to qam chips
               bitsToChips(d_IntedBits1, d_qamChips1, &d_m);

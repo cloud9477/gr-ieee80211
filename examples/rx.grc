@@ -33,7 +33,7 @@ options:
     state: enabled
 
 blocks:
-- name: freq
+- name: freq_100
   id: variable
   parameters:
     comment: ''
@@ -42,7 +42,19 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [288, 12.0]
+    coordinate: [296, 12.0]
+    rotation: 0
+    state: enabled
+- name: freq_132
+  id: variable
+  parameters:
+    comment: ''
+    value: 5660e6
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [296, 76.0]
     rotation: 0
     state: enabled
 - name: samp_rate
@@ -57,44 +69,6 @@ blocks:
     coordinate: [184, 12]
     rotation: 0
     state: enabled
-- name: analog_fastnoise_source_x_0
-  id: analog_fastnoise_source_x
-  parameters:
-    affinity: ''
-    alias: ''
-    amp: '0.00001'
-    comment: ''
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    noise_type: analog.GR_GAUSSIAN
-    samples: '8192'
-    seed: int(time.time()*1000%1000)
-    type: complex
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [8, 116.0]
-    rotation: 0
-    state: disabled
-- name: blocks_add_xx_0
-  id: blocks_add_xx
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    num_inputs: '2'
-    type: complex
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [280, 144.0]
-    rotation: 0
-    state: disabled
 - name: blocks_file_source_0
   id: blocks_file_source
   parameters:
@@ -114,9 +88,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [8, 212.0]
+    coordinate: [88, 164.0]
     rotation: 0
-    state: disabled
+    state: enabled
 - name: blocks_throttle_0_0
   id: blocks_throttle
   parameters:
@@ -133,9 +107,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [544, 156.0]
+    coordinate: [320, 196.0]
     rotation: 0
-    state: disabled
+    state: enabled
 - name: ieee80211_decode_0
   id: ieee80211_decode
   parameters:
@@ -331,7 +305,7 @@ blocks:
     bw7: '0'
     bw8: '0'
     bw9: '0'
-    center_freq0: freq
+    center_freq0: freq_100
     center_freq1: '0'
     center_freq10: '0'
     center_freq11: '0'
@@ -695,9 +669,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [696, 12.0]
+    coordinate: [560, 36.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: virtual_sink_0
   id: virtual_sink
   parameters:
@@ -708,7 +682,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [912, 156.0]
+    coordinate: [848, 196.0]
     rotation: 0
     state: true
 - name: virtual_source_0
@@ -726,9 +700,7 @@ blocks:
     state: true
 
 connections:
-- [analog_fastnoise_source_x_0, '0', blocks_add_xx_0, '0']
-- [blocks_add_xx_0, '0', blocks_throttle_0_0, '0']
-- [blocks_file_source_0, '0', blocks_add_xx_0, '1']
+- [blocks_file_source_0, '0', blocks_throttle_0_0, '0']
 - [blocks_throttle_0_0, '0', virtual_sink_0, '0']
 - [ieee80211_decode_0, out, network_socket_pdu_0, pdus]
 - [ieee80211_demod_0, '0', ieee80211_decode_0, '0']

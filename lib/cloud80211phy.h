@@ -148,10 +148,8 @@ extern const float PILOT_HT_2_1[4];
 extern const float PILOT_HT_2_2[4];
 extern const float PILOT_VHT[4];
 extern const uint8_t EOF_PAD_SUBFRAME[32];
-
 extern const int mapDeintVhtSigB20[52];
 
-// 
 
 extern const gr_complex C8P_STF_F[64];
 extern const gr_complex C8P_LTF_L_F[64];
@@ -160,20 +158,17 @@ extern const gr_complex C8P_LTF_NL_F_N[64];
 extern const gr_complex C8P_LTF_NL_F_VHT22[64];
 
 
-
-void procDeintLegacyBpsk(uint8_t* inBits, uint8_t* outBits);
 void procDeintLegacyBpsk(float* inBits, float* outBits);
 void procIntelLegacyBpsk(uint8_t* inBits, uint8_t* outBits);
 void procIntelVhtB20(uint8_t* inBits, uint8_t* outBits);
 void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits, int trellisLen);
 void procSymQamToLlr(gr_complex* inQam, float* outLlr, c8p_mod* mod);
-void procSymDeintL(float* in, float* out, c8p_mod* mod);
 void procSymDeintL2(float* in, float* out, c8p_mod* mod);
-void procSymDeintNL(float* in, float* out, c8p_mod* mod, int iSS_1);
+void procSymIntelL2(uint8_t* in, uint8_t* out, c8p_mod* mod);
 void procSymDeintNL2SS1(float* in, float* out, c8p_mod* mod);
 void procSymDeintNL2SS2(float* in, float* out, c8p_mod* mod);
-void procSymIntelNL2SS1(float* in, float* out, c8p_mod* mod);
-void procSymIntelNL2SS2(float* in, float* out, c8p_mod* mod);
+void procSymIntelNL2SS1(uint8_t* in, uint8_t* out, c8p_mod* mod);
+void procSymIntelNL2SS2(uint8_t* in, uint8_t* out, c8p_mod* mod);
 void procSymDepasNL(float in[C8P_MAX_N_SS][C8P_MAX_N_CBPSS], float* out, c8p_mod* mod);
 int nCodedToUncoded(int nCoded, c8p_mod* mod);
 int nUncodedToCoded(int nUncoded, c8p_mod* mod);
@@ -202,8 +197,6 @@ void scramEncoder(uint8_t* inBits, uint8_t* outBits, int len, int init);
 void punctEncoder(uint8_t* inBits, uint8_t* outBits, int len, c8p_mod* mod);
 void streamParser2(uint8_t* inBits, uint8_t* outBits1, uint8_t* outBits2, int len, c8p_mod* mod);
 void bitsToChips(uint8_t* inBits, uint8_t* outChips, c8p_mod* mod);
-void procInterLegacy(uint8_t* inBits, uint8_t* outBits, c8p_mod* mod);
-void procInterNonLegacy(uint8_t* inBits, uint8_t* outBits, c8p_mod* mod, int iss_1);
 
 void formatToModSu(c8p_mod* mod, int format, int mcs, int nss, int len);
 void vhtModMuToSu(c8p_mod* mod, int pos);

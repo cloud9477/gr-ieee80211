@@ -23,6 +23,7 @@
 
 #include <gnuradio/ieee80211/modulation.h>
 #include <gnuradio/fft/fft.h>
+#include <uhd/types/time_spec.hpp>
 #include "cloud80211phy.h"
 
 #define MODUL_S_IDLE 0

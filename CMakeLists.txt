@@ -58,6 +58,7 @@ include(GrCompilerSettings)
 # Install directories
 ########################################################################
 find_package(Gnuradio COMPONENTS fft)
+find_package(UHD "3.9.7")
 
 include(GrVersion)
 

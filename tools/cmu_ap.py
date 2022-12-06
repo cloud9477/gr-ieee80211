@@ -9,6 +9,11 @@ import time
 import mac80211
 import phy80211header as p8h
 import phy80211
+import os
+
+"""
+Cloud Multi-User Mimo AP (CMU)
+"""
 
 def genMac80211UdpAmpduVht(udpPayloads):
     if(isinstance(udpPayloads, list)):
@@ -55,20 +60,49 @@ def genMac80211UdpAmpduVht(udpPayloads):
         print("genMac80211UdpAmpduVht udpPakcets is not list type")
         return b""
 
+"""
+1. Send NDP by GR
+2. Fetch channel info
+3. Generate Q (Zero-Forcing)
+4. Write Q to GR
+5. Send MU-MIMO by GR
+"""
+
 if __name__ == "__main__":
+    # init the socket with gr
+    phyRxIp = "127.0.0.1"
+    phyRxPort = 9527
+    phyRxAddr = (phyRxIp, phyRxPort)
+    phyTxIp = "127.0.0.1"
+    phyTxPort = 9528
+    phyTxAddr = (phyTxIp, phyTxPort)
+    grSocket = socket.socket(family = socket.AF_INET, type = socket.SOCK_DGRAM)
+    grSocket.bind(phyRxAddr)
+
+    # send ndp packet
+    grNdpPkt = phy80211.genPktGrNdp()
+    grSocket.sendto(grNdpPkt, phyTxAddr)
+    print("GR NDP Pakcet Sent")
+    # wait for some time
+    time.sleep(2.0)
+
+    # fetch the channel info through ethernet, use the tool "pscp" with user name and passwd, you could replace with other methods
+    os.system("pscp -pw 7777 -r cloud@192.168.10.107:/home/cloud/sdr/cmu_chan0.bin /home/cloud/sdr/")
+    os.system("pscp -pw 7777 -r cloud@192.168.10.202:/home/cloud/sdr/cmu_chan1.bin /home/cloud/sdr/")
+
+    # physical instance
     phy80211Ins = phy80211.phy80211()
-    
     # read channel bin file
     # they are the vht long training field received at each station
     chan0 = []
     chan1 = []
-    fWaveComp = open("cmu_chan0.bin", 'rb')
+    fWaveComp = open("/home/cloud/sdr/cmu_chan0.bin", 'rb')
     for i in range(0,128):
         tmpR = struct.unpack('f', fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1))[0]
         tmpI = struct.unpack('f', fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1))[0]
         chan0.append(tmpR + tmpI * 1j)
     fWaveComp.close()
-    fWaveComp = open("cmu_chan1.bin", 'rb')
+    fWaveComp = open("/home/cloud/sdr/cmu_chan1.bin", 'rb')
     for i in range(0, 128):
         tmpR = struct.unpack('f', fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1))[0]
         tmpI = struct.unpack('f', fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1))[0]
@@ -114,27 +148,33 @@ if __name__ == "__main__":
     # map Q to FFT non-zero sub carriers
     bfQForFft = [np.ones_like(bfQNormd[0])] * 3 + bfQNormd[0:28] + [
         np.ones_like(bfQNormd[0])] + bfQNormd[28:56] + [np.ones_like(bfQNormd[0])] * 4
-    
-    plt.figure(11)
-    plt.plot(np.real([each[0][0] for each in bfH]))
-    plt.plot(np.imag([each[0][0] for each in bfH]))
-    plt.figure(12)
-    plt.plot(np.real([each[0][1] for each in bfH]))
-    plt.plot(np.imag([each[0][1] for each in bfH]))
-    plt.figure(13)
-    plt.plot(np.real([each[1][0] for each in bfH]))
-    plt.plot(np.imag([each[1][0] for each in bfH]))
-    plt.figure(14)
-    plt.plot(np.real([each[1][1] for each in bfH]))
-    plt.plot(np.imag([each[1][1] for each in bfH]))
 
-    pkt1 = genMac80211UdpAmpduVht(["1234567 packet for station 000"])
-    pkt2 = genMac80211UdpAmpduVht(["7654321 packet for station 111"])
-    print("pkt 1 byte numbers:", len(pkt1))
-    print(pkt1.hex())
-    print("pkt 2 byte numbers:", len(pkt2))
-    print(pkt2.hex())
-    phy80211Ins.genAmpduMu(nUser = 2, bfQ = bfQForFft, groupId = 2, ampdu0=pkt1, mod0=p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False), ampdu1=pkt2, mod1=p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False))
-    ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0, cfoHz = 0.0, num = 1, gap = False, gapLen = 10000)
-    phy80211Ins.genSigBinFile(ssFinal, "cmu_mu", True)
+    bfQPktForGr0, bfQPktForGr1 = phy80211.genPktGrBfQ(bfQForFft)
+    grSocket.sendto(bfQPktForGr0, phyTxAddr)
+    time.sleep(0.5)
+    grSocket.sendto(bfQPktForGr1, phyTxAddr)
+    time.sleep(0.5)
+    pkt0 = genMac80211UdpAmpduVht(["1234567 packet for station 000"])
+    pkt1 = genMac80211UdpAmpduVht(["7654321 packet for station 111"])
+    grMuPkt = phy80211.genPktGrDataMu(pkt0, p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False), pkt1, p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False), 2)
+    print("gr pkt len %d" % len(grMuPkt))
+    grSocket.sendto(grMuPkt, phyTxAddr)
+
+    # plt.figure(11)
+    # plt.plot(np.real([each[0][0] for each in bfQForFft]))
+    # plt.plot(np.imag([each[0][0] for each in bfQForFft]))
+    # plt.figure(12)
+    # plt.plot(np.real([each[0][1] for each in bfQForFft]))
+    # plt.plot(np.imag([each[0][1] for each in bfQForFft]))
+    # plt.figure(13)
+    # plt.plot(np.real([each[1][0] for each in bfQForFft]))
+    # plt.plot(np.imag([each[1][0] for each in bfQForFft]))
+    # plt.figure(14)
+    # plt.plot(np.real([each[1][1] for each in bfQForFft]))
+    # plt.plot(np.imag([each[1][1] for each in bfQForFft]))
+
+    """ genrate the mu-mimo pakcet by python by not gr """
+    # phy80211Ins.genAmpduMu(nUser = 2, bfQ = bfQForFft, groupId = 2, ampdu0=pkt0, mod0=p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False), ampdu1=pkt1, mod1=p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False))
+    # ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0, cfoHz = 0.0, num = 1, gap = False, gapLen = 10000)
+    # phy80211Ins.genSigBinFile(ssFinal, "/home/cloud/sdr/cmu_mu", True)
 

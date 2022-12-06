@@ -151,8 +151,6 @@ def genMac80211UdpAmpduHt(udpPayloads):
         print("genMac80211UdpAmpduHt udpPakcets is not list type")
         return b""
 
-# device info
-staID = 0
 print("cloud mac80211 example starts")
 
 phyRxIp = "127.0.0.1"

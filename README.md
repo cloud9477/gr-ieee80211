@@ -1,7 +1,8 @@
 # gr-ieee80211
 - GNU Radio IEEE 802.11a/g/n/ac transmitter and receiver.
 - Supports upto 2x2 SU-MIMO and MU-MIMO.
-- Main branch is GNU Radio 3.10 version
+- Main branch is GNU Radio 3.10 version with CUDA.
+- For the CPU version with CUDA, please checkout to maint-3.10-cpu.
 
 # Receiver Design
 - STF gives trigger of LTF starting point and the CFO updating point by a byte stream.

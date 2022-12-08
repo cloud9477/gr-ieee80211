@@ -37,11 +37,14 @@ namespace gr {
               gr::io_signature::make(1, 1, sizeof(gr_complex))),
               d_ofdm_fft(64,1)
     {
-      d_debug = false;
+      d_debug = true;
       d_nProc = 0;
       d_nSigPktSeq = 0;
       d_sSignal = S_TRIGGER;
       d_fftSize = sizeof(gr_complex)*64;
+
+      d_sampCount = 0;
+      d_usUsed = 0;
 
       set_tag_propagation_policy(block::TPP_DONT);
     }
@@ -66,6 +69,11 @@ namespace gr {
       const uint8_t* sync = static_cast<const uint8_t*>(input_items[0]);
       const gr_complex* inSig1 = static_cast<const gr_complex*>(input_items[1]);
       gr_complex* outSig1 = static_cast<gr_complex*>(output_items[0]);
+      d_ts = std::chrono::high_resolution_clock::now();
+      if(d_sampCount > 29050000)
+      {
+        dout<<"signal procd samp: "<<d_sampCount<<", used time: "<<d_usUsed<<std::endl;
+      }
       // input and output not sync
       d_nProc = std::min(ninput_items[0], ninput_items[1]);
       d_nGen = std::min(noutput_items, d_nProc);
@@ -89,7 +97,7 @@ namespace gr {
               d_cfoRad = t_rad;
               t_snr = (float)pmt::to_double(pmt::dict_ref(d_meta, pmt::mp("snr"), pmt::from_double(0.0)));
               d_sSignal = S_DEMOD;
-              dout<<"ieee80211 signal, rd tag cfo:"<<(t_rad) * 20000000.0f / 2.0f / M_PI<<", snr:"<<t_snr<<std::endl;
+              // dout<<"ieee80211 signal, rd tag cfo:"<<(t_rad) * 20000000.0f / 2.0f / M_PI<<", snr:"<<t_snr<<std::endl;
             }
             else
             {
@@ -100,6 +108,9 @@ namespace gr {
           }
         }
         consume_each(i);
+        d_sampCount += i;
+        d_te = std::chrono::high_resolution_clock::now();
+        d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
         return 0;
       }
       else if(d_sSignal == S_DEMOD)
@@ -152,7 +163,7 @@ namespace gr {
             d_nSymbol = (d_nSigLen*8 + 16 + 6)/d_nSigDBPS + (((d_nSigLen*8 + 16 + 6)%d_nSigDBPS) != 0);
             d_nSample = d_nSymbol * 80;
             d_nSampleCopied = 0;
-            dout<<"ieee80211 signal, cfo:"<<(d_cfoRad) * 20000000.0f / 2.0f / M_PI<<", mcs: "<<d_nSigMcs<<", len:"<<d_nSigLen<<", nSym:"<<d_nSymbol<<", nSample:"<<d_nSample<<std::endl;
+            // dout<<"ieee80211 signal, cfo:"<<(d_cfoRad) * 20000000.0f / 2.0f / M_PI<<", mcs: "<<d_nSigMcs<<", len:"<<d_nSigLen<<", nSym:"<<d_nSymbol<<", nSample:"<<d_nSample<<std::endl;
             // add info into tag
             d_nSigPktSeq++;
             if(d_nSigPktSeq >= 1000000000){d_nSigPktSeq = 0;}
@@ -179,18 +190,26 @@ namespace gr {
             }
             d_sSignal = S_COPY;
             consume_each(224);
+            d_sampCount += 224;
+            d_te = std::chrono::high_resolution_clock::now();
+            d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
             return 0;
           }
           else
           {
             d_sSignal = S_TRIGGER;
             consume_each(80);
+            d_sampCount += 80;
+            d_te = std::chrono::high_resolution_clock::now();
+            d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
             return 0;
           }
         }
         else
         {
           consume_each(0);
+          d_te = std::chrono::high_resolution_clock::now();
+          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
           return 0;
         }
       }
@@ -206,6 +225,9 @@ namespace gr {
             d_nSampleCopied++;
           }
           consume_each(d_nGen);
+          d_sampCount += d_nGen;
+          d_te = std::chrono::high_resolution_clock::now();
+          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
           return d_nGen;
         }
         else
@@ -219,6 +241,9 @@ namespace gr {
           }
           d_sSignal = S_PAD;
           consume_each(tmpNumGen);
+          d_sampCount += tmpNumGen;
+          d_te = std::chrono::high_resolution_clock::now();
+          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
           return tmpNumGen;
         }
       }
@@ -228,6 +253,8 @@ namespace gr {
         {
           memset((uint8_t*)outSig1, 0, sizeof(gr_complex) * 320);
           d_sSignal = S_TRIGGER;
+          d_te = std::chrono::high_resolution_clock::now();
+          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
           consume_each(0);
           return 320;
         }

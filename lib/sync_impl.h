@@ -22,6 +22,7 @@
 #define INCLUDED_IEEE80211_SYNC_IMPL_H
 
 #include <gnuradio/ieee80211/sync.h>
+#include <chrono>
 
 #define SYNC_S_IDLE 0
 #define SYNC_S_SYNC 1
@@ -47,6 +48,11 @@ namespace gr {
       float d_tmpAc[SYNC_MAX_RES_LEN];
       gr_complex d_tmpConjSamp[128];
       float d_snr;
+      // performance
+      std::chrono::_V2::system_clock::time_point d_ts;
+      std::chrono::_V2::system_clock::time_point d_te;
+      uint64_t d_usUsed;
+      uint64_t d_sampCount;
 
      public:
       sync_impl();

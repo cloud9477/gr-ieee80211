@@ -1,8 +1,8 @@
 # gr-ieee80211
 - GNU Radio IEEE 802.11a/g/n/ac transmitter and receiver.
 - Supports upto 2x2 SU-MIMO and MU-MIMO.
-- Main branch is GNU Radio 3.10 version with CUDA.
-- For the CPU version with CUDA, please checkout to maint-3.10-cpu.
+- Main branch is GNU Radio 3.10 version with CUDA, CUDA Part NOT STABLE YET!
+- For the CPU version without CUDA, please checkout to maint-3.10-cpu.
 
 # Receiver Design
 - STF gives trigger of LTF starting point and the CFO updating point by a byte stream.
@@ -54,6 +54,8 @@ sdr@sdr-home:~$ sudo ldconfig
 
 # CUDA Related Info
 
+Some hardware tested by author.
+
 RTX 3070
 --------
 - Zotac 3070 Gaming
@@ -65,3 +67,15 @@ RTX 3070
 - Memory Clock Rate (KHz): 7001000
 - Memory Bus Width (bits): 256
 - Peak Memory Bandwidth (GB/s): 448.064000
+
+GTX 1070
+--------
+- MSI 1070 ARMOR
+- Device name: NVIDIA GeForce GTX 1070
+- SM Number: 15
+- SM Max Thread Number: 2048
+- Block Share Mem Size: 49152
+- Block Max Thread Number: 1024
+- Memory Clock Rate (KHz): 4004000
+- Memory Bus Width (bits): 256
+- Peak Memory Bandwidth (GB/s): 256.256000

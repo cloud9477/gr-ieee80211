@@ -41,8 +41,10 @@ namespace gr {
               gr::io_signature::make(1, 1, sizeof(uint8_t)))//gr::io_signature::makev(2, 2, std::vector<int>{sizeof(uint8_t), sizeof(float)}))
     {
       d_nProc = 0;
-      d_debug = false;
+      d_debug = true;
       d_sSync = SYNC_S_IDLE;
+      d_sampCount = 0;
+      d_usUsed = 0;
     }
 
     /*
@@ -69,11 +71,14 @@ namespace gr {
       const uint8_t* trigger = static_cast<const uint8_t*>(input_items[0]);
       const gr_complex* inSig = static_cast<const gr_complex*>(input_items[2]);
       const gr_complex* inConj = static_cast<const gr_complex*>(input_items[1]);
-
       uint8_t* sync = static_cast<uint8_t*>(output_items[0]);
-      // float* outRad = static_cast<float*>(output_items[1]);
 
+      d_ts = std::chrono::high_resolution_clock::now();
       d_nProc = noutput_items;
+      if(d_sampCount > 29050000)
+      {
+        dout<<"sync procd samp: "<<d_sampCount<<", used time: "<<d_usUsed<<std::endl;
+      }
 
       if(d_sSync == SYNC_S_IDLE)
       {
@@ -91,7 +96,10 @@ namespace gr {
             d_conjMultiAvg = inConj[i];
           }
         }
+        d_sampCount += i;
         consume_each (i);
+        d_te = std::chrono::high_resolution_clock::now();
+        d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
         return i;
       }
       else
@@ -126,11 +134,10 @@ namespace gr {
             int tmpM = (tmpL+tmpR)/2;
             d_snr = 5.0f * log10f((*tmpMaxAcP) / (1 - (*tmpMaxAcP)));
             // sync index is LTF starting index + 16
-            dout<<"ieee80211 sync, ac max value: "<<*tmpMaxAcP<<", snr: "<<d_snr<<std::endl;
+            // dout<<"ieee80211 sync, ac max value: "<<*tmpMaxAcP<<", snr: "<<d_snr<<std::endl;
             float tmpTotalRadStep = ltf_cfo(&inSig[tmpM]);
             // dout<<"ieee80211 sync, total cfo:"<<(tmpTotalRadStep) * 20000000.0f / 2.0f / M_PI<<std::endl;
             sync[tmpM] = 0x01;
-            // outRad[tmpM] = tmpTotalRadStep;
 
             // add tag to pass cfo and snr
             pmt::pmt_t dict = pmt::make_dict();
@@ -147,18 +154,25 @@ namespace gr {
             }
           }
           d_sSync = SYNC_S_IDLE;
+          d_sampCount += SYNC_MAX_RES_LEN;
           consume_each(SYNC_MAX_RES_LEN);
+          d_te = std::chrono::high_resolution_clock::now();
+          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
           return SYNC_MAX_RES_LEN;
         }
         else
         {
           consume_each(0);
+          d_te = std::chrono::high_resolution_clock::now();
+          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
           return 0;
         }
       }
       // error but return to IDLE
       d_sSync = SYNC_S_IDLE;
       consume_each (0);
+      d_te = std::chrono::high_resolution_clock::now();
+      d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
       return 0;
     }
 

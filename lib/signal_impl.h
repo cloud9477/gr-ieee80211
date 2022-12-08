@@ -24,6 +24,7 @@
 #include <gnuradio/ieee80211/signal.h>
 #include <gnuradio/fft/fft.h>
 #include <volk/volk.h>
+#include <chrono>
 #include "cloud80211phy.h"
 
 #define S_TRIGGER 0
@@ -72,6 +73,11 @@ namespace gr {
       gr_complex d_fftLtfOut2[64];
       gr_complex d_fftSigOut[64];
       size_t d_fftSize;
+      // performance
+      std::chrono::_V2::system_clock::time_point d_ts;
+      std::chrono::_V2::system_clock::time_point d_te;
+      uint64_t d_usUsed;
+      uint64_t d_sampCount;
 
      public:
       signal_impl();

@@ -34,9 +34,9 @@ namespace gr {
     trigger_impl::trigger_impl()
       : gr::block("trigger",
               gr::io_signature::make(1, 1, sizeof(float)),
-              gr::io_signature::make(1, 1, sizeof(uint8_t))),
-              d_debug(0)
+              gr::io_signature::make(1, 1, sizeof(uint8_t)))
     {
+      d_debug = false;
       d_nProc = 0;
       d_nPlateau = 0;
       d_fPlateau = 0;
@@ -65,10 +65,8 @@ namespace gr {
       uint8_t* outTrigger = static_cast<uint8_t*>(output_items[0]);
 
       d_nProc = noutput_items;
-
       for(int i=0;i<d_nProc;i++)
       {
-        sampCount++;
         outTrigger[i] = 0;
         /*  */
         if(inAc[i] > 0.3f)
@@ -100,7 +98,6 @@ namespace gr {
           {
             d_fPlateau = 0;
             outTrigger[i] |= 0x01;
-            dout<<"ieee80211 trigger, trigger at "<<sampCount<<std::endl;
           }
         }
       }

@@ -50,3 +50,18 @@ sdr@sdr-home:~$ make
 sdr@sdr-home:~$ sudo make install
 sdr@sdr-home:~$ sudo ldconfig
 ```
+
+
+# CUDA Related Info
+
+RTX 3070
+--------
+- Zotac 3070 Gaming
+- Device name: NVIDIA GeForce RTX 3070
+- SM Number: 46
+- SM Max Thread Number: 1536
+- Block Share Mem Size: 49152
+- Block Max Thread Number: 1024
+- Memory Clock Rate (KHz): 7001000
+- Memory Bus Width (bits): 256
+- Peak Memory Bandwidth (GB/s): 448.064000

@@ -15,7 +15,7 @@ set(CMAKE_BUILD_TYPE "Release" CACHE STRING "")
 # Project setup
 ########################################################################
 cmake_minimum_required(VERSION 3.8)
-project(gr-ieee80211 CXX C)
+project(gr-ieee80211 CXX C CUDA)        # added by cloud
 enable_testing()
 
 # Install to PyBOMBS target prefix if defined

@@ -10,6 +10,25 @@
 # Setup library
 ########################################################################
 include(GrPlatform) #define LIB_SUFFIX
+find_package(CUDA)  # added by cloud
+
+########################################################################
+# Setup CUDA added by cloud
+########################################################################
+add_library(gnuradio-cloud-cu STATIC
+    cloud80211phycu.cu
+)
+set_target_properties(gnuradio-cloud-cu PROPERTIES 
+    POSITION_INDEPENDENT_CODE ON
+    CUDA_VISIBILITY_PRESET "hidden"
+    CUDA_SEPARABLE_COMPILATION ON
+)
+target_include_directories(gnuradio-cloud-cu
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+    PUBLIC $<INSTALL_INTERFACE:include>
+    ${CUDA_INCLUDE_DIRS} 
+)
+########################################################################
 
 list(APPEND ieee80211_sources
     trigger_impl.cc
@@ -31,12 +50,21 @@ if(NOT ieee80211_sources)
 endif(NOT ieee80211_sources)
 
 add_library(gnuradio-ieee80211 SHARED ${ieee80211_sources})
-target_link_libraries(gnuradio-ieee80211 gnuradio::gnuradio-runtime gnuradio::gnuradio-fft UHD::UHD)
+target_link_libraries(gnuradio-ieee80211 PUBLIC
+    gnuradio::gnuradio-runtime
+    gnuradio::gnuradio-fft
+    UHD::UHD
+    ${CUDA_CUDART_LIBRARY}      #added by cloud
+)
+target_link_libraries(gnuradio-ieee80211 PRIVATE gnuradio-cloud-cu)     #added by cloud
 target_include_directories(gnuradio-ieee80211
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
     PUBLIC $<INSTALL_INTERFACE:include>
+    ${CUDA_INCLUDE_DIRS}        #added by cloud
   )
 set_target_properties(gnuradio-ieee80211 PROPERTIES DEFINE_SYMBOL "gnuradio_ieee80211_EXPORTS")
+set_target_properties(gnuradio-ieee80211 PROPERTIES CUDA_ARCHITECTURES "60;61;62;70;72;75;86")      # added by cloud, arch from 10 series to 30 series
+set_target_properties(gnuradio-cloud-cu PROPERTIES CUDA_ARCHITECTURES "60;61;62;70;72;75;86")       # added by cloud, arch from 10 series to 30 series
 
 if(APPLE)
     set_target_properties(gnuradio-ieee80211 PROPERTIES

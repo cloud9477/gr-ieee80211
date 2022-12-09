@@ -1,1 +1,2 @@
 ./include/gnuradio/ieee80211/signal2.hUnknown -std=c++xx flag used
+./include/gnuradio/ieee80211/signal.hUnknown -std=c++xx flag used

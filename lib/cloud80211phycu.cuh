@@ -18,9 +18,17 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDED_CLOUD80211PHY_H
-#define INCLUDED_CLOUD80211PHY_H
+#ifndef INCLUDED_CLOUD80211PHYCU_H
+#define INCLUDED_CLOUD80211PHYCU_H
 
-void cuMultiply(int n, float a, const float *x, float *y);
+#include <iostream>
+#include <math.h>
+#include <cuComplex.h>
+#include <cufft.h>
+
+void signalMall();
+void signalFree();
+void cuSignalCfoCompen(int n, int s, float radStep, const cuFloatComplex *x, cuFloatComplex *y);
+void cuSignalChannel(int s, float radStep, const cuFloatComplex *sig, cuFloatComplex *h, float* llr);
 
 #endif /* INCLUDED_IEEE80211_SIGNAL_IMPL_H */

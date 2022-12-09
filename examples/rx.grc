@@ -109,7 +109,7 @@ blocks:
     bus_structure: null
     coordinate: [320, 196.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: ieee80211_decode_0
   id: ieee80211_decode
   parameters:
@@ -701,6 +701,7 @@ blocks:
 
 connections:
 - [blocks_file_source_0, '0', blocks_throttle_0_0, '0']
+- [blocks_file_source_0, '0', virtual_sink_0, '0']
 - [blocks_throttle_0_0, '0', virtual_sink_0, '0']
 - [ieee80211_decode_0, out, network_socket_pdu_0, pdus]
 - [ieee80211_demod_0, '0', ieee80211_decode_0, '0']

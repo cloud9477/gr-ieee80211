@@ -51,7 +51,6 @@ class wifirx(gr.top_block):
         self.ieee80211_signal_0 = ieee80211.signal()
         self.ieee80211_demod_0 = ieee80211.demod(0, 2)
         self.ieee80211_decode_0 = ieee80211.decode(1)
-        self.blocks_throttle_0_0 = blocks.throttle(gr.sizeof_gr_complex*1, samp_rate,True)
         self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211GenMultipleSiso_1x1_0.bin', False, 0, 0)
         self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
 
@@ -60,10 +59,9 @@ class wifirx(gr.top_block):
         # Connections
         ##################################################
         self.msg_connect((self.ieee80211_decode_0, 'out'), (self.network_socket_pdu_0, 'pdus'))
-        self.connect((self.blocks_file_source_0, 0), (self.blocks_throttle_0_0, 0))
-        self.connect((self.blocks_throttle_0_0, 0), (self.ieee80211_signal_0, 1))
-        self.connect((self.blocks_throttle_0_0, 0), (self.ieee80211_sync_0, 2))
-        self.connect((self.blocks_throttle_0_0, 0), (self.presiso_0, 0))
+        self.connect((self.blocks_file_source_0, 0), (self.ieee80211_signal_0, 1))
+        self.connect((self.blocks_file_source_0, 0), (self.ieee80211_sync_0, 2))
+        self.connect((self.blocks_file_source_0, 0), (self.presiso_0, 0))
         self.connect((self.ieee80211_demod_0, 0), (self.ieee80211_decode_0, 0))
         self.connect((self.ieee80211_signal_0, 0), (self.ieee80211_demod_0, 0))
         self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_signal_0, 0))
@@ -77,7 +75,6 @@ class wifirx(gr.top_block):
 
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
-        self.blocks_throttle_0_0.set_sample_rate(self.samp_rate)
 
     def get_freq_132(self):
         return self.freq_132

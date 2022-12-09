@@ -36,21 +36,57 @@ Issue in TX
 - Install liborc
 - Copy and install gr-ieee80211 module for GNU Radio
 - I usually put the GNU Radio modules in a folder named "sdr" in home folder, if you use a different path, please correct the paths in the codes. For example the python tools.
+- Ubuntu 20.04 GNU Radio CPU Version
 ```console
-sdr@sdr-home:~$ sudo apt-get install gnuradio-dev uhd-host cmake build-essential
-sdr@sdr-home:~$ sudo apt-get install liborc-0.4-dev libuhd-dev
-sdr@sdr-home:~$ mkdir sdr
-sdr@sdr-home:~$ cd sdr
-sdr@sdr-home:~$ git clone https://github.com/cloud9477/gr-ieee80211.git
-sdr@sdr-home:~$ cd gr-ieee80211/
-sdr@sdr-home:~$ mkdir build
-sdr@sdr-home:~$ cd build
-sdr@sdr-home:~$ cmake ../
-sdr@sdr-home:~$ make
-sdr@sdr-home:~$ sudo make install
-sdr@sdr-home:~$ sudo ldconfig
+sdr@sdr:~$ sudo apt-get install gnuradio-dev uhd-host cmake build-essential
+sdr@sdr:~$ sudo apt-get install liborc-0.4-dev libuhd-dev
+sdr@sdr:~$ mkdir sdr
+sdr@sdr:~$ cd sdr
+sdr@sdr:~$ git clone https://github.com/cloud9477/gr-ieee80211.git
+sdr@sdr:~$ cd gr-ieee80211/
+sdr@sdr:~$ git checkout maint-3.10-cpu
+sdr@sdr:~$ mkdir build
+sdr@sdr:~$ cd build
+sdr@sdr:~$ cmake ../
+sdr@sdr:~$ make
+sdr@sdr:~$ sudo make install
+sdr@sdr:~$ sudo ldconfig
 ```
 
+
+- Ubuntu 22.04 GNU Radio
+```console
+sdr@sdr:~$ sudo apt-get install gnuradio-dev uhd-host cmake build-essential
+sdr@sdr:~$ sudo cp /lib/uhd/utils/uhd-usrp.rules /etc/udev/rules.d/
+sdr@sdr:~$ sudo udevadm control --reload-rules
+sdr@sdr:~$ sudo udevadm trigger
+```
+- Ubuntu 22.04 CUDA (2022-12-9), the toolkit will also install the driver. The tool kit version here is 12.0, it matches the driver version 525.
+- nvidia-smi to test the driver and nvcc to test the cuda tool kit.
+```console
+sdr@sdr:~$ wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-ubuntu1804.pin
+sdr@sdr:~$ sudo mv cuda-ubuntu1804.pin /etc/apt/preferences.d/cuda-repository-pin-600
+sdr@sdr:~$ wget https://developer.download.nvidia.com/compute/cuda/12.0.0/local_installers/cuda-repo-ubuntu1804-12-0-local_12.0.0-525.60.13-1_amd64.deb
+sdr@sdr:~$ sudo dpkg -i cuda-repo-ubuntu1804-12-0-local_12.0.0-525.60.13-1_amd64.deb
+sdr@sdr:~$ sudo cp /var/cuda-repo-ubuntu1804-12-0-local/cuda-*-keyring.gpg /usr/share/keyrings/
+sdr@sdr:~$ sudo apt-get update
+sdr@sdr:~$ sudo apt-get -y install cuda
+sdr@sdr:~$ sudo reboot
+sdr@sdr:~$ nvidia-smi
+```
+- Add the PATH "/usr/local/cuda-12.0/bin" to file "/etc/environment".
+- In "/etc/ld.so.conf.d", create a new file (e.g. cloud_cuda.conf), and put the "/usr/local/cuda-12.0/lib64" in it for x64 system.
+- That is to add the path to the system permanently, and then reboot.
+```console
+sdr@sdr:~$ nvcc --version
+sdr@sdr:~$ cd sdr
+sdr@sdr:~$ git clone https://github.com/NVIDIA/cuda-samples.git
+sdr@sdr:~$ cd cuda-samples/Samples/1_Utilities/deviceQuery
+sdr@sdr:~$ make
+sdr@sdr:~$ cd Samples/1_Utilities/deviceQuery
+sdr@sdr:~$ ./deviceQuery
+```
+- If the make reports error, mostly it is because that the version is not correct, the cuda tool kit doesn't match the driver, or even other issues. I have met many.
 
 # CUDA Related Info
 

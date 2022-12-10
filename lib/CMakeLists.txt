@@ -11,7 +11,7 @@
 ########################################################################
 include(GrPlatform) #define LIB_SUFFIX
 find_package(CUDA)  # added by cloud
-find_library(CUDA_CUFFT_LIBRARY cufft PATHS)
+find_package(CUDAToolkit REQUIRED)
 
 ########################################################################
 # Setup CUDA added by cloud
@@ -57,15 +57,9 @@ target_link_libraries(gnuradio-ieee80211 PUBLIC
     gnuradio::gnuradio-fft
     UHD::UHD
     ${CUDA_CUDART_LIBRARY}      #added by cloud
-    ${CUDA_LIBRARIES}           #added by cloud
-    ${CUDA_RUNTIME_LIBRARY}
-    ${CUDA_CUFFT_LIBRARY}
-)
-target_link_libraries(gnuradio-cloud-cu PUBLIC
-    ${CUDA_CUDART_LIBRARY}      #added by cloud
-    ${CUDA_LIBRARIES}           #added by cloud
-    ${CUDA_RUNTIME_LIBRARY}
-    ${CUDA_CUFFT_LIBRARY}
+    CUDA::cuda_driver           #added by cloud
+    CUDA::cudart                #added by cloud
+    CUDA::cufft                 #added by cloud
 )
 target_link_libraries(gnuradio-ieee80211 PRIVATE gnuradio-cloud-cu)     #added by cloud
 target_include_directories(gnuradio-ieee80211

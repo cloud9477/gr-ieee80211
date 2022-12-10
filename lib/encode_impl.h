@@ -25,6 +25,8 @@
 #include <gnuradio/pdu.h>
 #include "cloud80211phy.h"
 
+using namespace boost::placeholders;
+
 #define ENCODE_S_IDLE 0
 #define ENCODE_S_SCEDULE 1
 #define ENCODE_S_ENCODE 2

@@ -56,7 +56,7 @@ sdr@sdr:~$ sudo ldconfig
 
 - Ubuntu 22.04 GNU Radio
 ```console
-sdr@sdr:~$ sudo apt-get install gnuradio-dev uhd-host cmake build-essential
+sdr@sdr:~$ sudo apt-get install gnuradio-dev uhd-host libuhd-dev cmake build-essential
 sdr@sdr:~$ sudo cp /lib/uhd/utils/uhd-usrp.rules /etc/udev/rules.d/
 sdr@sdr:~$ sudo udevadm control --reload-rules
 sdr@sdr:~$ sudo udevadm trigger

@@ -75,9 +75,9 @@ namespace gr {
 
       d_ts = std::chrono::high_resolution_clock::now();
       d_nProc = noutput_items;
-      if(d_sampCount > 29050000)
+      if(d_sampCount > 57864000)
       {
-        dout<<"sync procd samp: "<<d_sampCount<<", used time: "<<d_usUsed<<std::endl;
+        dout<<"sync procd samp: "<<d_sampCount<<", used time: "<<d_usUsed<<"us, avg "<<((double)d_sampCount / (double)d_usUsed)<<" samp/us"<<std::endl;
       }
 
       if(d_sSync == SYNC_S_IDLE)

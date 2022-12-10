@@ -38,8 +38,12 @@ Issue in TX
 - I usually put the GNU Radio modules in a folder named "sdr" in home folder, if you use a different path, please correct the paths in the codes. For example the python tools.
 - Ubuntu 20.04 GNU Radio CPU Version
 ```console
-sdr@sdr:~$ sudo apt-get install gnuradio-dev uhd-host cmake build-essential
-sdr@sdr:~$ sudo apt-get install liborc-0.4-dev libuhd-dev
+sdr@sdr:~$ sudo apt-get install gnuradio-dev uhd-host libuhd-dev cmake build-essential
+sdr@sdr:~$ sudo cp /lib/uhd/utils/uhd-usrp.rules /etc/udev/rules.d/
+sdr@sdr:~$ sudo udevadm control --reload-rules
+sdr@sdr:~$ sudo udevadm trigger
+sdr@sdr:~$ sudo uhd_images_downloader
+sdr@sdr:~$ sudo apt-get install liborc-0.4-dev
 sdr@sdr:~$ mkdir sdr
 sdr@sdr:~$ cd sdr
 sdr@sdr:~$ git clone https://github.com/cloud9477/gr-ieee80211.git
@@ -60,6 +64,7 @@ sdr@sdr:~$ sudo apt-get install gnuradio-dev uhd-host libuhd-dev cmake build-ess
 sdr@sdr:~$ sudo cp /lib/uhd/utils/uhd-usrp.rules /etc/udev/rules.d/
 sdr@sdr:~$ sudo udevadm control --reload-rules
 sdr@sdr:~$ sudo udevadm trigger
+sdr@sdr:~$ sudo uhd_images_downloader
 ```
 - Ubuntu 22.04 CUDA (2022-12-9), the toolkit will also install the driver. The tool kit version here is 12.0, it matches the driver version 525.
 - nvidia-smi to test the driver and nvcc to test the cuda tool kit.
@@ -115,3 +120,12 @@ GTX 1070
 - Memory Clock Rate (KHz): 4004000
 - Memory Bus Width (bits): 256
 - Peak Memory Bandwidth (GB/s): 256.256000
+
+# Some Test Info
+
+Intel 11700 200 packet siso
+---------------
+- trigger procd samp: 57864056, used time: 58103us, avg 995.888 samp/us
+- sync procd samp: 57864008, used time: 226609us, avg 255.347 samp/us
+- signal procd samp: 57864184, used time: 299814us, avg 193 samp/us
+- demod procd samp: 7215040, used time: 274275us, avg 26.3059 samp/us

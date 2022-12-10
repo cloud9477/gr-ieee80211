@@ -47,13 +47,10 @@ namespace gr {
       d_usUsed = 0;
 
       set_tag_propagation_policy(block::TPP_DONT);
-      std::cout<<"ieee80211 signal, error: input sync with no tag !!!!!!!!!!!!!!"<<std::endl;
-      signalMall();
     }
 
     signal_impl::~signal_impl()
     {
-      signalFree();
     }
 
     void
@@ -73,9 +70,9 @@ namespace gr {
       const gr_complex* inSig1 = static_cast<const gr_complex*>(input_items[1]);
       gr_complex* outSig1 = static_cast<gr_complex*>(output_items[0]);
       d_ts = std::chrono::high_resolution_clock::now();
-      if(d_sampCount > 29030000)
+      if(d_sampCount > 57864000)
       {
-        dout<<"signal procd samp: "<<d_sampCount<<", used time: "<<d_usUsed<<std::endl;
+        dout<<"signal procd samp: "<<d_sampCount<<", used time: "<<d_usUsed<<"us, avg "<<((double)d_sampCount / (double)d_usUsed)<<" samp/us"<<std::endl;
       }
       // input and output not sync
       d_nProc = std::min(ninput_items[0], ninput_items[1]);
@@ -120,45 +117,44 @@ namespace gr {
       {
         if(d_nProc > 240)
         {
-          // float tmpRadStep;
-          // for(int i=0;i<240;i++)
-          // {
-          //   tmpRadStep = (float)i * d_cfoRad;
-          //   d_sigAfterCfoComp[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));
-          // }
-          // fftDemod(&d_sigAfterCfoComp[8], d_fftLtfOut1);
-          // fftDemod(&d_sigAfterCfoComp[72], d_fftLtfOut2);
-          // fftDemod(&d_sigAfterCfoComp[152], d_fftSigOut);
+          float tmpRadStep;
+          for(int i=0;i<240;i++)
+          {
+            tmpRadStep = (float)i * d_cfoRad;
+            d_sigAfterCfoComp[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));
+          }
+          fftDemod(&d_sigAfterCfoComp[8], d_fftLtfOut1);
+          fftDemod(&d_sigAfterCfoComp[72], d_fftLtfOut2);
+          fftDemod(&d_sigAfterCfoComp[152], d_fftSigOut);
 
-          // for(int i=0;i<64;i++)
-          // {
-          //   if(i==0 || (i>=27 && i<=37))
-          //   {
-          //     d_H[i] = gr_complex(0.0f, 0.0f);
-          //   }
-          //   else
-          //   {
-          //     d_H[i] = (d_fftLtfOut1[i] + d_fftLtfOut2[i]) / LTF_L_26_F_FLOAT[i] / 2.0f;
-          //     d_sig[i] = d_fftSigOut[i] / d_H[i];
-          //   }
-          // }
-          // gr_complex tmpPilotSum = std::conj(d_sig[7] - d_sig[21] + d_sig[43] + d_sig[57]);
-          // float tmpPilotSumAbs = std::abs(tmpPilotSum);
-          // int j=24;
-          // for(int i=0;i<64;i++)
-          // {
-          //   if(i==0 || (i>=27 && i<=37) || i==7 || i==21 || i==43 || i==57)
-          //   {
-          //   }
-          //   else
-          //   {
-          //     d_sig[i] = d_sig[i] * tmpPilotSum / tmpPilotSumAbs;
-          //     d_sigLegacyIntedLlr[j] = d_sig[i].real();
-          //     j++;
-          //     if(j >= 48){j = 0;}
-          //   }
-          // }
-          cuSignalChannel(0, d_cfoRad, (cuFloatComplex*)inSig1, (cuFloatComplex*)d_H, d_sigLegacyIntedLlr);
+          for(int i=0;i<64;i++)
+          {
+            if(i==0 || (i>=27 && i<=37))
+            {
+              d_H[i] = gr_complex(0.0f, 0.0f);
+            }
+            else
+            {
+              d_H[i] = (d_fftLtfOut1[i] + d_fftLtfOut2[i]) / LTF_L_26_F_FLOAT[i] / 2.0f;
+              d_sig[i] = d_fftSigOut[i] / d_H[i];
+            }
+          }
+          gr_complex tmpPilotSum = std::conj(d_sig[7] - d_sig[21] + d_sig[43] + d_sig[57]);
+          float tmpPilotSumAbs = std::abs(tmpPilotSum);
+          int j=24;
+          for(int i=0;i<64;i++)
+          {
+            if(i==0 || (i>=27 && i<=37) || i==7 || i==21 || i==43 || i==57)
+            {
+            }
+            else
+            {
+              d_sig[i] = d_sig[i] * tmpPilotSum / tmpPilotSumAbs;
+              d_sigLegacyIntedLlr[j] = d_sig[i].real();
+              j++;
+              if(j >= 48){j = 0;}
+            }
+          }
           /* soft ver */
           procDeintLegacyBpsk(d_sigLegacyIntedLlr, d_sigLegacyCodedLlr);
           SV_Decode_Sig(d_sigLegacyCodedLlr, d_sigLegacyBits, 24);
@@ -217,119 +213,38 @@ namespace gr {
           return 0;
         }
       }
-      // else if(d_sSignal == S_COPY)
-      // {
-      //   float tmpRadStep;
-      //   if(d_nGen < (d_nSample - d_nSampleCopied))
-      //   {
-      //     std::cout<<"proc number: "<<d_nGen<<std::endl;
-      //     for(int i=0;i<d_nGen;i++)
-      //     {
-      //       tmpRadStep = (float)d_nSampleCopied * d_cfoRad;
-      //       outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
-      //       d_nSampleCopied++;
-      //     }
-      //     // cuSignalCfoCompen(d_nGen, d_nSampleCopied, d_cfoRad, (cuFloatComplex*)inSig1, (cuFloatComplex*)outSig1);
-      //     // d_nSampleCopied += d_nGen;
-
-      //     consume_each(d_nGen);
-      //     d_sampCount += d_nGen;
-      //     d_te = std::chrono::high_resolution_clock::now();
-      //     d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
-      //     return d_nGen;
-      //   }
-      //   else
-      //   {
-      //     int tmpNumGen = d_nSample - d_nSampleCopied;
-      //     std::cout<<"proc number 2: "<<tmpNumGen<<std::endl;
-      //     for(int i=0;i<tmpNumGen;i++)
-      //     {
-      //       tmpRadStep = (float)d_nSampleCopied * d_cfoRad;
-      //       outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
-      //       d_nSampleCopied++;
-      //     }
-      //     // cuSignalCfoCompen(tmpNumGen, d_nSampleCopied, d_cfoRad, (cuFloatComplex*)inSig1, (cuFloatComplex*)outSig1);
-      //     // d_nSampleCopied += tmpNumGen;
-
-      //     d_sSignal = S_PAD;
-      //     consume_each(tmpNumGen);
-      //     d_sampCount += tmpNumGen;
-      //     d_te = std::chrono::high_resolution_clock::now();
-      //     d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
-      //     return tmpNumGen;
-      //   }
-      // }
       else if(d_sSignal == S_COPY)
       {
         float tmpRadStep;
-        if((d_nSample - d_nSampleCopied) >= 2048)
+        if(d_nGen < (d_nSample - d_nSampleCopied))
         {
-          if(d_nGen > 2048)
+          for(int i=0;i<d_nGen;i++)
           {
-            if(d_nGen < (d_nSample - d_nSampleCopied))
-            {
-              cuSignalCfoCompen(d_nGen, d_nSampleCopied, d_cfoRad, (cuFloatComplex*)inSig1, (cuFloatComplex*)outSig1);
-              d_nSampleCopied += d_nGen;
-
-              consume_each(d_nGen);
-              d_sampCount += d_nGen;
-              d_te = std::chrono::high_resolution_clock::now();
-              d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
-              return d_nGen;
-            }
-            else
-            {
-              int tmpNumGen = d_nSample - d_nSampleCopied;
-              cuSignalCfoCompen(tmpNumGen, d_nSampleCopied, d_cfoRad, (cuFloatComplex*)inSig1, (cuFloatComplex*)outSig1);
-              d_nSampleCopied += tmpNumGen;
-              d_sSignal = S_PAD;
-              consume_each(tmpNumGen);
-              d_sampCount += tmpNumGen;
-              d_te = std::chrono::high_resolution_clock::now();
-              d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
-              return tmpNumGen;
-            }
+            tmpRadStep = (float)d_nSampleCopied * d_cfoRad;
+            outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
+            d_nSampleCopied++;
           }
-          else
-          {
-            consume_each(0);
-            d_te = std::chrono::high_resolution_clock::now();
-            d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
-            return 0;
-          }
+          consume_each(d_nGen);
+          d_sampCount += d_nGen;
+          d_te = std::chrono::high_resolution_clock::now();
+          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
+          return d_nGen;
         }
         else
         {
-          if(d_nGen < (d_nSample - d_nSampleCopied))
+          int tmpNumGen = d_nSample - d_nSampleCopied;
+          for(int i=0;i<tmpNumGen;i++)
           {
-            for(int i=0;i<d_nGen;i++)
-            {
-              tmpRadStep = (float)d_nSampleCopied * d_cfoRad;
-              outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
-              d_nSampleCopied++;
-            }
-            consume_each(d_nGen);
-            d_sampCount += d_nGen;
-            d_te = std::chrono::high_resolution_clock::now();
-            d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
-            return d_nGen;
+            tmpRadStep = (float)d_nSampleCopied * d_cfoRad;
+            outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
+            d_nSampleCopied++;
           }
-          else
-          {
-            int tmpNumGen = d_nSample - d_nSampleCopied;
-            for(int i=0;i<tmpNumGen;i++)
-            {
-              tmpRadStep = (float)d_nSampleCopied * d_cfoRad;
-              outSig1[i] = inSig1[i] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
-              d_nSampleCopied++;
-            }
-            d_sSignal = S_PAD;
-            consume_each(tmpNumGen);
-            d_sampCount += tmpNumGen;
-            d_te = std::chrono::high_resolution_clock::now();
-            d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
-            return tmpNumGen;
-          }
+          d_sSignal = S_PAD;
+          consume_each(tmpNumGen);
+          d_sampCount += tmpNumGen;
+          d_te = std::chrono::high_resolution_clock::now();
+          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
+          return tmpNumGen;
         }
       }
       else if(d_sSignal == S_PAD)

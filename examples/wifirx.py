@@ -6,7 +6,7 @@
 #
 # GNU Radio Python Flow Graph
 # Title: Not titled yet
-# GNU Radio version: 3.10.4.0
+# GNU Radio version: 3.10.1.1
 
 import os
 import sys
@@ -14,8 +14,9 @@ sys.path.append(os.environ.get('GRC_HIER_PATH', os.path.expanduser('~/.grc_gnura
 
 from gnuradio import blocks
 import pmt
-from gnuradio import gr
+from gnuradio import channels
 from gnuradio.filter import firdes
+from gnuradio import gr
 from gnuradio.fft import window
 import signal
 from argparse import ArgumentParser
@@ -50,8 +51,15 @@ class wifirx(gr.top_block):
         self.ieee80211_sync_0 = ieee80211.sync()
         self.ieee80211_signal_0 = ieee80211.signal()
         self.ieee80211_demod_0 = ieee80211.demod(0, 2)
-        self.ieee80211_decode_0 = ieee80211.decode(1)
-        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211GenMultipleSiso_1x1_0.bin', False, 0, 0)
+        self.ieee80211_decode_0 = ieee80211.decode(0)
+        self.channels_channel_model_0 = channels.channel_model(
+            noise_voltage=0.0,
+            frequency_offset=0.01055,
+            epsilon=1.0,
+            taps=[1.0 + 1.0j],
+            noise_seed=0,
+            block_tags=False)
+        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211GenMultipleSiso_1x1_200.bin', False, 0, 0)
         self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
 
 
@@ -59,9 +67,10 @@ class wifirx(gr.top_block):
         # Connections
         ##################################################
         self.msg_connect((self.ieee80211_decode_0, 'out'), (self.network_socket_pdu_0, 'pdus'))
-        self.connect((self.blocks_file_source_0, 0), (self.ieee80211_signal_0, 1))
-        self.connect((self.blocks_file_source_0, 0), (self.ieee80211_sync_0, 2))
-        self.connect((self.blocks_file_source_0, 0), (self.presiso_0, 0))
+        self.connect((self.blocks_file_source_0, 0), (self.channels_channel_model_0, 0))
+        self.connect((self.channels_channel_model_0, 0), (self.ieee80211_signal_0, 1))
+        self.connect((self.channels_channel_model_0, 0), (self.ieee80211_sync_0, 2))
+        self.connect((self.channels_channel_model_0, 0), (self.presiso_0, 0))
         self.connect((self.ieee80211_demod_0, 0), (self.ieee80211_decode_0, 0))
         self.connect((self.ieee80211_signal_0, 0), (self.ieee80211_demod_0, 0))
         self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_signal_0, 0))

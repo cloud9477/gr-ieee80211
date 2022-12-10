@@ -26,7 +26,6 @@
 #include <volk/volk.h>
 #include <chrono>
 #include "cloud80211phy.h"
-#include "cloud80211phycu.cuh"
 
 #define S_TRIGGER 0
 #define S_DEMOD 1

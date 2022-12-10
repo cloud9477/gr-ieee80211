@@ -9,7 +9,7 @@ options:
     description: ''
     gen_cmake: 'On'
     gen_linking: dynamic
-    generate_options: no_gui
+    generate_options: qt_gui
     hier_block_src_path: '.:'
     id: wifirx2
     max_nouts: '0'
@@ -88,7 +88,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [0, 188.0]
+    coordinate: [8, 188.0]
     rotation: 0
     state: disabled
 - name: blocks_file_source_0_0
@@ -110,7 +110,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [0, 220.0]
+    coordinate: [8, 220.0]
     rotation: 0
     state: disabled
 - name: blocks_throttle_0
@@ -164,7 +164,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1040, 348.0]
+    coordinate: [904, 348.0]
     rotation: 0
     state: enabled
 - name: ieee80211_demod2_0
@@ -181,7 +181,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1168, 208.0]
+    coordinate: [1032, 208.0]
     rotation: 0
     state: true
 - name: ieee80211_signal2_0
@@ -196,7 +196,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [992, 192.0]
+    coordinate: [856, 192.0]
     rotation: 0
     state: true
 - name: ieee80211_sync_0
@@ -211,7 +211,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [848, 160.0]
+    coordinate: [728, 160.0]
     rotation: 0
     state: true
 - name: ieee80211_trigger_0
@@ -226,44 +226,27 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [656, 160.0]
+    coordinate: [568, 160.0]
     rotation: 0
     state: true
-- name: network_udp_sink_0
-  id: network_udp_sink
-  parameters:
-    addr: 127.0.0.1
-    affinity: ''
-    alias: ''
-    comment: ''
-    header: '0'
-    payloadsize: '1400'
-    port: '9527'
-    send_eof: 'False'
-    type: byte
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [1440, 316.0]
-    rotation: 0
-    state: enabled
-- name: pdu_pdu_to_tagged_stream_0
-  id: pdu_pdu_to_tagged_stream
+- name: network_socket_pdu_0
+  id: network_socket_pdu
   parameters:
     affinity: ''
     alias: ''
     comment: ''
+    host: 127.0.0.1
     maxoutbuf: '0'
     minoutbuf: '0'
-    tag: packet_len
-    type: byte
+    mtu: '65535'
+    port: '9527'
+    tcp_no_delay: 'False'
+    type: UDP_CLIENT
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1200, 348.0]
+    coordinate: [1056, 324.0]
     rotation: 0
     state: true
 - name: presiso_0
@@ -725,13 +708,12 @@ connections:
 - [blocks_throttle_0, '0', ieee80211_sync_0, '2']
 - [blocks_throttle_0, '0', presiso_0, '0']
 - [blocks_throttle_0_0, '0', ieee80211_signal2_0, '2']
-- [ieee80211_decode_0, out, pdu_pdu_to_tagged_stream_0, pdus]
+- [ieee80211_decode_0, out, network_socket_pdu_0, pdus]
 - [ieee80211_demod2_0, '0', ieee80211_decode_0, '0']
 - [ieee80211_signal2_0, '0', ieee80211_demod2_0, '0']
 - [ieee80211_signal2_0, '1', ieee80211_demod2_0, '1']
 - [ieee80211_sync_0, '0', ieee80211_signal2_0, '0']
 - [ieee80211_trigger_0, '0', ieee80211_sync_0, '0']
-- [pdu_pdu_to_tagged_stream_0, '0', network_udp_sink_0, '0']
 - [presiso_0, '0', ieee80211_trigger_0, '0']
 - [presiso_0, '1', ieee80211_sync_0, '1']
 - [uhd_usrp_source_0, '0', ieee80211_signal2_0, '1']
@@ -741,4 +723,3 @@ connections:
 
 metadata:
   file_format: 1
-  grc_version: 3.10.4.0

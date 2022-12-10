@@ -40,8 +40,11 @@ namespace gr {
       int d_fPlateauEnd;
       int d_countDown;
       float d_conjAc;
-      // for debug
-      uint64_t sampCount;
+      // performance
+      std::chrono::_V2::system_clock::time_point d_ts;
+      std::chrono::_V2::system_clock::time_point d_te;
+      uint64_t d_usUsed;
+      uint64_t d_sampCount;
 
      public:
       trigger_impl();

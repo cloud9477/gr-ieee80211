@@ -43,7 +43,8 @@ namespace gr {
       d_fPlateauEnd = 0;
       d_conjAc = 0.0f;
 
-      sampCount = 0;
+      d_sampCount = 0;
+      d_usUsed = 0;
     }
 
     trigger_impl::~trigger_impl()
@@ -63,6 +64,12 @@ namespace gr {
     {
       const float* inAc = static_cast<const float*>(input_items[0]);
       uint8_t* outTrigger = static_cast<uint8_t*>(output_items[0]);
+
+      d_ts = std::chrono::high_resolution_clock::now();
+      if(d_sampCount > 57864000)
+      {
+        std::cout<<"trigger procd samp: "<<d_sampCount<<", used time: "<<d_usUsed<<"us, avg "<<((double)d_sampCount / (double)d_usUsed)<<" samp/us"<<std::endl;
+      }
 
       d_nProc = noutput_items;
       for(int i=0;i<d_nProc;i++)
@@ -103,6 +110,9 @@ namespace gr {
       }
 
       consume_each (d_nProc);
+      d_sampCount += d_nProc;
+      d_te = std::chrono::high_resolution_clock::now();
+      d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
       return d_nProc;
     }
 

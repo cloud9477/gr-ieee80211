@@ -19,5 +19,6 @@ install(FILES
     decode.h
     encode.h
     signal2.h
-    demod2.h DESTINATION include/gnuradio/ieee80211
+    demod2.h
+    preproc.h DESTINATION include/gnuradio/ieee80211
 )

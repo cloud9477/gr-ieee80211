@@ -43,6 +43,7 @@ list(APPEND ieee80211_sources
     cloud80211phy.cc
     signal2_impl.cc
     demod2_impl.cc
+    preproc_impl.cc
 )
 
 set(ieee80211_sources "${ieee80211_sources}" PARENT_SCOPE)

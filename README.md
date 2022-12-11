@@ -129,3 +129,4 @@ Intel 11700 200 packet siso
 - sync procd samp: 57864008, used time: 226609us, avg 255.347 samp/us
 - signal procd samp: 57864184, used time: 299814us, avg 193 samp/us
 - demod procd samp: 7215040, used time: 274275us, avg 26.3059 samp/us
+- decode procd llr: 6693152, used time: 6288302us, avg 1.06438 llr/us

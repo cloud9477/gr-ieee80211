@@ -26,9 +26,16 @@
 #include <cuComplex.h>
 #include <cufft.h>
 
+#define PREPROC_MIN 1024
+#define PREPROC_MAX 8192
+
 void signalMall();
 void signalFree();
 void cuSignalCfoCompen(int n, int s, float radStep, const cuFloatComplex *x, cuFloatComplex *y);
 void cuSignalChannel(int s, float radStep, const cuFloatComplex *sig, cuFloatComplex *h, float* llr);
+
+void preprocMall();
+void preprocFree();
+void cuPreProc(int n, const cuFloatComplex *sig, float* ac, cuFloatComplex* conj);
 
 #endif /* INCLUDED_IEEE80211_SIGNAL_IMPL_H */

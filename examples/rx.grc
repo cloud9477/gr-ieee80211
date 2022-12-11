@@ -69,6 +69,62 @@ blocks:
     coordinate: [184, 12]
     rotation: 0
     state: enabled
+- name: analog_fastnoise_source_x_0
+  id: analog_fastnoise_source_x
+  parameters:
+    affinity: ''
+    alias: ''
+    amp: '0.01'
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    noise_type: analog.GR_GAUSSIAN
+    samples: '8192'
+    seed: '6543'
+    type: complex
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [312, 148.0]
+    rotation: 0
+    state: true
+- name: blocks_add_xx_0
+  id: blocks_add_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_inputs: '2'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [672, 224.0]
+    rotation: 0
+    state: true
+- name: blocks_file_sink_0
+  id: blocks_file_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    append: 'False'
+    comment: ''
+    file: presiso.bin
+    type: complex
+    unbuffered: 'False'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [840, 68.0]
+    rotation: 0
+    state: true
 - name: blocks_file_source_0
   id: blocks_file_source
   parameters:
@@ -91,34 +147,13 @@ blocks:
     coordinate: [88, 164.0]
     rotation: 0
     state: enabled
-- name: channels_channel_model_0
-  id: channels_channel_model
-  parameters:
-    affinity: ''
-    alias: ''
-    block_tags: 'False'
-    comment: ''
-    epsilon: '1.0'
-    freq_offset: '0.01055'
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    noise_voltage: '0.0'
-    seed: '0'
-    taps: 1.0 + 1.0j
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [336, 156.0]
-    rotation: 0
-    state: true
 - name: ieee80211_decode_0
   id: ieee80211_decode
   parameters:
     affinity: ''
     alias: ''
     comment: ''
-    inpara: '0'
+    inpara: '1'
     maxoutbuf: '0'
     minoutbuf: '0'
   states:
@@ -702,8 +737,10 @@ blocks:
     state: true
 
 connections:
-- [blocks_file_source_0, '0', channels_channel_model_0, '0']
-- [channels_channel_model_0, '0', virtual_sink_0, '0']
+- [analog_fastnoise_source_x_0, '0', blocks_add_xx_0, '1']
+- [blocks_add_xx_0, '0', blocks_file_sink_0, '0']
+- [blocks_add_xx_0, '0', virtual_sink_0, '0']
+- [blocks_file_source_0, '0', blocks_add_xx_0, '0']
 - [ieee80211_decode_0, out, network_socket_pdu_0, pdus]
 - [ieee80211_demod_0, '0', ieee80211_decode_0, '0']
 - [ieee80211_signal_0, '0', ieee80211_demod_0, '0']

@@ -100,6 +100,11 @@ namespace gr {
       uint64_t d_vhtMcsCount[10];
       uint64_t d_htMcsCount[8];
       int d_inParam;
+      // performance
+      std::chrono::_V2::system_clock::time_point d_ts;
+      std::chrono::_V2::system_clock::time_point d_te;
+      uint64_t d_usUsed;
+      uint64_t d_sampCount;
 
 
     public:

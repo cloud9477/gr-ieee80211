@@ -70,7 +70,7 @@ blocks:
   parameters:
     affinity: ''
     alias: ''
-    comment: ''
+    comment: The first 16 samples are 0
     delay: '16'
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -230,4 +230,3 @@ connections:
 
 metadata:
   file_format: 1
-  grc_version: 3.10.4.0

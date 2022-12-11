@@ -1,0 +1,22 @@
+id: ieee80211_preproc
+label: preproc
+category: '[ieee80211]'
+
+templates:
+  imports: from gnuradio import ieee80211
+  make: ieee80211.preproc()
+
+inputs:
+- label: sig
+  domain: stream
+  dtype: complex
+
+outputs:
+- label: preac
+  domain: stream
+  dtype: float
+- label: preconj
+  domain: stream
+  dtype: complex
+
+file_format: 1

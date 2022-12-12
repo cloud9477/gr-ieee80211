@@ -59,6 +59,7 @@ sdr@sdr:~$ sudo ldconfig
 
 
 - Ubuntu 22.04 GNU Radio
+- When install the OS, I didn't click the "Install third party drivers ...".
 ```console
 sdr@sdr:~$ sudo apt-get install gnuradio-dev uhd-host libuhd-dev cmake build-essential
 sdr@sdr:~$ sudo cp /lib/uhd/utils/uhd-usrp.rules /etc/udev/rules.d/
@@ -82,6 +83,7 @@ sdr@sdr:~$ nvidia-smi
 - Add the PATH "/usr/local/cuda-12.0/bin" to file "/etc/environment".
 - In "/etc/ld.so.conf.d", create a new file (e.g. cloud_cuda.conf), and put the "/usr/local/cuda-12.0/lib64" in it for x64 system.
 - That is to add the path to the system permanently, and then reboot.
+- The following part could be used to test the driver and CUDA:
 ```console
 sdr@sdr:~$ nvcc --version
 sdr@sdr:~$ cd sdr
@@ -92,6 +94,18 @@ sdr@sdr:~$ cd Samples/1_Utilities/deviceQuery
 sdr@sdr:~$ ./deviceQuery
 ```
 - If the make reports error, mostly it is because that the version is not correct, the cuda tool kit doesn't match the driver, or even other issues. I have met many.
+- And finally install the gr-ieee80211 module:
+```console
+sdr@sdr:~$ cd sdr
+sdr@sdr:~$ git clone https://github.com/cloud9477/gr-ieee80211.git
+sdr@sdr:~$ cd gr-ieee80211/
+sdr@sdr:~$ mkdir build
+sdr@sdr:~$ cd build
+sdr@sdr:~$ cmake ../
+sdr@sdr:~$ make
+sdr@sdr:~$ sudo make install
+sdr@sdr:~$ sudo ldconfig
+```
 
 # CUDA Related Info
 

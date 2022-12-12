@@ -69,62 +69,25 @@ blocks:
     coordinate: [184, 12]
     rotation: 0
     state: enabled
-- name: analog_fastnoise_source_x_0
-  id: analog_fastnoise_source_x
+- name: blocks_delay_0
+  id: blocks_delay
   parameters:
     affinity: ''
     alias: ''
-    amp: '0.01'
-    comment: ''
+    comment: The first 16 samples are 0
+    delay: '63'
     maxoutbuf: '0'
     minoutbuf: '0'
-    noise_type: analog.GR_GAUSSIAN
-    samples: '8192'
-    seed: '6543'
-    type: complex
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [312, 148.0]
-    rotation: 0
-    state: true
-- name: blocks_add_xx_0
-  id: blocks_add_xx
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    num_inputs: '2'
+    num_ports: '1'
     type: complex
     vlen: '1'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [672, 224.0]
+    coordinate: [168, 528.0]
     rotation: 0
-    state: true
-- name: blocks_file_sink_0
-  id: blocks_file_sink
-  parameters:
-    affinity: ''
-    alias: ''
-    append: 'False'
-    comment: ''
-    file: presiso.bin
-    type: complex
-    unbuffered: 'False'
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [840, 68.0]
-    rotation: 0
-    state: true
+    state: enabled
 - name: blocks_file_source_0
   id: blocks_file_source
   parameters:
@@ -144,7 +107,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [88, 164.0]
+    coordinate: [120, 164.0]
     rotation: 0
     state: enabled
 - name: ieee80211_decode_0
@@ -153,7 +116,7 @@ blocks:
     affinity: ''
     alias: ''
     comment: ''
-    inpara: '1'
+    inpara: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
   states:
@@ -180,6 +143,21 @@ blocks:
     coordinate: [880, 356.0]
     rotation: 0
     state: enabled
+- name: ieee80211_preproc_0
+  id: ieee80211_preproc
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [296, 528.0]
+    rotation: 0
+    state: enabled
 - name: ieee80211_signal_0
   id: ieee80211_signal
   parameters:
@@ -194,7 +172,7 @@ blocks:
     bus_structure: null
     coordinate: [768, 352.0]
     rotation: 0
-    state: true
+    state: enabled
 - name: ieee80211_sync_0
   id: ieee80211_sync
   parameters:
@@ -209,7 +187,7 @@ blocks:
     bus_structure: null
     coordinate: [640, 320.0]
     rotation: 0
-    state: true
+    state: enabled
 - name: ieee80211_trigger_0
   id: ieee80211_trigger
   parameters:
@@ -257,7 +235,7 @@ blocks:
     bus_structure: null
     coordinate: [1232, 340.0]
     rotation: 0
-    state: true
+    state: enabled
 - name: presiso_0
   id: presiso
   parameters:
@@ -270,9 +248,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [272, 320.0]
+    coordinate: [232, 320.0]
     rotation: 0
-    state: true
+    state: disabled
 - name: uhd_usrp_source_0
   id: uhd_usrp_source
   parameters:
@@ -737,18 +715,19 @@ blocks:
     state: true
 
 connections:
-- [analog_fastnoise_source_x_0, '0', blocks_add_xx_0, '1']
-- [blocks_add_xx_0, '0', blocks_file_sink_0, '0']
-- [blocks_add_xx_0, '0', virtual_sink_0, '0']
-- [blocks_file_source_0, '0', blocks_add_xx_0, '0']
+- [blocks_delay_0, '0', ieee80211_preproc_0, '0']
+- [blocks_file_source_0, '0', virtual_sink_0, '0']
 - [ieee80211_decode_0, out, network_socket_pdu_0, pdus]
 - [ieee80211_demod_0, '0', ieee80211_decode_0, '0']
+- [ieee80211_preproc_0, '0', ieee80211_trigger_0, '0']
+- [ieee80211_preproc_0, '1', ieee80211_sync_0, '1']
 - [ieee80211_signal_0, '0', ieee80211_demod_0, '0']
 - [ieee80211_sync_0, '0', ieee80211_signal_0, '0']
 - [ieee80211_trigger_0, '0', ieee80211_sync_0, '0']
 - [presiso_0, '0', ieee80211_trigger_0, '0']
 - [presiso_0, '1', ieee80211_sync_0, '1']
 - [uhd_usrp_source_0, '0', virtual_sink_0, '0']
+- [virtual_source_0, '0', blocks_delay_0, '0']
 - [virtual_source_0, '0', ieee80211_signal_0, '1']
 - [virtual_source_0, '0', ieee80211_sync_0, '2']
 - [virtual_source_0, '0', presiso_0, '0']

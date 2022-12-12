@@ -211,7 +211,6 @@ void cuPreProcConjAvgMag(int n, cuFloatComplex* inSigConj, cuFloatComplex* inSig
     {
       inSigConjAvg[i] = cuCaddf(inSigConjAvg[i], inSigConj[i+j]);
     }
-    inSigConjAvg[i] = cuCdivf(inSigConjAvg[i], make_cuFloatComplex(48.0f, 0.0f));
     inSigConjAvgMag[i] = cuCabsf(inSigConjAvg[i]);
   }
 }
@@ -220,37 +219,27 @@ __global__
 void cuPreProcMag2AvgOut(int n, float* inSigMag2, float* inSigMag2Avg, float* inSigConjAvgMag, float* out)
 {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
-  if(i < (n-80))
+  if(i < (n-64))
   {
-    inSigMag2Avg[i+16] = 0.0f;
+    inSigMag2Avg[i] = 0.0f;
     for(int j=0;j<64;j++)
     {
-      inSigMag2Avg[i+16] += inSigMag2[i+16+j];
+      inSigMag2Avg[i] += inSigMag2[i+j];
     }
-    inSigMag2Avg[i+16] = inSigMag2Avg[i+16] / 64.0f;
-    out[i] = inSigConjAvgMag[i] / inSigMag2Avg[i+16];
+    out[i] = inSigConjAvgMag[i] / inSigMag2Avg[i];
   }
 }
 
 void cuPreProc(int n, const cuFloatComplex *sig, float* ac, cuFloatComplex* conj)
 {
-  if(n > 80)
+  if(n > 64 && n < PREPROC_MAX)
   {
-    // for(int i=0;i<n-16;i++)
-    // {
-    //   std::cout<<cuCrealf(sig[i])<<" ";
-    // }
     cudaMemcpy(ppSig, sig, n*sizeof(cuFloatComplex), cudaMemcpyHostToDevice);
     cuPreProcConj<<<n/1024 + 1, 1024>>>(n, ppSig, ppSigConj);
-    // cudaMemcpy(ppTest, ppSigConj, n*sizeof(cuFloatComplex), cudaMemcpyDeviceToHost);
-    // for(int i=0;i<n-16;i++)
-    // {
-    //   std::cout<<cuCrealf(ppTest[i])<<" ";
-    // }
     cuPreProcMag2<<<n/1024 + 1, 1024>>>(n, ppSig, ppSigMag2);
     cuPreProcConjAvgMag<<<n/1024 + 1, 1024>>>(n, ppSigConj, ppSigConjAvg, ppSigConjAvgMag);
     cuPreProcMag2AvgOut<<<n/1024 + 1, 1024>>>(n, ppSigMag2, ppSigMag2Avg, ppSigConjAvgMag, ppOut);
-    cudaMemcpy(ac, ppOut, (n - 80)*sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(conj, ppSigConjAvg, (n - 80)*sizeof(cuFloatComplex), cudaMemcpyDeviceToHost);
+    cudaMemcpy(ac, ppOut, (n - 64)*sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(conj, ppSigConjAvg, (n - 64)*sizeof(cuFloatComplex), cudaMemcpyDeviceToHost);
   }
 }

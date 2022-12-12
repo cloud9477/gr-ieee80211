@@ -66,7 +66,7 @@ namespace gr {
       uint8_t* outTrigger = static_cast<uint8_t*>(output_items[0]);
 
       d_ts = std::chrono::high_resolution_clock::now();
-      if(d_sampCount > 57864000)
+      if(d_sampCount > 57860000)
       {
         std::cout<<"trigger procd samp: "<<d_sampCount<<", used time: "<<d_usUsed<<"us, avg "<<((double)d_sampCount / (double)d_usUsed)<<" samp/us"<<std::endl;
       }

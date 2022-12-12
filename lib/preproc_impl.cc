@@ -69,12 +69,11 @@ namespace gr {
 
       int nGen = std::min(noutput_items, std::min(ninput_items[0], ninput_items[1]));
 
-      if(nGen > 80)
+      if(nGen > 64 && nGen < PREPROC_MAX)
       {
-        // std::cout<<"ieee80211 cuda preproc nGen: "<<nGen<<std::endl;
         cuPreProc(nGen, (const cuFloatComplex*)inSig, outAc, (cuFloatComplex*)outConj);
-        consume_each(nGen - 80);
-        return (nGen - 80);
+        consume_each(nGen - 64);
+        return (nGen - 64);
       }
       
       consume_each (0);

@@ -1,7 +1,7 @@
 /*
  *
  *     GNU Radio IEEE 802.11a/g/n/ac 2x2
- *     Demodulation and decoding of 802.11a/g/n/ac 1x1 and 2x2 formats
+ *     Demodulation and decoding of 802.11a/g/n/ac 1x1 and 2x2 formats cuda ver
  *     Copyright (C) Dec 1, 2022  Zelin Yun
  *
  *     This program is free software: you can redistribute it and/or modify
@@ -26,6 +26,18 @@
 #include "cloud80211phy.h"
 #include "cloud80211phycu.cuh"
 
+#define dout d_debug&&std::cout
+
+#define DEMOD_S_SYNC 0
+#define DEMOD_S_RDTAG 1
+#define DEMOD_S_FORMAT 2
+#define DEMOD_S_VHT 3
+#define DEMOD_S_HT 4
+#define DEMOD_S_LEGACY 5
+#define DEMOD_S_WRTAG 6
+#define DEMOD_S_DEMOD 7
+#define DEMOD_S_CLEAN 8
+
 namespace gr {
   namespace ieee80211 {
 
@@ -35,7 +47,7 @@ namespace gr {
       // block
       bool d_debug;
       int d_nProc;
-      int d_nGen;
+      int d_nUsed;
       int d_sDemod;
       // parameters
       int d_muPos;
@@ -68,6 +80,27 @@ namespace gr {
       c8p_sigHt d_sigHt;
       c8p_sigVhtA d_sigVhtA;
 
+      gr_complex d_mu2x1Chan[128];
+      std::vector<gr_complex> d_tagMu2x1Chan;
+      int d_nSymProcd;
+      int d_unCoded;
+      int d_nTrellis;
+      // pilot
+      int d_pilotP;
+      float d_pilot[4];
+      // non-legacy channel
+      gr_complex d_H_NL[64][C8P_MAX_N_LTF];
+      gr_complex d_H_NL_INV[64][C8P_MAX_N_LTF];
+      gr_complex d_qam[C8P_MAX_N_SS][52];
+      float d_llrInted[C8P_MAX_N_SS][C8P_MAX_N_CBPSS];     // interleaved LLR
+      float d_llrSpasd[C8P_MAX_N_SS][C8P_MAX_N_CBPSS];     // stream parsered LLR
+      // performance
+      int f_perfPrint;
+      std::chrono::_V2::system_clock::time_point d_ts;
+      std::chrono::_V2::system_clock::time_point d_te;
+      uint64_t d_usUsed;
+      uint64_t d_sampCount;
+
      public:
       demodcu_impl();
       ~demodcu_impl();
@@ -79,6 +112,9 @@ namespace gr {
            gr_vector_int &ninput_items,
            gr_vector_const_void_star &input_items,
            gr_vector_void_star &output_items);
+      void fftDemod(const gr_complex* sig, gr_complex* res);
+      void nonLegacyChanEstimate(const gr_complex* sig1);
+      void vhtSigBDemod(const gr_complex* sig1);
 
     };
 

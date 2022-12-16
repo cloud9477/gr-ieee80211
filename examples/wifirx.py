@@ -45,9 +45,8 @@ class wifirx(gr.top_block):
         self.ieee80211_sync_0 = ieee80211.sync()
         self.ieee80211_signal_0 = ieee80211.signal()
         self.ieee80211_preproc_0 = ieee80211.preproc()
-        self.ieee80211_demod_0 = ieee80211.demod(0, 2)
-        self.ieee80211_decode_0 = ieee80211.decode(0)
-        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211GenMultipleSiso_1x1_200.bin', False, 0, 0)
+        self.ieee80211_demodcu_0 = ieee80211.demodcu()
+        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211GenMultipleSiso_1x1_0.bin', False, 0, 0)
         self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
         self.blocks_delay_0 = blocks.delay(gr.sizeof_gr_complex*1, 63)
 
@@ -55,15 +54,14 @@ class wifirx(gr.top_block):
         ##################################################
         # Connections
         ##################################################
-        self.msg_connect((self.ieee80211_decode_0, 'out'), (self.network_socket_pdu_0, 'pdus'))
+        self.msg_connect((self.ieee80211_demodcu_0, 'out'), (self.network_socket_pdu_0, 'pdus'))
         self.connect((self.blocks_delay_0, 0), (self.ieee80211_preproc_0, 0))
         self.connect((self.blocks_file_source_0, 0), (self.blocks_delay_0, 0))
         self.connect((self.blocks_file_source_0, 0), (self.ieee80211_signal_0, 1))
         self.connect((self.blocks_file_source_0, 0), (self.ieee80211_sync_0, 2))
-        self.connect((self.ieee80211_demod_0, 0), (self.ieee80211_decode_0, 0))
         self.connect((self.ieee80211_preproc_0, 1), (self.ieee80211_sync_0, 1))
         self.connect((self.ieee80211_preproc_0, 0), (self.ieee80211_trigger_0, 0))
-        self.connect((self.ieee80211_signal_0, 0), (self.ieee80211_demod_0, 0))
+        self.connect((self.ieee80211_signal_0, 0), (self.ieee80211_demodcu_0, 0))
         self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_signal_0, 0))
         self.connect((self.ieee80211_trigger_0, 0), (self.ieee80211_sync_0, 0))
 

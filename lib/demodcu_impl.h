@@ -33,8 +33,6 @@
 #define DEMOD_S_FORMAT 2
 #define DEMOD_S_VHT 3
 #define DEMOD_S_HT 4
-#define DEMOD_S_LEGACY 5
-#define DEMOD_S_WRTAG 6
 #define DEMOD_S_DEMOD 7
 #define DEMOD_S_CLEAN 8
 
@@ -62,9 +60,9 @@ namespace gr {
       // check format
       gr_complex d_sig1[64];
       gr_complex d_sig2[64];
-      float d_sigHtIntedLlr[96];
+      float d_sigHtIntedLlr[97];
       float d_sigHtCodedLlr[96];
-      float d_sigVhtAIntedLlr[96];
+      float d_sigVhtAIntedLlr[97];
       float d_sigVhtACodedLlr[96];
       float d_sigVhtB20IntedLlr[52];
       float d_sigVhtB20CodedLlr[52];
@@ -79,27 +77,11 @@ namespace gr {
       c8p_mod d_m;
       c8p_sigHt d_sigHt;
       c8p_sigVhtA d_sigVhtA;
-
+      gr_complex d_H_NL[64];
       gr_complex d_mu2x1Chan[128];
-      std::vector<gr_complex> d_tagMu2x1Chan;
-      int d_nSymProcd;
-      int d_unCoded;
+      int d_nSampTotoal;
+      int d_nSampCopied;
       int d_nTrellis;
-      // pilot
-      int d_pilotP;
-      float d_pilot[4];
-      // non-legacy channel
-      gr_complex d_H_NL[64][C8P_MAX_N_LTF];
-      gr_complex d_H_NL_INV[64][C8P_MAX_N_LTF];
-      gr_complex d_qam[C8P_MAX_N_SS][52];
-      float d_llrInted[C8P_MAX_N_SS][C8P_MAX_N_CBPSS];     // interleaved LLR
-      float d_llrSpasd[C8P_MAX_N_SS][C8P_MAX_N_CBPSS];     // stream parsered LLR
-      // performance
-      int f_perfPrint;
-      std::chrono::_V2::system_clock::time_point d_ts;
-      std::chrono::_V2::system_clock::time_point d_te;
-      uint64_t d_usUsed;
-      uint64_t d_sampCount;
 
      public:
       demodcu_impl();

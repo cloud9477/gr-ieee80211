@@ -137,6 +137,16 @@ extern const float LTF_L_26_F_FLOAT[64];
 extern const float LTF_NL_28_F_FLOAT[64];
 extern const float LTF_NL_28_F_FLOAT2[64];
 
+extern const int mapDeintLegacyBpsk[48];
+extern const int mapDeintLegacyQpsk[96];
+extern const int mapDeintLegacy16Qam[192];
+extern const int mapDeintLegacy64Qam[288];
+extern const int mapDeintNonlegacyBpsk[52];
+extern const int mapDeintNonlegacyQpsk[104];
+extern const int mapDeintNonlegacy16Qam[208];
+extern const int mapDeintNonlegacy64Qam[312];
+extern const int mapDeintNonlegacy256Qam[416];
+
 extern const int SV_PUNC_12[2];
 extern const int SV_PUNC_23[4];
 extern const int SV_PUNC_34[6];

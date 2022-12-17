@@ -40,7 +40,7 @@ namespace gr {
               d_ofdm_fft(64,1)
     {
       d_nProc = 0;
-      d_debug = false;
+      d_debug = true;
       d_sDemod = DEMOD_S_RDTAG;
       set_tag_propagation_policy(block::TPP_DONT);
 
@@ -68,13 +68,6 @@ namespace gr {
     {
       const gr_complex* inSig1 = static_cast<const gr_complex*>(input_items[0]);
       float* outLlrs = static_cast<float*>(output_items[0]);
-      d_ts = std::chrono::high_resolution_clock::now();
-      if(f_perfPrint && d_sampCount > 7215000)
-      {
-        std::cout<<"demod procd samp: "<<d_sampCount<<", used time: "<<d_usUsed<<"us, avg "<<((double)d_sampCount / (double)d_usUsed)<<" samp/us"<<std::endl;
-        f_perfPrint = 0;
-      }
-
       d_nProc = ninput_items[0];
       d_nGen = noutput_items;
 
@@ -97,8 +90,19 @@ namespace gr {
             std::vector<gr_complex> tmp_csi = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("csi"), pmt::PMT_NIL));
             std::copy(tmp_csi.begin(), tmp_csi.end(), d_H);
             dout<<"ieee80211 demod, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<std::endl;
+            if(tmpPktSeq == 1)
+            {
+              d_ts = std::chrono::high_resolution_clock::now();
+            }
+            else if(tmpPktSeq == 5000)
+            {
+              d_te = std::chrono::high_resolution_clock::now();
+              d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
+              std::cout<<"demod procd samp: "<<d_sampCount<<", used time: "<<d_usUsed<<"us, avg "<<((double)d_sampCount / (double)d_usUsed)<<" samp/us"<<std::endl;
+            }
             d_nSampConsumed = 0;
             d_nSigLSamp = d_nSigLSamp + 320;
+            d_sampCount += d_nSigLSamp;
             if(d_nSigLMcs > 0)
             {
               d_sDemod = DEMOD_S_LEGACY;    // go to legacy
@@ -109,8 +113,6 @@ namespace gr {
             }
           }
           consume_each(0);
-          d_te = std::chrono::high_resolution_clock::now();
-          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
           return 0;
         }
 
@@ -163,19 +165,16 @@ namespace gr {
             {
               // go to vht
               signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
-              dout<<"sig vht a bits"<<std::endl;
-              for(int i=0;i<48;i++)
-              {
-                dout<<(int)d_sigVhtABits[i]<<" ";
-              }
-              dout<<std::endl;
+              // dout<<"sig vht a bits"<<std::endl;
+              // for(int i=0;i<48;i++)
+              // {
+              //   dout<<(int)d_sigVhtABits[i]<<" ";
+              // }
+              // dout<<std::endl;
               dout<<"ieee80211 demod, vht a check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
               d_sDemod = DEMOD_S_VHT;
               d_nSampConsumed += 160;
               consume_each(160);
-              d_sampCount += 160;
-              d_te = std::chrono::high_resolution_clock::now();
-              d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
               return 0;
             }
             else
@@ -186,20 +185,17 @@ namespace gr {
               if(signalCheckHt(d_sigHtBits))
               {
                 // go to ht
-                dout<<"sig ht bits"<<std::endl;
-                for(int i=0;i<48;i++)
-                {
-                  dout<<(int)d_sigHtBits[i]<<" ";
-                }
-                dout<<std::endl;
+                // dout<<"sig ht bits"<<std::endl;
+                // for(int i=0;i<48;i++)
+                // {
+                //   dout<<(int)d_sigHtBits[i]<<" ";
+                // }
+                // dout<<std::endl;
                 signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
                 dout<<"ieee80211 demod, ht check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
                 d_sDemod = DEMOD_S_HT;
                 d_nSampConsumed += 160;
                 consume_each(160);
-                d_sampCount += 160;
-                d_te = std::chrono::high_resolution_clock::now();
-                d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
                 return 0;
               }
               else
@@ -207,15 +203,11 @@ namespace gr {
                 // go to legacy
                 d_sDemod = DEMOD_S_LEGACY;
                 consume_each(0);
-                d_te = std::chrono::high_resolution_clock::now();
-                d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
                 return 0;
               }
             }
           }
           consume_each(0);
-          d_te = std::chrono::high_resolution_clock::now();
-          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
           return 0;
         }
 
@@ -227,12 +219,12 @@ namespace gr {
             nonLegacyChanEstimate(&inSig1[80]);
             vhtSigBDemod(&inSig1[80 + d_m.nLTF*80]);
 
-            dout<<"sig b bits:";
-            for(int i=0;i<26;i++)
-            {
-              dout<<(int)d_sigVhtB20Bits[i]<<" ";
-            }
-            dout<<std::endl;
+            // dout<<"sig b bits:";
+            // for(int i=0;i<26;i++)
+            // {
+            //   dout<<(int)d_sigVhtB20Bits[i]<<" ";
+            // }
+            // dout<<std::endl;
 
             signalParserVhtB(d_sigVhtB20Bits, &d_m);
             int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
@@ -252,13 +244,8 @@ namespace gr {
             // STF + n LTF + sig b
             d_nSampConsumed += (80 + d_m.nLTF*80 + 80);
             consume_each(80 + d_m.nLTF*80 + 80);
-            d_sampCount += (80 + d_m.nLTF*80 + 80);
-            d_te = std::chrono::high_resolution_clock::now();
-            d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
             return 0;
           }
-          d_te = std::chrono::high_resolution_clock::now();
-          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
           consume_each(0);
           return 0;
         }
@@ -284,13 +271,8 @@ namespace gr {
             }
             d_nSampConsumed += (80 + d_m.nLTF*80);
             consume_each(80 + d_m.nLTF*80);
-            d_sampCount += (80 + d_m.nLTF*80);
-            d_te = std::chrono::high_resolution_clock::now();
-            d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
             return 0;
           }
-          d_te = std::chrono::high_resolution_clock::now();
-          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
           consume_each(0);
           return 0;
         }
@@ -305,15 +287,13 @@ namespace gr {
           d_pilotP = 1;
           dout<<"ieee80211 demod, legacy packet"<<std::endl;
           d_sDemod = DEMOD_S_WRTAG;
-          d_te = std::chrono::high_resolution_clock::now();
-          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
           consume_each(0);
           return 0;
         }
 
         case DEMOD_S_WRTAG:
         {
-          dout<<"ieee80211 demod, wr tag f:"<<d_m.format<<", ampdu:"<<d_m.ampdu<<", len:"<<d_m.len<<", mcs:"<<d_m.mcs<<", total:"<<d_m.nSym * d_m.nCBPS<<", tr:"<<d_nTrellis<<", nsym:"<<d_m.nSym<<", nSS:"<<d_m.nSS<<std::endl;
+          // dout<<"ieee80211 demod, wr tag f:"<<d_m.format<<", ampdu:"<<d_m.ampdu<<", len:"<<d_m.len<<", mcs:"<<d_m.mcs<<", total:"<<d_m.nSym * d_m.nCBPS<<", tr:"<<d_nTrellis<<", nsym:"<<d_m.nSym<<", nSS:"<<d_m.nSS<<std::endl;
           pmt::pmt_t dict = pmt::make_dict();
           dict = pmt::dict_add(dict, pmt::mp("format"), pmt::from_long(d_m.format));
           dict = pmt::dict_add(dict, pmt::mp("mcs"), pmt::from_long(d_m.mcs));
@@ -353,16 +333,12 @@ namespace gr {
           {
             // NDP
             d_sDemod = DEMOD_S_CLEAN;
-            d_te = std::chrono::high_resolution_clock::now();
-            d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
             consume_each(0);
             return 1024;
           }
 
           d_nSymProcd = 0;
           d_sDemod = DEMOD_S_DEMOD;
-          d_te = std::chrono::high_resolution_clock::now();
-          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
           consume_each(0);
           return 0;
         }
@@ -400,9 +376,6 @@ namespace gr {
             d_sDemod = DEMOD_S_CLEAN;
           }
           d_nSampConsumed += o1;
-          d_sampCount += (o1);
-          d_te = std::chrono::high_resolution_clock::now();
-          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
           consume_each (o1);
           return (o2);
         }
@@ -413,17 +386,11 @@ namespace gr {
           {
             consume_each(d_nSigLSamp - d_nSampConsumed);
             d_sDemod = DEMOD_S_RDTAG;
-            d_sampCount += (d_nSigLSamp - d_nSampConsumed);
-            d_te = std::chrono::high_resolution_clock::now();
-            d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
           }
           else
           {
             d_nSampConsumed += d_nProc;
             consume_each(d_nProc);
-            d_sampCount += d_nProc;
-            d_te = std::chrono::high_resolution_clock::now();
-            d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
           }
           return 0;
         }

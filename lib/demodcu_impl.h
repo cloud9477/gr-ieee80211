@@ -82,6 +82,20 @@ namespace gr {
       int d_nSampTotoal;
       int d_nSampCopied;
       int d_nTrellis;
+      // debug
+      gr_complex d_debugComp[1024];
+      float d_debugFloat[1024];
+      // performance
+      std::chrono::_V2::system_clock::time_point d_ts;
+      std::chrono::_V2::system_clock::time_point d_te;
+      std::chrono::_V2::system_clock::time_point d_tcu0;
+      std::chrono::_V2::system_clock::time_point d_tcu1;
+      std::chrono::_V2::system_clock::time_point d_tcu2;
+      std::chrono::_V2::system_clock::time_point d_tcu3;
+      uint64_t d_usUsedCu;
+      uint64_t d_usUsedCu2;
+      uint64_t d_usUsed;
+      uint64_t d_sampCount;
 
      public:
       demodcu_impl();

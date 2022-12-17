@@ -49,6 +49,13 @@ namespace gr {
       d_debug = true;
       d_sDemod = DEMOD_S_RDTAG;
       set_tag_propagation_policy(block::TPP_DONT);
+      cuDemodMall();
+      memset((uint8_t*) d_debugComp, 0, sizeof(gr_complex) * 1024);
+      memset((uint8_t*) d_debugFloat, 0, sizeof(float) * 1024);
+      d_sampCount = 0;
+      d_usUsed = 0;
+      d_usUsedCu = 0;
+      d_usUsedCu2 = 0;
     }
 
     /*
@@ -56,12 +63,20 @@ namespace gr {
      */
     demodcu_impl::~demodcu_impl()
     {
+      cuDemodFree();
     }
 
     void
     demodcu_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
     {
-      ninput_items_required[0] = noutput_items + 160;
+      if(d_sDemod == DEMOD_S_DEMOD)
+      {
+        ninput_items_required[0] = noutput_items + (d_nSampTotoal - d_nSampCopied);
+      }
+      else
+      {
+        ninput_items_required[0] = noutput_items + 160;
+      }
     }
 
     int
@@ -71,6 +86,7 @@ namespace gr {
                        gr_vector_void_star &output_items)
     {
       const gr_complex* inSig = static_cast<const gr_complex*>(input_items[0]);
+      
       d_nProc = ninput_items[0];
       d_nUsed = 0;
 
@@ -91,12 +107,24 @@ namespace gr {
           std::vector<gr_complex> tmp_csi = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("csi"), pmt::PMT_NIL));
           std::copy(tmp_csi.begin(), tmp_csi.end(), d_H);
           dout<<"ieee80211 demod, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<std::endl;
+          if(tmpPktSeq == 1)
+          {
+            d_ts = std::chrono::high_resolution_clock::now();
+          }
+          else if(tmpPktSeq == 5000)
+          {
+            d_te = std::chrono::high_resolution_clock::now();
+            d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
+            dout<<"demodcu procd samp: "<<d_sampCount<<", used time cu: "<<d_usUsedCu<<" cu2: "<<d_usUsedCu2<<", used time: "<<d_usUsed<<"us, avg "<<((double)d_sampCount / (double)d_usUsed)<<" samp/us"<<std::endl;
+          }
           d_nSampConsumed = 0;
           d_nSigLSamp = d_nSigLSamp + 320;
+          d_sampCount += d_nSigLSamp;
           d_nSampCopied = 0;
           if(d_nSigLMcs > 0)
           {
             signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
+            cuDemodChanSiso((cuFloatComplex*) d_H);
             d_nSampTotoal = d_m.nSymSamp * d_m.nSym;
             d_sDemod = DEMOD_S_DEMOD;
             dout<<"ieee80211 demod, legacy packet"<<std::endl;
@@ -109,28 +137,27 @@ namespace gr {
         else
         {
           consume_each(0);
+          d_te = std::chrono::high_resolution_clock::now();
+          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
           return 0;
         }
       }
 
-      if(d_sDemod ==  DEMOD_S_FORMAT)
+      if(d_sDemod ==  DEMOD_S_FORMAT && (d_nProc - d_nUsed) >= 160)
       {
-        if((d_nProc - d_nUsed) < 160)
-        {
-          consume_each(d_nUsed);
-          return 0;
-        }
         fftDemod(&inSig[d_nUsed + 8], d_fftLtfOut1);
         fftDemod(&inSig[d_nUsed + 8+80], d_fftLtfOut2);
         for(int i=0;i<64;i++)
         {
-          d_sig1[i] = d_fftLtfOut1[i] / d_H[i];
-          d_sig2[i] = d_fftLtfOut2[i] / d_H[i];
-          // dout<<d_sig1[i]<<" "<<d_sig2[i]<<std::endl;
-          d_sigHtIntedLlr[FFT_26_SHIFT_DEMAP[i]] = d_sig1[i].imag();
-          d_sigHtIntedLlr[FFT_26_SHIFT_DEMAP[i + 64]] = d_sig2[i].imag();
-          d_sigVhtAIntedLlr[FFT_26_SHIFT_DEMAP[i]] = d_sig1[i].real();
-          d_sigVhtAIntedLlr[FFT_26_SHIFT_DEMAP[i + 64]] = d_sig2[i].imag();
+          if( i < 27 || i > 37)
+          {
+            d_sig1[i] = d_fftLtfOut1[i] / d_H[i];
+            d_sig2[i] = d_fftLtfOut2[i] / d_H[i];
+            d_sigHtIntedLlr[FFT_26_SHIFT_DEMAP[i]] = d_sig1[i].imag();
+            d_sigHtIntedLlr[FFT_26_SHIFT_DEMAP[i + 64]] = d_sig2[i].imag();
+            d_sigVhtAIntedLlr[FFT_26_SHIFT_DEMAP[i]] = d_sig1[i].real();
+            d_sigVhtAIntedLlr[FFT_26_SHIFT_DEMAP[i + 64]] = d_sig2[i].imag();
+          }
         }
         //-------------- format check first check vht, then ht otherwise legacy
         procDeintLegacyBpsk(d_sigVhtAIntedLlr, d_sigVhtACodedLlr);
@@ -140,12 +167,6 @@ namespace gr {
         {
           // go to vht
           signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
-          // dout<<"sig vht a bits"<<std::endl;
-          // for(int i=0;i<48;i++)
-          // {
-          //   dout<<(int)d_sigVhtABits[i]<<" ";
-          // }
-          // dout<<std::endl;
           dout<<"ieee80211 demod, vht a check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
           d_sDemod = DEMOD_S_VHT;
           d_nSampConsumed += 160;
@@ -168,59 +189,50 @@ namespace gr {
           {
             // go to legacy
             signalParserL(d_nSigLMcs, d_nSigLLen, &d_m);
+            cuDemodChanSiso((cuFloatComplex*) d_H);
             d_nSampTotoal = d_m.nSymSamp * d_m.nSym;
             d_sDemod = DEMOD_S_DEMOD;
-            dout<<"ieee80211 demod, legacy packet"<<std::endl;
+            dout<<"ieee80211 demod, check format legacy packet"<<std::endl;
           }
         }
       }
 
-      if(d_sDemod == DEMOD_S_VHT)
+      if(d_sDemod == DEMOD_S_VHT && ((d_nProc - d_nUsed) >= (80 + d_m.nLTF*80 + 80)))
       {
-        if((d_nProc - d_nUsed) < (80 + d_m.nLTF*80 + 80)) // STF, LTF, sig b
+        // get channel and signal b
+        nonLegacyChanEstimate(&inSig[d_nUsed + 80]);
+        vhtSigBDemod(&inSig[d_nUsed + 80 + d_m.nLTF*80]);
+        signalParserVhtB(d_sigVhtB20Bits, &d_m);
+        int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
+        if((tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80))
         {
-          consume_each(d_nUsed);
-          return 0;
+          cuDemodChanSiso((cuFloatComplex*) d_H_NL);
+          d_nSampTotoal = d_m.nSymSamp * d_m.nSym;
+          d_sDemod = DEMOD_S_DEMOD;
+          d_nSampConsumed += (80 + d_m.nLTF*80 + 80);
+          d_nUsed += (80 + d_m.nLTF*80 + 80);
         }
         else
         {
-          // get channel and signal b
-          nonLegacyChanEstimate(&inSig[d_nUsed + 80]);
-          vhtSigBDemod(&inSig[d_nUsed + 80 + d_m.nLTF*80]);
-          signalParserVhtB(d_sigVhtB20Bits, &d_m);
-          int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
-          if((tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80))
-          {
-            d_nSampTotoal = d_m.nSymSamp * d_m.nSym;
-            d_sDemod = DEMOD_S_DEMOD;
-            d_nSampConsumed += (80 + d_m.nLTF*80 + 80);
-            d_nUsed += (80 + d_m.nLTF*80 + 80);
-          }
-          else
-          {
-            d_sDemod = DEMOD_S_CLEAN;
-          }
+          d_sDemod = DEMOD_S_CLEAN;
         }
       }
 
-      if(d_sDemod == DEMOD_S_HT)
+      if(d_sDemod == DEMOD_S_HT && ((d_nProc - d_nUsed) >= (80 + d_m.nLTF*80)))
       {
-        if((d_nProc - d_nUsed) < (80 + d_m.nLTF*80)) // STF, LTF, sig b
+        nonLegacyChanEstimate(&inSig[d_nUsed + 80]);
+        int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
+        if((tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80))
         {
-          consume_each(d_nUsed);
-          return 0;
+          cuDemodChanSiso((cuFloatComplex*) d_H_NL);
+          d_nSampTotoal = d_m.nSymSamp * d_m.nSym;
+          d_sDemod = DEMOD_S_DEMOD;
+          d_nSampConsumed += (80 + d_m.nLTF*80);
+          d_nUsed += (80 + d_m.nLTF*80);
         }
         else
         {
-          nonLegacyChanEstimate(&inSig[d_nUsed + 80]);
-          int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
-          if((tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80))
-          {
-            d_nSampTotoal = d_m.nSymSamp * d_m.nSym;
-            d_sDemod = DEMOD_S_DEMOD;
-            d_nSampConsumed += (80 + d_m.nLTF*80);
-            d_nUsed += (80 + d_m.nLTF*80);
-          }
+          d_sDemod = DEMOD_S_CLEAN;
         }
       }
 
@@ -230,16 +242,31 @@ namespace gr {
         if((d_nProc - d_nUsed) >= (d_nSampTotoal - d_nSampCopied))
         {
           // copy
+          d_tcu0 = std::chrono::high_resolution_clock::now();
+          cuDemodSigCopy(d_nSampCopied, (d_nSampTotoal - d_nSampCopied), (const cuFloatComplex*) &inSig[d_nUsed]);
+          d_tcu1 = std::chrono::high_resolution_clock::now();
+          d_usUsedCu += std::chrono::duration_cast<std::chrono::microseconds>(d_tcu1 - d_tcu0).count();
           d_nSampConsumed += (d_nSampTotoal - d_nSampCopied);
           d_nUsed += (d_nSampTotoal - d_nSampCopied);
           // then run cuda to demod and decode
-
+          d_tcu2 = std::chrono::high_resolution_clock::now();
+          cuDemodSiso(&d_m);
+          d_tcu3 = std::chrono::high_resolution_clock::now();
+          d_usUsedCu2 += std::chrono::duration_cast<std::chrono::microseconds>(d_tcu3 - d_tcu2).count();
+          // cuDemodDebug(128, (cuFloatComplex*) d_debugComp, 0, d_debugFloat);
+          // for(int i=0;i<128;i++){
+          //   dout<<i<<" "<<d_debugComp[i]<<std::endl;
+          // }
           // go to clean
           d_sDemod = DEMOD_S_CLEAN;
         }
         else
         {
           // copy
+          d_tcu0 = std::chrono::high_resolution_clock::now();
+          cuDemodSigCopy(d_nSampCopied, (d_nProc - d_nUsed), (const cuFloatComplex*) &inSig[d_nUsed]);
+          d_tcu1 = std::chrono::high_resolution_clock::now();
+          d_usUsedCu += std::chrono::duration_cast<std::chrono::microseconds>(d_tcu1 - d_tcu0).count();
           d_nSampCopied += (d_nProc - d_nUsed);
           d_nSampConsumed += (d_nProc - d_nUsed);
           d_nUsed = d_nProc;

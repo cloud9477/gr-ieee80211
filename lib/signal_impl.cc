@@ -37,7 +37,7 @@ namespace gr {
               gr::io_signature::make(1, 1, sizeof(gr_complex))),
               d_ofdm_fft(64,1)
     {
-      d_debug = true;
+      d_debug = false;
       d_nProc = 0;
       d_nSigPktSeq = 0;
       d_sSignal = S_TRIGGER;

@@ -20,130 +20,6 @@
 
 #include "cloud80211phycu.cuh"
 
-const int FFT_26_DEMAP[64] = {
-	48, 24, 25, 26, 27, 28, 29, 49, 30, 31, 32, 33, 34, 35, 36, 37, 
-	38, 39, 40, 41, 42, 50, 43, 44, 45, 46, 47, 51, 52, 53, 54, 55, 
-	56, 57, 58, 59, 60, 61, 0, 1, 2, 3, 4, 62, 5, 6, 7, 8, 
-	9, 10, 11, 12, 13, 14, 15, 16, 17, 63, 18, 19, 20, 21, 22, 23
-};
-
-const float LTF_L_26_F_FLOAT[64] = {
-    0.0f, 1.0f, -1.0f, -1.0f, 
-    1.0f, 1.0f, -1.0f, 1.0f, 
-    -1.0f, 1.0f, -1.0f, -1.0f, 
-    -1.0f, -1.0f, -1.0f, 1.0f, 
-    1.0f, -1.0f, -1.0f, 1.0f, 
-    -1.0f, 1.0f, -1.0f, 1.0f, 
-    1.0f, 1.0f, 1.0f, 0.0f, 
-    0.0f, 0.0f, 0.0f, 0.0f, 
-    0.0f, 0.0f, 0.0f, 0.0f, 
-    0.0f, 0.0f, 1.0f, 1.0f, 
-    -1.0f, -1.0f, 1.0f, 1.0f, 
-    -1.0f, 1.0f, -1.0f, 1.0f, 
-    1.0f, 1.0f, 1.0f, 1.0f, 
-    1.0f, -1.0f, -1.0f, 1.0f, 
-    1.0f, -1.0f, 1.0f, -1.0f, 
-    1.0f, 1.0f, 1.0f, 1.0f};
-
-cuFloatComplex* signalX;
-cuFloatComplex* signalY;
-cuFloatComplex* signalA;
-cuFloatComplex* signalB;
-cuFloatComplex* signalHSig;
-float* signalLLR;
-cufftHandle signalPlan;
-cuFloatComplex* signalLtf;
-int* signalLLRMap;
-
-void signalMall()
-{
-  cudaMalloc(&signalX, 8192*sizeof(cuFloatComplex));
-  cudaMalloc(&signalY, 8192*sizeof(cuFloatComplex));
-  cudaMalloc(&signalA, 240*sizeof(cuFloatComplex));
-  cudaMalloc(&signalB, 192*sizeof(cuFloatComplex));
-  cudaMalloc(&signalHSig, 128*sizeof(cuFloatComplex));
-  cudaMalloc(&signalLtf, 64*sizeof(cuFloatComplex));
-  cudaMalloc(&signalLLR, 64*sizeof(float));
-  cudaMalloc(&signalLLRMap, 64*sizeof(int));
-  cuFloatComplex signalLtfTmp[64];
-  for(int i=0;i<64;i++)
-  {
-    signalLtfTmp[i] = make_cuComplex(LTF_L_26_F_FLOAT[i]*2.0f, 0.0f);
-  }
-  cudaMemcpy(signalLtf, signalLtfTmp, 64*sizeof(cuFloatComplex), cudaMemcpyHostToDevice);
-  cudaMemcpy(signalLLRMap, FFT_26_DEMAP, 64*sizeof(int), cudaMemcpyHostToDevice);
-  cufftPlan1d(&signalPlan, 64, CUFFT_C2C, 3);
-}
-
-void signalFree()
-{
-  cudaFree(signalX);
-  cudaFree(signalY);
-  cudaFree(signalA);
-  cudaFree(signalB);
-  cudaFree(signalHSig);
-  cudaFree(signalLtf);
-  cudaFree(signalLLR);
-  cudaFree(signalLLRMap);
-  cufftDestroy(signalPlan);
-}
-
-__global__
-void cuSignalKernel(int n, int s, float radStep, cuFloatComplex *x, cuFloatComplex *y)
-{
-  int i = blockIdx.x * blockDim.x + threadIdx.x;
-  if(i < n)
-  {
-    y[i] = cuCmulf(x[i], make_cuFloatComplex(cosf( ((float)s+i) * radStep), sinf(((float)s+i) * radStep)));
-  }
-}
-
-void cuSignalCfoCompen(int n, int s, float radStep, const cuFloatComplex *x, cuFloatComplex *y)
-{
-  cudaMemcpy(signalX, x, n*sizeof(cuFloatComplex), cudaMemcpyHostToDevice);
-  // N+255 means requires at least 1 block, and 256 means 256 threads in each block
-  cuSignalKernel<<<(n+1024)/1024, 1024>>>(n, s, radStep, signalX, signalY);
-  cudaMemcpy(y, signalY, n*sizeof(cuFloatComplex), cudaMemcpyDeviceToHost);
-}
-
-__global__
-void cuSignalChannelCfo(int s, float radStep, cuFloatComplex *x, cuFloatComplex *y)
-{
-  int i = threadIdx.x;
-  if(i >= 8 && i < 72)
-  {
-    y[i-8] = cuCmulf(x[i], make_cuFloatComplex(cosf( ((float)s+i) * radStep), sinf(((float)s+i) * radStep)));
-  }
-  if(i >= 72 && i < 136)
-  {
-    y[i-8] = cuCmulf(x[i], make_cuFloatComplex(cosf( ((float)s+i) * radStep), sinf(((float)s+i) * radStep)));
-  }
-  if(i >= 152 && i < 216)
-  {
-    y[i-24] = cuCmulf(x[i], make_cuFloatComplex(cosf( ((float)s+i) * radStep), sinf(((float)s+i) * radStep)));
-  }
-}
-
-__global__
-void cuSignalChannel(cuFloatComplex* inSig, cuFloatComplex* hsig, cuFloatComplex* ltf, float*llr, int* demap)
-{
-  int i = threadIdx.x;
-  hsig[i] = cuCdivf( cuCaddf(inSig[i], inSig[i+64]), ltf[i]);
-  hsig[i + 64] = cuCdivf(inSig[i+128], hsig[i]);
-  llr[demap[i]] = cuCrealf(hsig[i + 64]);
-}
-
-void cuSignalChannel(int s, float radStep, const cuFloatComplex *sig, cuFloatComplex *h, float* llr)
-{
-  cudaMemcpy(signalA, sig, 240*sizeof(cuFloatComplex), cudaMemcpyHostToDevice);
-  cuSignalChannelCfo<<<1, 216>>>(s, radStep, signalA, signalB);
-  cufftExecC2C(signalPlan, signalB, signalB, CUFFT_FORWARD);
-  cuSignalChannel<<<1, 64>>>(signalB, signalHSig, signalLtf, signalLLR, signalLLRMap);
-  cudaMemcpy(h, signalHSig, 64*sizeof(cuFloatComplex), cudaMemcpyDeviceToHost);
-  cudaMemcpy(llr, signalLLR, 48*sizeof(float), cudaMemcpyDeviceToHost);
-}
-
-
 
 /*--------------------------------------------------------------------------------------------------------*/
 
@@ -154,8 +30,6 @@ float* ppSigConjAvgMag;
 float* ppSigMag2;
 float* ppSigMag2Avg;
 float* ppOut;
-
-cuFloatComplex ppTest[PREPROC_MAX];
 
 void preprocMall()
 {
@@ -242,4 +116,146 @@ void cuPreProc(int n, const cuFloatComplex *sig, float* ac, cuFloatComplex* conj
     cudaMemcpy(ac, ppOut, (n - 64)*sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(conj, ppSigConjAvg, (n - 64)*sizeof(cuFloatComplex), cudaMemcpyDeviceToHost);
   }
+}
+
+/*--------------------------------------------------------------------------------------------------------*/
+cuFloatComplex* demodChanSiso;
+cuFloatComplex* demodSig;
+cuFloatComplex* demodSigFft;
+cufftHandle demodPlan;
+cuFloatComplex* demodSigLlr;
+int* demodDemapBpskL;
+int* demodDemapQpskL;
+int* demodDemap16QamL;
+int* demodDemap64QamL;
+int* demodDemapBpskNL;
+int* demodDemapQpskNL;
+int* demodDemap16QamNL;
+int* demodDemap64QamNL;
+int* demodDemap256QamNL;
+
+__global__
+void cuDemodChopSamp(int n, cuFloatComplex* sig, cuFloatComplex* sigfft)
+{
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  int j = i / 80;       // symbol index
+  int offset = i % 80;  
+  if(i < n && offset >= 8 && offset < 72)
+  {
+    sigfft[j*64 + offset - 8] = sig[i];
+  }
+}
+
+__global__
+void cuDemodChanComp(int n, cuFloatComplex* sigfft, cuFloatComplex* chan)
+{
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  int offset = i % 64;
+  if(i < n)
+  {
+    sigfft[i] = cuCdivf(sigfft[i], chan[offset]);
+  }
+}
+
+// __global__
+// void cuDemodChanComp(int n, cuFloatComplex* sigfft, cuFloatComplex* chan)
+// {
+//   int i = threadIdx.x;
+//   int I = blockIdx.x * blockDim.x + threadIdx.x;
+//   int offset = I % 64;
+//   __shared__ cuFloatComplex chanIn[64];
+//   if(I >= n)
+//   {
+//     return;
+//   }
+//   if(i < 64)
+//   {
+//     chanIn[i] = chan[i];
+//   }
+//   __syncthreads();
+//   sigfft[I] = cuCdivf(sigfft[I], chanIn[offset]);
+// }
+
+__global__
+void cuDemodQamToLlrBpskL(int n, cuFloatComplex* sigfft, float* llr, int* demap)
+{
+
+}
+
+void cuDemodMall()
+{
+  cudaMalloc(&demodChanSiso, sizeof(cuFloatComplex) * 64);
+  cudaMalloc(&demodSig, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 80);
+  cudaMalloc(&demodSigFft, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 64);
+  if(cufftPlan1d(&demodPlan, 64, CUFFT_C2C, CUDEMOD_FFT_BATCH) != CUFFT_SUCCESS){
+    std::cout<<"cloud80211 cufft, plan creation failed"<<std::endl;
+  }
+  cudaMalloc(&demodSigLlr, sizeof(float) * CUDEMOD_S_MAX * 52 * 8);
+  
+  cudaMalloc(&demodDemapBpskL, sizeof(int) * 48);
+  cudaMalloc(&demodDemapQpskL, sizeof(int) * 96);
+  cudaMalloc(&demodDemap16QamL, sizeof(int) * 192);
+  cudaMalloc(&demodDemap64QamL, sizeof(int) * 288);
+  cudaMalloc(&demodDemapBpskNL, sizeof(int) * 52);
+  cudaMalloc(&demodDemapQpskNL, sizeof(int) * 104);
+  cudaMalloc(&demodDemap16QamNL, sizeof(int) * 208);
+  cudaMalloc(&demodDemap64QamNL, sizeof(int) * 312);
+  cudaMalloc(&demodDemap256QamNL, sizeof(int) * 416);
+  cudaMemcpy(demodDemapBpskL, mapDeintLegacyBpsk, 48*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(demodDemapQpskL, mapDeintLegacyQpsk, 96*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(demodDemap16QamL, mapDeintLegacy16Qam, 192*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(demodDemap64QamL, mapDeintLegacy64Qam, 288*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(demodDemapBpskNL, mapDeintNonlegacyBpsk, 52*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(demodDemapQpskNL, mapDeintNonlegacyQpsk, 104*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(demodDemap16QamNL, mapDeintNonlegacy16Qam, 208*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(demodDemap64QamNL, mapDeintNonlegacy64Qam, 312*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(demodDemap256QamNL, mapDeintNonlegacy256Qam, 416*sizeof(int), cudaMemcpyHostToDevice);
+}
+
+void cuDemodFree()
+{
+  cudaFree(demodChanSiso);
+  cudaFree(demodSig);
+  cudaFree(demodSigFft);
+  cufftDestroy(demodPlan);
+  cudaFree(demodSigLlr);
+  cudaFree(demodDemapBpskL);
+  cudaFree(demodDemapQpskL);
+  cudaFree(demodDemap16QamL);
+  cudaFree(demodDemap64QamL);
+  cudaFree(demodDemapBpskNL);
+  cudaFree(demodDemapQpskNL);
+  cudaFree(demodDemap16QamNL);
+  cudaFree(demodDemap64QamNL);
+  cudaFree(demodDemap256QamNL);
+}
+
+void cuDemodChanSiso(cuFloatComplex *chan)
+{
+  cudaMemcpy(demodChanSiso, chan, 64*sizeof(cuFloatComplex), cudaMemcpyHostToDevice);
+}
+
+void cuDemodSigCopy(int i, int n, const cuFloatComplex *sig)
+{
+  if(i >= 0 && n >= 0 && (i+n) < (CUDEMOD_S_MAX * 80))
+  {
+    cudaMemcpy(&demodSig[i], sig, n*sizeof(cuFloatComplex), cudaMemcpyHostToDevice);
+  }
+}
+
+void cuDemodSiso(c8p_mod* m)
+{
+  cuDemodChopSamp<<<(m->nSym * m->nSymSamp)/1024 + 1, 1024>>>(m->nSym * m->nSymSamp, demodSig, demodSigFft);
+  for(int symIter=0; symIter < ((m->nSym + CUDEMOD_FFT_BATCH - 1) / CUDEMOD_FFT_BATCH); symIter++ )   // each round inlcudes 256 batches
+  {
+    cufftExecC2C(demodPlan, &demodSigFft[symIter*CUDEMOD_FFT_BATCH*64], &demodSigFft[symIter*CUDEMOD_FFT_BATCH*64], CUFFT_FORWARD);
+  }
+  cuDemodChanComp<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, demodSigFft, demodChanSiso);
+
+}
+
+void cuDemodDebug(int n, cuFloatComplex* outcomp, int m, float* outfloat)
+{
+  cudaMemcpy(outcomp, demodSigFft, n*sizeof(cuFloatComplex), cudaMemcpyDeviceToHost);
+  // cudaMemcpy(outfloat, demodSigFft, m*sizeof(float), cudaMemcpyDeviceToHost);
 }

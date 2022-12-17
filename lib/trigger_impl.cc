@@ -68,7 +68,7 @@ namespace gr {
       d_ts = std::chrono::high_resolution_clock::now();
       if(d_sampCount > 57860000)
       {
-        std::cout<<"trigger procd samp: "<<d_sampCount<<", used time: "<<d_usUsed<<"us, avg "<<((double)d_sampCount / (double)d_usUsed)<<" samp/us"<<std::endl;
+        dout<<"trigger procd samp: "<<d_sampCount<<", used time: "<<d_usUsed<<"us, avg "<<((double)d_sampCount / (double)d_usUsed)<<" samp/us"<<std::endl;
       }
 
       d_nProc = noutput_items;

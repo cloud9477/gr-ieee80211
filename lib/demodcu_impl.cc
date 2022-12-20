@@ -50,8 +50,8 @@ namespace gr {
       d_sDemod = DEMOD_S_RDTAG;
       set_tag_propagation_policy(block::TPP_DONT);
       cuDemodMall();
-      memset((uint8_t*) d_debugComp, 0, sizeof(gr_complex) * 1024);
-      memset((uint8_t*) d_debugFloat, 0, sizeof(float) * 1024);
+      memset((uint8_t*) d_debugComp, 0, sizeof(gr_complex) * 8192);
+      memset((uint8_t*) d_debugFloat, 0, sizeof(float) * 8192);
       d_sampCount = 0;
       d_usUsed = 0;
       d_usUsedCu = 0;
@@ -106,7 +106,7 @@ namespace gr {
           d_nSigLSamp = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("nsamp"), pmt::from_long(-1)));
           std::vector<gr_complex> tmp_csi = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("csi"), pmt::PMT_NIL));
           std::copy(tmp_csi.begin(), tmp_csi.end(), d_H);
-          dout<<"ieee80211 demod, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<std::endl;
+          // dout<<"ieee80211 demodcu, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<std::endl;
           if(tmpPktSeq == 1)
           {
             d_ts = std::chrono::high_resolution_clock::now();
@@ -127,7 +127,7 @@ namespace gr {
             cuDemodChanSiso((cuFloatComplex*) d_H);
             d_nSampTotoal = d_m.nSymSamp * d_m.nSym;
             d_sDemod = DEMOD_S_DEMOD;
-            dout<<"ieee80211 demod, legacy packet"<<std::endl;
+            // dout<<"ieee80211 demodcu, legacy packet"<<std::endl;
           }
           else
           {
@@ -167,7 +167,7 @@ namespace gr {
         {
           // go to vht
           signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
-          dout<<"ieee80211 demod, vht a check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
+          //dout<<"ieee80211 demodcu, vht a check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
           d_sDemod = DEMOD_S_VHT;
           d_nSampConsumed += 160;
           d_nUsed += 160;
@@ -180,7 +180,7 @@ namespace gr {
           if(signalCheckHt(d_sigHtBits))
           {
             signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
-            dout<<"ieee80211 demod, ht check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
+            //dout<<"ieee80211 demodcu, ht check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
             d_sDemod = DEMOD_S_HT;
             d_nSampConsumed += 160;
             d_nUsed += 160;
@@ -192,7 +192,7 @@ namespace gr {
             cuDemodChanSiso((cuFloatComplex*) d_H);
             d_nSampTotoal = d_m.nSymSamp * d_m.nSym;
             d_sDemod = DEMOD_S_DEMOD;
-            dout<<"ieee80211 demod, check format legacy packet"<<std::endl;
+            //dout<<"ieee80211 demodcu, check format legacy packet"<<std::endl;
           }
         }
       }
@@ -253,10 +253,31 @@ namespace gr {
           cuDemodSiso(&d_m);
           d_tcu3 = std::chrono::high_resolution_clock::now();
           d_usUsedCu2 += std::chrono::duration_cast<std::chrono::microseconds>(d_tcu3 - d_tcu2).count();
-          // cuDemodDebug(128, (cuFloatComplex*) d_debugComp, 0, d_debugFloat);
-          // for(int i=0;i<128;i++){
-          //   dout<<i<<" "<<d_debugComp[i]<<std::endl;
-          // }
+          cuDemodDebug(d_m.nSym * 64, (cuFloatComplex*) d_debugComp, d_m.nSym * 64, d_debugFloat);
+          for(int i=0;i<d_m.nSym;i++)
+          {
+            dout<<"sym "<<i<<std::endl;
+            for(int j=0;j<64;j++)
+            {
+              dout<<d_debugComp[i*64+j].real()<<" "<<d_debugComp[i*64+j].imag()<<std::endl;
+            }
+          }
+          for(int i=0;i<d_m.nSym * d_m.nCBPSS;i++){
+            if(d_debugFloat[i] > 0.0f)
+            {
+              dout<<"1, ";
+            }
+            else
+            {
+              dout<<"0, ";
+            }
+          }
+          dout<<std::endl;
+          dout<<std::endl;
+          for(int i=0;i<d_m.nSym * d_m.nCBPSS;i++){
+            dout<<d_debugFloat[i]<<", ";
+          }
+          dout<<std::endl;
           // go to clean
           d_sDemod = DEMOD_S_CLEAN;
         }

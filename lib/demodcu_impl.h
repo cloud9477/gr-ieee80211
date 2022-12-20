@@ -83,8 +83,8 @@ namespace gr {
       int d_nSampCopied;
       int d_nTrellis;
       // debug
-      gr_complex d_debugComp[1024];
-      float d_debugFloat[1024];
+      gr_complex d_debugComp[8192];
+      float d_debugFloat[8192];
       // performance
       std::chrono::_V2::system_clock::time_point d_ts;
       std::chrono::_V2::system_clock::time_point d_te;

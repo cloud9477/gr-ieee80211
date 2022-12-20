@@ -95,7 +95,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/sig80211GenMultipleSiso_1x1_200.bin
+    file: /home/cloud/sdr/sig80211GenMultipleSiso_1x1_0.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -124,7 +124,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1088, 224.0]
+    coordinate: [1128, 224.0]
     rotation: 0
     state: disabled
 - name: ieee80211_decode_0
@@ -133,7 +133,7 @@ blocks:
     affinity: ''
     alias: ''
     comment: ''
-    inpara: '0'
+    inpara: '1'
     maxoutbuf: '0'
     minoutbuf: '0'
   states:
@@ -157,7 +157,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [880, 356.0]
+    coordinate: [904, 356.0]
     rotation: 0
     state: disabled
 - name: ieee80211_demodcu_0
@@ -172,7 +172,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1008, 488.0]
+    coordinate: [992, 488.0]
     rotation: 0
     state: enabled
 - name: ieee80211_preproc_0
@@ -265,7 +265,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1248, 460.0]
+    coordinate: [1264, 460.0]
     rotation: 0
     state: enabled
 - name: network_socket_pdu_0_0

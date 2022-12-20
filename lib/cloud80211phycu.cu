@@ -120,18 +120,19 @@ void cuPreProc(int n, const cuFloatComplex *sig, float* ac, cuFloatComplex* conj
 
 /*--------------------------------------------------------------------------------------------------------*/
 int mapDeshiftFftLegacy[64] = {
-  0, 24, 25, 26, 27, 28, 29, 0, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 0, 43, 44, 45, 46, 47, 0, 0, 0, 0, 0, 
-  0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 0, 18, 19, 20, 21, 22, 23};
+  -1, 24, 25, 26, 27, 28, 29, -1, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, -1, 43, 44, 45, 46, 47, -1, -1, -1, -1, -1, 
+  -1, -1, -1, -1, -1, -1, 0, 1, 2, 3, 4, -1, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, -1, 18, 19, 20, 21, 22, 23};
 int mapDeshiftFftNonlegacy[64] = {
-  0, 26, 27, 28, 29, 30, 31, 0, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 0, 45, 46, 47, 48, 49, 50, 51, 0, 0, 0, 
-  0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 0, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 0, 20, 21, 22, 23, 24, 25};
+  -1, 26, 27, 28, 29, 30, 31, -1, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, -1, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, 
+  -1, -1, -1, -1, 0, 1, 2, 3, 4, 5, 6, -1, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, -1, 20, 21, 22, 23, 24, 25};
 cuFloatComplex* demodChanSiso;
 cuFloatComplex* demodSig;
 cuFloatComplex* demodSigFft;
 cufftHandle demodPlan;
 float* demodSigLlr;
-cuFloatComplex pListTmp[127];
-cuFloatComplex* pList;
+cuFloatComplex* pilotsLegacy;
+cuFloatComplex* pilotsHt;
+cuFloatComplex* pilotsVht;
 
 int* demodDemapFftL;
 int* demodDemapBpskL;
@@ -189,188 +190,89 @@ void cuDemodChanComp(int n, cuFloatComplex* sigfft, cuFloatComplex* chan)
 // }
 
 __global__
-void cuDemodQamToLlrLegacy(int n, int nBPSCS, cuFloatComplex* sigfft, float* llr, cuFloatComplex* p, int* deshift, int* deint)
+void cuDemodQamToLlr(int n, int nCBPSS, cuFloatComplex* sigfft, float* llr, cuFloatComplex* p, int* deshift, int* deint)
 {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
-  int j = i / 64;       // sym index
-  int offset = i % 64;  // sample index
-  int pIndex = (j+1) % 127;
+  int j = i / 64;  // sym index
+  int k = i % 64;  // sample index
+  int llrOffset = j * nCBPSS;
+  cuFloatComplex pilotConj = make_cuFloatComplex(0.0f, 0.0f);
+  cuFloatComplex pilotAbs;
   cuFloatComplex qam;
-  float qamReal = 0.0f, qamImag = 0.0f;
-  int scIndex = 0;
+  float qamReal, qamImag;
+  int scIndex = deshift[k];      // sc after fft to data sc index
 
-  __shared__ cuFloatComplex pilot;
-  __shared__ float pilotAbs;
-
-  if(i < n)
+  if(i >= n || scIndex < 0)
   {
     return;
   }
 
-  if(offset == 0)
-  {
-    pilot = make_cuFloatComplex(0.0f, 0.0f);
-    pilot = cuCaddf(pilot, cuCmulf(sigfft[j*64 + 43], cuCmulf(make_cuFloatComplex(1.0f, 0.0f), p[pIndex])));
-    pilot = cuCaddf(pilot, cuCmulf(sigfft[j*64 + 57], cuCmulf(make_cuFloatComplex(1.0f, 0.0f), p[pIndex])));
-    pilot = cuCaddf(pilot, cuCmulf(sigfft[j*64 + 7], cuCmulf(make_cuFloatComplex(1.0f, 0.0f), p[pIndex])));
-    pilot = cuCaddf(pilot, cuCmulf(sigfft[j*64 + 21], cuCmulf(make_cuFloatComplex(-1.0f, 0.0f), p[pIndex])));
-    pilotAbs = cuCabsf(pilot);
-    pilot = cuConjf(pilot);
-  }
-  __syncthreads();
-  if(offset==0 || (offset>=27 && offset<=37) || offset==7 || offset==21 || offset==43 || offset==57)
-  {}
-  else
-  {
-    qam = cuCdivf(cuCmulf(sigfft[i], pilot), make_cuFloatComplex(pilotAbs, 0.0f));
-    scIndex = deshift[offset];      // sc after fft to data sc index
-    if(nBPSCS == 1)
-    {
-      llr[j*48 + deint[scIndex]] = qamReal;
-    }
-    else if(nBPSCS == 2)
-    {
-      qam = cuCmulf(qam, make_cuFloatComplex(1.4142135623730951f, 0.0f));
-      qamReal = cuCrealf(qam);
-      qamImag = cuCimagf(qam);
-      llr[j*96 + deint[scIndex*2]] = qamReal;
-      llr[j*96 + deint[scIndex*2+1]] = qamImag;
-    }
-    else if(nBPSCS == 4)
-    {
-      qam = cuCmulf(qam, make_cuFloatComplex(3.1622776601683795f, 0.0f));
-      qamReal = cuCrealf(qam);
-      qamImag = cuCimagf(qam);
-      llr[j*192 + deint[scIndex*4]] = qamReal;
-      llr[j*192 + deint[scIndex*4+1]] = 2.0f - fabsf(qamReal);
-      llr[j*192 + deint[scIndex*4+1]] = qamImag;
-      llr[j*192 + deint[scIndex*4+1]] = 2.0f - fabsf(qamImag);
-    }
-    else
-    {
-      qam = cuCmulf(qam, make_cuFloatComplex(6.48074069840786f, 0.0f));
-      qamReal = cuCrealf(qam);
-      qamImag = cuCimagf(qam);
-      llr[j*288 + deint[scIndex*6]] = qamReal;
-      llr[j*288 + deint[scIndex*6+1]] = 4.0f - fabsf(qamReal);
-      llr[j*288 + deint[scIndex*6+2]] = 2.0f - fabsf(4.0f - fabsf(qamReal));
-      llr[j*288 + deint[scIndex*6+3]] = qamImag;
-      llr[j*288 + deint[scIndex*6+4]] = 4.0f - fabsf(qamImag);
-      llr[j*288 + deint[scIndex*6+5]] = 2.0f - fabsf(4.0f - fabsf(qamImag));
-    }
-  }
-}
+  pilotConj = cuCaddf(pilotConj, cuCmulf(sigfft[j*64 + 43], p[j*4]));
+  pilotConj = cuCaddf(pilotConj, cuCmulf(sigfft[j*64 + 57], p[j*4+1]));
+  pilotConj = cuCaddf(pilotConj, cuCmulf(sigfft[j*64 +  7], p[j*4+2]));
+  pilotConj = cuCaddf(pilotConj, cuCmulf(sigfft[j*64 + 21], p[j*4+3]));
+  pilotAbs = make_cuFloatComplex(cuCabsf(pilotConj), 0.0f);
+  pilotConj = cuConjf(pilotConj);
 
-__global__
-void cuDemodQamToLlrNonlegacy(int n, int nBPSCS, cuFloatComplex* sigfft, float* llr, cuFloatComplex* p, int* deshift, int* deint, int format)
-{
-  int i = blockIdx.x * blockDim.x + threadIdx.x;
-  int j = i / 64;       // sym index
-  int offset = i % 64;  // sample index
-  int pIndex;
-  if(format == C8P_F_HT)
+  qam = cuCdivf(cuCmulf(sigfft[i], pilotConj), pilotAbs);
+
+  if(nCBPSS == 48 || nCBPSS == 52)
   {
-    pIndex = (j+3) % 127;
+    qamReal = cuCrealf(qam);
+    qamImag = cuCimagf(qam);
+    llr[llrOffset + deint[scIndex]] = qamReal;
+  }
+  else if(nCBPSS == 96 || nCBPSS == 104)
+  {
+    qam = cuCmulf(qam, make_cuFloatComplex(1.4142135623730951f, 0.0f));
+    qamReal = cuCrealf(qam);
+    qamImag = cuCimagf(qam);
+    // llr[llrOffset + deint[scIndex*2]] = qamReal;
+    // llr[llrOffset + deint[scIndex*2+1]] = qamImag;
+    llr[llrOffset + deint[scIndex*2]] = j;
+    llr[llrOffset + deint[scIndex*2+1]] = j;
+  }
+  else if(nCBPSS == 192 || nCBPSS == 208)
+  {
+    qam = cuCmulf(qam, make_cuFloatComplex(3.1622776601683795f, 0.0f));
+    qamReal = cuCrealf(qam);
+    qamImag = cuCimagf(qam);
+    // llr[llrOffset + deint[scIndex*4]] = qamReal;
+    // llr[llrOffset + deint[scIndex*4+1]] = 2.0f - fabsf(qamReal);
+    // llr[llrOffset + deint[scIndex*4+2]] = qamImag;
+    // llr[llrOffset + deint[scIndex*4+3]] = 2.0f - fabsf(qamImag);
+    llr[llrOffset + deint[scIndex*4]] = deint[scIndex*4];
+    llr[llrOffset + deint[scIndex*4+1]] = deint[scIndex*4+1];
+    llr[llrOffset + deint[scIndex*4+2]] = deint[scIndex*4+2];
+    llr[llrOffset + deint[scIndex*4+3]] = deint[scIndex*4+3];
+  }
+  else if(nCBPSS == 288 || nCBPSS == 312)
+  {
+    qam = cuCmulf(qam, make_cuFloatComplex(6.48074069840786f, 0.0f));
+    qamReal = cuCrealf(qam);
+    qamImag = cuCimagf(qam);
+    llr[llrOffset + deint[scIndex*6]] = qamReal;
+    llr[llrOffset + deint[scIndex*6+1]] = 4.0f - fabsf(qamReal);
+    llr[llrOffset + deint[scIndex*6+2]] = 2.0f - fabsf(4.0f - fabsf(qamReal));
+    llr[llrOffset + deint[scIndex*6+3]] = qamImag;
+    llr[llrOffset + deint[scIndex*6+4]] = 4.0f - fabsf(qamImag);
+    llr[llrOffset + deint[scIndex*6+5]] = 2.0f - fabsf(4.0f - fabsf(qamImag));
   }
   else
   {
-    pIndex = (j+4) % 127;
+    qam = cuCmulf(qam, make_cuFloatComplex(13.038404810405298f, 0.0f));
+    qamReal = cuCrealf(qam);
+    qamImag = cuCimagf(qam);
+    llr[llrOffset + deint[scIndex*8]] = qamReal;
+    llr[llrOffset + deint[scIndex*8+1]] = 8.0f - fabsf(qamReal);
+    llr[llrOffset + deint[scIndex*8+2]] = 4.0f - fabsf(8.0f - fabsf(qamReal));
+    llr[llrOffset + deint[scIndex*8+3]] = 2.0f - fabsf(4.0f - fabsf(8.0f - fabsf(qamReal)));
+    llr[llrOffset + deint[scIndex*8+4]] = qamImag;
+    llr[llrOffset + deint[scIndex*8+5]] = 8.0f - fabsf(qamImag);
+    llr[llrOffset + deint[scIndex*8+6]] = 4.0f - fabsf(8.0f - fabsf(qamImag));
+    llr[llrOffset + deint[scIndex*8+7]] = 2.0f - fabsf(4.0f - fabsf(8.0f - fabsf(qamImag)));
   }
-  cuFloatComplex qam;
-  float qamReal = 0.0f, qamImag = 0.0f;
-  int scIndex;
-
-  __shared__ cuFloatComplex pilot;
-  __shared__ float pilotAbs;
-
-  if(i < n)
-  {
-    return;
-  }
-
-  if(offset == 0)
-  {
-    float tmpPilot[4];
-    if((j%4) == 0)
-    {
-      tmpPilot[0] = 1.0f; tmpPilot[1] = 1.0f; tmpPilot[2] = 1.0f; tmpPilot[3] = -1.0f;
-    }
-    else if((j%4) == 1)
-    {
-      tmpPilot[0] = 1.0f; tmpPilot[1] = 1.0f; tmpPilot[2] = -1.0f; tmpPilot[3] = 1.0f;
-    }
-    else if((j%4) == 2)
-    {
-      tmpPilot[0] = 1.0f; tmpPilot[1] = -1.0f; tmpPilot[2] = 1.0f; tmpPilot[3] = 1.0f;
-    }
-    else
-    {
-      tmpPilot[0] = -1.0f; tmpPilot[1] = 1.0f; tmpPilot[2] = 1.0f; tmpPilot[3] = 1.0f;
-    }
-    pilot = make_cuFloatComplex(0.0f, 0.0f);
-    pilot = cuCaddf(pilot, cuCmulf(sigfft[j*64 + 43], cuCmulf(make_cuFloatComplex(tmpPilot[0], 0.0f), p[pIndex])));
-    pilot = cuCaddf(pilot, cuCmulf(sigfft[j*64 + 57], cuCmulf(make_cuFloatComplex(tmpPilot[1], 0.0f), p[pIndex])));
-    pilot = cuCaddf(pilot, cuCmulf(sigfft[j*64 + 7], cuCmulf(make_cuFloatComplex(tmpPilot[2], 0.0f), p[pIndex])));
-    pilot = cuCaddf(pilot, cuCmulf(sigfft[j*64 + 21], cuCmulf(make_cuFloatComplex(tmpPilot[3], 0.0f), p[pIndex])));
-    pilotAbs = cuCabsf(pilot);
-    pilot = cuConjf(pilot);
-  }
-  __syncthreads();
-  if(offset==0 || (offset>=29 && offset<=35) || offset==7 || offset==21 || offset==43 || offset==57)
-  {}
-  else
-  {
-    qam = cuCdivf(cuCmulf(sigfft[i], pilot), make_cuFloatComplex(pilotAbs, 0.0f));
-    scIndex = deshift[offset];      // sc after fft to data sc index
-    if(nBPSCS == 1)
-    {
-      llr[j*52 + deint[scIndex]] = qamReal;
-    }
-    else if(nBPSCS == 2)
-    {
-      qam = cuCmulf(qam, make_cuFloatComplex(1.4142135623730951f, 0.0f));
-      qamReal = cuCrealf(qam);
-      qamImag = cuCimagf(qam);
-      llr[j*104 + deint[scIndex*2]] = qamReal;
-      llr[j*104 + deint[scIndex*2+1]] = qamImag;
-    }
-    else if(nBPSCS == 4)
-    {
-      qam = cuCmulf(qam, make_cuFloatComplex(3.1622776601683795f, 0.0f));
-      qamReal = cuCrealf(qam);
-      qamImag = cuCimagf(qam);
-      llr[j*208 + deint[scIndex*4]] = qamReal;
-      llr[j*208 + deint[scIndex*4+1]] = 2.0f - fabsf(qamReal);
-      llr[j*208 + deint[scIndex*4+1]] = qamImag;
-      llr[j*208 + deint[scIndex*4+1]] = 2.0f - fabsf(qamImag);
-    }
-    else if(nBPSCS == 6)
-    {
-      qam = cuCmulf(qam, make_cuFloatComplex(6.48074069840786f, 0.0f));
-      qamReal = cuCrealf(qam);
-      qamImag = cuCimagf(qam);
-      llr[j*312 + deint[scIndex*6]] = qamReal;
-      llr[j*312 + deint[scIndex*6+1]] = 4.0f - fabsf(qamReal);
-      llr[j*312 + deint[scIndex*6+2]] = 2.0f - fabsf(4.0f - fabsf(qamReal));
-      llr[j*312 + deint[scIndex*6+3]] = qamImag;
-      llr[j*312 + deint[scIndex*6+4]] = 4.0f - fabsf(qamImag);
-      llr[j*312 + deint[scIndex*6+5]] = 2.0f - fabsf(4.0f - fabsf(qamImag));
-    }
-    else
-    {
-      qam = cuCmulf(qam, make_cuFloatComplex(13.038404810405298f, 0.0f));
-      qamReal = cuCrealf(qam);
-      qamImag = cuCimagf(qam);
-      llr[j*416 + deint[scIndex*8]] = qamReal;
-      llr[j*416 + deint[scIndex*8+1]] = 8.0f - fabsf(qamReal);
-      llr[j*416 + deint[scIndex*8+2]] = 4.0f - fabsf(8.0f - fabsf(qamReal));
-      llr[j*416 + deint[scIndex*8+3]] = 2.0f - fabsf(4.0f - fabsf(8.0f - fabsf(qamReal)));
-      llr[j*416 + deint[scIndex*8+4]] = qamImag;
-      llr[j*416 + deint[scIndex*8+5]] = 8.0f - fabsf(qamImag);
-      llr[j*416 + deint[scIndex*8+6]] = 4.0f - fabsf(8.0f - fabsf(qamImag));
-      llr[j*416 + deint[scIndex*8+7]] = 2.0f - fabsf(4.0f - fabsf(8.0f - fabsf(qamImag)));
-    }
-  }
+  sigfft[i] = qam;
 }
 
 void cuDemodMall()
@@ -382,12 +284,51 @@ void cuDemodMall()
     std::cout<<"cloud80211 cufft, plan creation failed"<<std::endl;
   }
   cudaMalloc(&demodSigLlr, sizeof(float) * CUDEMOD_S_MAX * 52 * 8);
-  for(int i=0;i<127;i++)
+
+  cuFloatComplex pListTmp[CUDEMOD_S_MAX * 4];
+  cudaMalloc(&pilotsLegacy, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 4);
+  cudaMalloc(&pilotsHt, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 4);
+  cudaMalloc(&pilotsVht, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 4);
+  for(int i=0;i<CUDEMOD_S_MAX;i++)
   {
-    pListTmp[i] = make_cuFloatComplex((float)PILOT_P[i], 0.0f);
+    pListTmp[i*4] = make_cuFloatComplex(1.0f * PILOT_P[(i+1)%127], 0.0f);
+    pListTmp[i*4+1] = make_cuFloatComplex(1.0f * PILOT_P[(i+1)%127], 0.0f);
+    pListTmp[i*4+2] = make_cuFloatComplex(1.0f * PILOT_P[(i+1)%127], 0.0f);
+    pListTmp[i*4+3] = make_cuFloatComplex(-1.0f * PILOT_P[(i+1)%127], 0.0f);
   }
-  cudaMalloc(&pList, sizeof(cuFloatComplex) * 127);
-  cudaMemcpy(pList, pListTmp, 127*sizeof(cuFloatComplex), cudaMemcpyHostToDevice);
+  cudaMemcpy(pilotsLegacy, pListTmp, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 4, cudaMemcpyHostToDevice);
+  float pTmp[4] = {1.0f, 1.0f, 1.0f, -1.0f};
+  for(int i=0;i<CUDEMOD_S_MAX;i++)
+  {
+    pListTmp[i*4] = make_cuFloatComplex(pTmp[0] * PILOT_P[(i+3)%127], 0.0f);
+    pListTmp[i*4+1] = make_cuFloatComplex(pTmp[1] * PILOT_P[(i+3)%127], 0.0f);
+    pListTmp[i*4+2] = make_cuFloatComplex(pTmp[2] * PILOT_P[(i+3)%127], 0.0f);
+    pListTmp[i*4+3] = make_cuFloatComplex(pTmp[3] * PILOT_P[(i+3)%127], 0.0f);
+
+    float tmpPilot = pTmp[0];
+    pTmp[0] = pTmp[1];
+    pTmp[1] = pTmp[2];
+    pTmp[2] = pTmp[3];
+    pTmp[3] = tmpPilot;
+  }
+  cudaMemcpy(pilotsHt, pListTmp, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 4, cudaMemcpyHostToDevice);
+
+  float pTmp2[4] = {1.0f, 1.0f, 1.0f, -1.0f};
+  for(int i=0;i<CUDEMOD_S_MAX;i++)
+  {
+    pListTmp[i*4] = make_cuFloatComplex(pTmp2[0] * PILOT_P[(i+4)%127], 0.0f);
+    pListTmp[i*4+1] = make_cuFloatComplex(pTmp2[1] * PILOT_P[(i+4)%127], 0.0f);
+    pListTmp[i*4+2] = make_cuFloatComplex(pTmp2[2] * PILOT_P[(i+4)%127], 0.0f);
+    pListTmp[i*4+3] = make_cuFloatComplex(pTmp2[3] * PILOT_P[(i+4)%127], 0.0f);
+
+    float tmpPilot = pTmp2[0];
+    pTmp2[0] = pTmp2[1];
+    pTmp2[1] = pTmp2[2];
+    pTmp2[2] = pTmp2[3];
+    pTmp2[3] = tmpPilot;
+  }
+  cudaMemcpy(pilotsVht, pListTmp, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 4, cudaMemcpyHostToDevice);
+  
   
   cudaMalloc(&demodDemapFftL, sizeof(int) * 64);
   cudaMemcpy(demodDemapFftL, mapDeshiftFftLegacy, 64*sizeof(int), cudaMemcpyHostToDevice);
@@ -422,7 +363,9 @@ void cuDemodFree()
   cudaFree(demodSigFft);
   cufftDestroy(demodPlan);
   cudaFree(demodSigLlr);
-  cudaFree(pList);
+  cudaFree(pilotsLegacy);
+  cudaFree(pilotsHt);
+  cudaFree(pilotsVht);
 
   cudaFree(demodDemapFftL);
   cudaFree(demodDemapBpskL);
@@ -459,44 +402,65 @@ void cuDemodSiso(c8p_mod* m)
   cuDemodChanComp<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, demodSigFft, demodChanSiso);
   if(m->format == C8P_F_L)
   {
-    if(m->nBPSCS == 1)
+    if(m->mod == C8P_QAM_BPSK)
     {
-      cuDemodQamToLlrLegacy<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nBPSCS, demodSigFft, demodSigLlr, pList, demodDemapFftL, demodDemapBpskL);
+      std::cout<<"ieee80211cu demodcu, legacy BPSK "<<m->nCBPSS<<std::endl;
+      cuDemodQamToLlr<<<(m->nSym * 64)/256 + 1, 256>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsLegacy, demodDemapFftL, demodDemapBpskL);
     }
-    else if(m->nBPSCS == 2)
+    else if(m->mod == C8P_QAM_QPSK)
     {
-      cuDemodQamToLlrLegacy<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nBPSCS, demodSigFft, demodSigLlr, pList, demodDemapFftL, demodDemapQpskL);
+      std::cout<<"ieee80211cu demodcu, legacy QPSK "<<m->nCBPSS<<", block "<<(m->nSym * 64)/256 + 1<<std::endl;
+      cuDemodQamToLlr<<<(m->nSym * 64)/256 + 1, 256>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsLegacy, demodDemapFftL, demodDemapQpskL);
     }
-    else if(m->nBPSCS == 4)
+    else if(m->mod == C8P_QAM_16QAM)
     {
-      cuDemodQamToLlrLegacy<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nBPSCS, demodSigFft, demodSigLlr, pList, demodDemapFftL, demodDemap16QamL);
+      std::cout<<"ieee80211cu demodcu, legacy 16QAM "<<m->nCBPSS<<std::endl;
+      cuDemodQamToLlr<<<(m->nSym * 64)/256 + 1, 256>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsLegacy, demodDemapFftL, demodDemap16QamL);
     }
     else
     {
-      cuDemodQamToLlrLegacy<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nBPSCS, demodSigFft, demodSigLlr, pList, demodDemapFftL, demodDemap64QamL);
+      std::cout<<"ieee80211cu demodcu, legacy 64QAM "<<m->nCBPSS<<std::endl;
+      cuDemodQamToLlr<<<(m->nSym * 64)/256 + 1, 256>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsLegacy, demodDemapFftL, demodDemap64QamL);
     }
   }
   else
   {
-    if(m->nBPSCS == 1)
+    if(m->mod == C8P_QAM_BPSK)
     {
-      cuDemodQamToLlrNonlegacy<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nBPSCS, demodSigFft, demodSigLlr, pList, demodDemapFftL, demodDemapBpskNL, m->format);
+      std::cout<<"ieee80211cu demodcu, non legacy BPSK"<<std::endl;
+      if(m->format == C8P_F_HT)
+      {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsHt, demodDemapFftNL, demodDemapBpskNL);}
+      else
+      {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsVht, demodDemapFftNL, demodDemapBpskNL);}
     }
-    else if(m->nBPSCS == 2)
+    else if(m->mod == C8P_QAM_QPSK)
     {
-      cuDemodQamToLlrNonlegacy<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nBPSCS, demodSigFft, demodSigLlr, pList, demodDemapFftL, demodDemapQpskNL, m->format);
+      std::cout<<"ieee80211cu demodcu, non legacy QPSK"<<std::endl;
+      if(m->format == C8P_F_HT)
+      {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsHt, demodDemapFftNL, demodDemapQpskNL);}
+      else
+      {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsVht, demodDemapFftNL, demodDemapQpskNL);}
     }
-    else if(m->nBPSCS == 4)
+    else if(m->mod == C8P_QAM_16QAM)
     {
-      cuDemodQamToLlrNonlegacy<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nBPSCS, demodSigFft, demodSigLlr, pList, demodDemapFftL, demodDemap16QamNL, m->format);
+      std::cout<<"ieee80211cu demodcu, non legacy 16QAM"<<std::endl;
+      if(m->format == C8P_F_HT)
+      {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsHt, demodDemapFftNL, demodDemap16QamNL);}
+      else
+      {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsVht, demodDemapFftNL, demodDemap16QamNL);}
     }
-    else if(m->nBPSCS == 6)
+    else if(m->mod == C8P_QAM_64QAM)
     {
-      cuDemodQamToLlrNonlegacy<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nBPSCS, demodSigFft, demodSigLlr, pList, demodDemapFftL, demodDemap64QamNL, m->format);
+      std::cout<<"ieee80211cu demodcu, non legacy 64QAM"<<std::endl;
+      if(m->format == C8P_F_HT)
+      {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsHt, demodDemapFftNL, demodDemap64QamNL);}
+      else
+      {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsVht, demodDemapFftNL, demodDemap64QamNL);}
     }
     else
     {
-      cuDemodQamToLlrNonlegacy<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nBPSCS, demodSigFft, demodSigLlr, pList, demodDemapFftL, demodDemap64QamNL, m->format);
+      std::cout<<"ieee80211cu demodcu, non legacy 256QAM"<<std::endl;
+      cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsVht, demodDemapFftNL, demodDemap256QamNL);
     }
   }
 }
@@ -504,5 +468,5 @@ void cuDemodSiso(c8p_mod* m)
 void cuDemodDebug(int n, cuFloatComplex* outcomp, int m, float* outfloat)
 {
   cudaMemcpy(outcomp, demodSigFft, n*sizeof(cuFloatComplex), cudaMemcpyDeviceToHost);
-  // cudaMemcpy(outfloat, demodSigFft, m*sizeof(float), cudaMemcpyDeviceToHost);
+  cudaMemcpy(outfloat, demodSigLlr, m*sizeof(float), cudaMemcpyDeviceToHost);
 }

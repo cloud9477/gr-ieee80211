@@ -278,6 +278,7 @@ void cuDemodMall()
     std::cout<<"cloud80211 cufft, plan creation failed"<<std::endl;
   }
   cudaMalloc(&demodSigLlr, sizeof(float) * CUDEMOD_S_MAX * 52 * 8);
+  cudaMemset(demodSigLlr, 0, sizeof(float) * CUDEMOD_S_MAX * 52 * 8);
 
   cuFloatComplex pListTmp[CUDEMOD_S_MAX * 4];
   cudaMalloc(&pilotsLegacy, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 4);
@@ -398,22 +399,18 @@ void cuDemodSiso(c8p_mod* m)
   {
     if(m->mod == C8P_QAM_BPSK)
     {
-      std::cout<<"ieee80211cu demodcu, legacy BPSK "<<m->nCBPSS<<std::endl;
       cuDemodQamToLlr<<<(m->nSym * 64)/256 + 1, 256>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsLegacy, demodDemapFftL, demodDemapBpskL);
     }
     else if(m->mod == C8P_QAM_QPSK)
     {
-      std::cout<<"ieee80211cu demodcu, legacy QPSK "<<m->nCBPSS<<", block "<<(m->nSym * 64)/256 + 1<<std::endl;
       cuDemodQamToLlr<<<(m->nSym * 64)/256 + 1, 256>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsLegacy, demodDemapFftL, demodDemapQpskL);
     }
     else if(m->mod == C8P_QAM_16QAM)
     {
-      std::cout<<"ieee80211cu demodcu, legacy 16QAM "<<m->nCBPSS<<std::endl;
       cuDemodQamToLlr<<<(m->nSym * 64)/256 + 1, 256>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsLegacy, demodDemapFftL, demodDemap16QamL);
     }
     else
     {
-      std::cout<<"ieee80211cu demodcu, legacy 64QAM "<<m->nCBPSS<<std::endl;
       cuDemodQamToLlr<<<(m->nSym * 64)/256 + 1, 256>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsLegacy, demodDemapFftL, demodDemap64QamL);
     }
   }
@@ -421,7 +418,6 @@ void cuDemodSiso(c8p_mod* m)
   {
     if(m->mod == C8P_QAM_BPSK)
     {
-      std::cout<<"ieee80211cu demodcu, non legacy BPSK"<<std::endl;
       if(m->format == C8P_F_HT)
       {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsHt, demodDemapFftNL, demodDemapBpskNL);}
       else
@@ -429,7 +425,6 @@ void cuDemodSiso(c8p_mod* m)
     }
     else if(m->mod == C8P_QAM_QPSK)
     {
-      std::cout<<"ieee80211cu demodcu, non legacy QPSK"<<std::endl;
       if(m->format == C8P_F_HT)
       {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsHt, demodDemapFftNL, demodDemapQpskNL);}
       else
@@ -437,7 +432,6 @@ void cuDemodSiso(c8p_mod* m)
     }
     else if(m->mod == C8P_QAM_16QAM)
     {
-      std::cout<<"ieee80211cu demodcu, non legacy 16QAM"<<std::endl;
       if(m->format == C8P_F_HT)
       {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsHt, demodDemapFftNL, demodDemap16QamNL);}
       else
@@ -445,7 +439,6 @@ void cuDemodSiso(c8p_mod* m)
     }
     else if(m->mod == C8P_QAM_64QAM)
     {
-      std::cout<<"ieee80211cu demodcu, non legacy 64QAM"<<std::endl;
       if(m->format == C8P_F_HT)
       {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsHt, demodDemapFftNL, demodDemap64QamNL);}
       else
@@ -453,7 +446,6 @@ void cuDemodSiso(c8p_mod* m)
     }
     else
     {
-      std::cout<<"ieee80211cu demodcu, non legacy 256QAM"<<std::endl;
       cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsVht, demodDemapFftNL, demodDemap256QamNL);
     }
   }

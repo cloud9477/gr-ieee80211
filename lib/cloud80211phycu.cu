@@ -147,6 +147,12 @@ int* demodDemap16QamNL;
 int* demodDemap64QamNL;
 int* demodDemap256QamNL;
 
+int *v_state_his;
+int *v_state_seq;
+int *v_state_next;
+int *v_state_output;
+int *v_cr_punc;
+
 __global__
 void cuDemodChopSamp(int n, cuFloatComplex* sig, cuFloatComplex* sigfft)
 {
@@ -269,6 +275,15 @@ void cuDemodQamToLlr(int n, int nCBPSS, cuFloatComplex* sigfft, float* llr, cuFl
   // sigfft[i] = make_cuFloatComplex(llrOffset + scIndex*2, llrOffset + scIndex*2 + 1);
 }
 
+__global__
+void cuDecodeViterbi(float* llr, int crlen, int* punc)
+{
+  __shared__ float v_accum_err0[64];
+  __shared__ float v_accum_err1[64];
+
+  int i = threadIdx.x;    // only 64
+}
+
 void cuDemodMall()
 {
   cudaMalloc(&demodChanSiso, sizeof(cuFloatComplex) * 64);
@@ -349,6 +364,21 @@ void cuDemodMall()
   cudaMemcpy(demodDemap16QamNL, mapDeintNonlegacy16Qam, 208*sizeof(int), cudaMemcpyHostToDevice);
   cudaMemcpy(demodDemap64QamNL, mapDeintNonlegacy64Qam, 312*sizeof(int), cudaMemcpyHostToDevice);
   cudaMemcpy(demodDemap256QamNL, mapDeintNonlegacy256Qam, 416*sizeof(int), cudaMemcpyHostToDevice);
+
+  cudaMalloc(&v_state_his, sizeof(int) * 64 * (CUDEMOD_V_MAX+1));
+  cudaMalloc(&v_state_seq, sizeof(int) * (CUDEMOD_V_MAX+1));
+  cudaMalloc(&v_state_next, sizeof(int) * 128);
+  cudaMemcpy(v_state_next, SV_STATE_NEXT, 128*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMalloc(&v_state_output, sizeof(int) * 128);
+  cudaMemcpy(v_state_output, SV_STATE_OUTPUT, 128*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMalloc(&v_cr_punc, sizeof(int) * 22);
+  int tmpPunc[22] = {
+    1, 1,
+    1, 1, 1, 0,
+    1, 1, 1, 0, 0, 1,
+    1, 1, 1, 0, 0, 1, 1, 0, 0, 1
+  };
+  cudaMemcpy(v_cr_punc, tmpPunc, 22*sizeof(int), cudaMemcpyHostToDevice);
 }
 
 void cuDemodFree()
@@ -372,6 +402,12 @@ void cuDemodFree()
   cudaFree(demodDemap16QamNL);
   cudaFree(demodDemap64QamNL);
   cudaFree(demodDemap256QamNL);
+
+  cudaFree(v_state_his);
+  cudaFree(v_state_seq);
+  cudaFree(v_state_next);
+  cudaFree(v_state_output);
+  cudaFree(v_cr_punc);
 }
 
 void cuDemodChanSiso(cuFloatComplex *chan)

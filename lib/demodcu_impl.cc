@@ -253,15 +253,15 @@ namespace gr {
           cuDemodSiso(&d_m);
           d_tcu3 = std::chrono::high_resolution_clock::now();
           d_usUsedCu2 += std::chrono::duration_cast<std::chrono::microseconds>(d_tcu3 - d_tcu2).count();
-          cuDemodDebug(d_m.nSym * 64, (cuFloatComplex*) d_debugComp, d_m.nSym * 64, d_debugFloat);
-          for(int i=0;i<d_m.nSym;i++)
-          {
-            dout<<"sym "<<i<<std::endl;
-            for(int j=0;j<64;j++)
-            {
-              dout<<d_debugComp[i*64+j].real()<<" "<<d_debugComp[i*64+j].imag()<<std::endl;
-            }
-          }
+          cuDemodDebug(d_m.nSym * 64, (cuFloatComplex*) d_debugComp, d_m.nSym * d_m.nCBPSS, d_debugFloat);
+          // for(int i=0;i<d_m.nSym;i++)
+          // {
+          //   dout<<"sym "<<i<<"------------------------------------------"<<std::endl;
+          //   for(int j=0;j<64;j++)
+          //   {
+          //     dout<<d_debugComp[i*64+j].real()<<" "<<d_debugComp[i*64+j].imag()<<std::endl;
+          //   }
+          // }
           for(int i=0;i<d_m.nSym * d_m.nCBPSS;i++){
             if(d_debugFloat[i] > 0.0f)
             {

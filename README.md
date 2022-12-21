@@ -145,6 +145,12 @@ Intel 11700 200 packet siso
 - demod procd samp: 7215040, used time: 274275us, avg 26.3059 samp/us
 - decode procd llr: 6693152, used time: 6288302us, avg 1.06438 llr/us
 
+Use watch and nvidia-smi to minitor GPU
+
+```console
+sdr@sdr:~$ watch -n 0.1 nvidia-smi
+```
+
 Use top to record CPU usage
 ---------------
 - The -1 is usage by core, -d is interval, -n is sample number, -b is logging.

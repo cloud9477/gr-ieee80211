@@ -227,24 +227,18 @@ void cuDemodQamToLlr(int n, int nCBPSS, cuFloatComplex* sigfft, float* llr, cuFl
     qam = cuCmulf(qam, make_cuFloatComplex(1.4142135623730951f, 0.0f));
     qamReal = cuCrealf(qam);
     qamImag = cuCimagf(qam);
-    // llr[llrOffset + deint[scIndex*2]] = qamReal;
-    // llr[llrOffset + deint[scIndex*2+1]] = qamImag;
-    llr[llrOffset + deint[scIndex*2]] = j;
-    llr[llrOffset + deint[scIndex*2+1]] = j;
+    llr[llrOffset + deint[scIndex*2]] = qamReal;
+    llr[llrOffset + deint[scIndex*2+1]] = qamImag;
   }
   else if(nCBPSS == 192 || nCBPSS == 208)
   {
     qam = cuCmulf(qam, make_cuFloatComplex(3.1622776601683795f, 0.0f));
     qamReal = cuCrealf(qam);
     qamImag = cuCimagf(qam);
-    // llr[llrOffset + deint[scIndex*4]] = qamReal;
-    // llr[llrOffset + deint[scIndex*4+1]] = 2.0f - fabsf(qamReal);
-    // llr[llrOffset + deint[scIndex*4+2]] = qamImag;
-    // llr[llrOffset + deint[scIndex*4+3]] = 2.0f - fabsf(qamImag);
-    llr[llrOffset + deint[scIndex*4]] = deint[scIndex*4];
-    llr[llrOffset + deint[scIndex*4+1]] = deint[scIndex*4+1];
-    llr[llrOffset + deint[scIndex*4+2]] = deint[scIndex*4+2];
-    llr[llrOffset + deint[scIndex*4+3]] = deint[scIndex*4+3];
+    llr[llrOffset + deint[scIndex*4]] = qamReal;
+    llr[llrOffset + deint[scIndex*4+1]] = 2.0f - fabsf(qamReal);
+    llr[llrOffset + deint[scIndex*4+2]] = qamImag;
+    llr[llrOffset + deint[scIndex*4+3]] = 2.0f - fabsf(qamImag);
   }
   else if(nCBPSS == 288 || nCBPSS == 312)
   {
@@ -272,7 +266,7 @@ void cuDemodQamToLlr(int n, int nCBPSS, cuFloatComplex* sigfft, float* llr, cuFl
     llr[llrOffset + deint[scIndex*8+6]] = 4.0f - fabsf(8.0f - fabsf(qamImag));
     llr[llrOffset + deint[scIndex*8+7]] = 2.0f - fabsf(4.0f - fabsf(8.0f - fabsf(qamImag)));
   }
-  sigfft[i] = qam;
+  // sigfft[i] = make_cuFloatComplex(llrOffset + scIndex*2, llrOffset + scIndex*2 + 1);
 }
 
 void cuDemodMall()

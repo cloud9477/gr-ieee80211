@@ -148,7 +148,7 @@ int* demodDemap64QamNL;
 int* demodDemap256QamNL;
 
 int *v_state_his;
-int *v_state_seq;
+int *v_state_bit;
 int *v_state_next;
 int *v_state_output;
 int *v_cr_punc;
@@ -276,12 +276,116 @@ void cuDemodQamToLlr(int n, int nCBPSS, cuFloatComplex* sigfft, float* llr, cuFl
 }
 
 __global__
-void cuDecodeViterbi(float* llr, int crlen, int* punc)
+void cuDecodeViterbi(float* llr, int trellis, int crlen, int* punc, int*s_output, int* s_next, int* seq)
 {
   __shared__ float v_accum_err0[64];
   __shared__ float v_accum_err1[64];
+  __shared__ float v_tab_t[4];
+  int i = threadIdx.x;
+  int v_cr_p = 0;
+  int tmpUsed = 0;
+  float *v_ae_pPre, *v_ae_pCur, *v_ae_pTmp;
+  float v_acc_tmp0, v_acc_tmp1;
+  int v_next0, v_next1;
+  int v_t = 0;
 
-  int i = threadIdx.x;    // only 64
+  if(i == 0)
+  {
+    v_accum_err0[i] = 0.0f;
+  }
+  else
+  {
+    v_accum_err0[i] = -1000000000000000.0f;
+  }
+  v_accum_err1[i] = -1000000000000000.0f;
+  v_ae_pCur = v_accum_err1;
+  v_ae_pPre = v_accum_err0;
+
+  
+  while((tmpUsed + punc[v_cr_p] + punc[v_cr_p+1])<=trellis && v_t < trellis)
+  {
+    if(i == 0)
+    {
+      v_tab_t[0] = 0.0f;
+      if(v_cr_punc[v_cr_p])
+      {
+        v_tab_t[2] = llr[tmpUsed];
+        v_tab_t[3] = llr[tmpUsed];
+        tmpUsed++;
+      }
+      else
+      {
+        v_tab_t[2] = 0.0f;
+        v_tab_t[3] = 0.0f;
+      }
+      if(v_cr_punc[v_cr_p+1])
+      {
+        v_tab_t[1] = llr[tmpUsed];
+        v_tab_t[3] += llr[tmpUsed];
+        tmpUsed++;
+      }
+      else
+      {
+        v_tab_t[1] = 0.0f;
+      }
+    }
+    __syncthreads();
+
+    v_acc_tmp0 = v_ae_pPre[i] + v_tab_t[s_output[i*2]];
+    v_acc_tmp1 = v_ae_pPre[i] + v_tab_t[s_output[i*2+1]];
+
+    if((i%2) == 0)
+    {
+      v_next0 = s_next[i*2];
+      v_next1 = s_next[i*2+1];
+      if (v_acc_tmp0 > v_ae_pCur[v_next0])
+      {
+        v_ae_pCur[v_next0] = v_acc_tmp0;
+        v_state_his[(v_t+1)*64 + v_next0] = i;
+      }
+      if (v_acc_tmp1 > v_ae_pCur[v_next1])
+      {
+        v_ae_pCur[v_next1] = v_acc_tmp1;
+        v_state_his[(v_t+1)*64 + v_next1] = i;
+      }
+    }
+    __syncthreads();
+
+    if((i%2) == 1)
+    {
+      v_next0 = s_next[i*2];
+      v_next1 = s_next[i*2+1];
+      if (v_acc_tmp0 > v_ae_pCur[v_next0])
+      {
+        v_ae_pCur[v_next0] = v_acc_tmp0;
+        v_state_his[(v_t+1)*64 + v_next0] = i;
+      }
+      if (v_acc_tmp1 > v_ae_pCur[v_next1])
+      {
+        v_ae_pCur[v_next1] = v_acc_tmp1;
+        v_state_his[(v_t+1)*64 + v_next1] = i;
+      }
+    }
+
+    v_ae_pTmp = v_ae_pPre;
+    v_ae_pPre = v_ae_pCur;
+    v_ae_pCur = v_ae_pTmp;
+
+    v_ae_pCur[i] = -1000000000000000.0f;
+
+    v_cr_p += 2;
+    if(v_cr_p >= crlen)
+    {v_cr_p = 0;}
+  }
+
+  if(i == 0)
+  {
+    seq[trellis] = 0;
+    for (int j = trellis; j > 0; j--)
+    {
+      seq[j-1] = v_state_his[j*64 + seq[j]];
+    }
+  }
 }
 
 void cuDemodMall()
@@ -366,7 +470,7 @@ void cuDemodMall()
   cudaMemcpy(demodDemap256QamNL, mapDeintNonlegacy256Qam, 416*sizeof(int), cudaMemcpyHostToDevice);
 
   cudaMalloc(&v_state_his, sizeof(int) * 64 * (CUDEMOD_V_MAX+1));
-  cudaMalloc(&v_state_seq, sizeof(int) * (CUDEMOD_V_MAX+1));
+  cudaMalloc(&v_state_bit, sizeof(int) * (CUDEMOD_V_MAX+1));
   cudaMalloc(&v_state_next, sizeof(int) * 128);
   cudaMemcpy(v_state_next, SV_STATE_NEXT, 128*sizeof(int), cudaMemcpyHostToDevice);
   cudaMalloc(&v_state_output, sizeof(int) * 128);
@@ -404,7 +508,7 @@ void cuDemodFree()
   cudaFree(demodDemap256QamNL);
 
   cudaFree(v_state_his);
-  cudaFree(v_state_seq);
+  cudaFree(v_state_bit);
   cudaFree(v_state_next);
   cudaFree(v_state_output);
   cudaFree(v_cr_punc);
@@ -485,6 +589,9 @@ void cuDemodSiso(c8p_mod* m)
       cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsVht, demodDemapFftNL, demodDemap256QamNL);
     }
   }
+
+  cudaMemset(v_state_his, 0, sizeof(int) * 64 * (CUDEMOD_V_MAX+1));
+
 }
 
 void cuDemodDebug(int n, cuFloatComplex* outcomp, int m, float* outfloat)

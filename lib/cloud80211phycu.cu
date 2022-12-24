@@ -147,11 +147,13 @@ int* demodDemap16QamNL;
 int* demodDemap64QamNL;
 int* demodDemap256QamNL;
 
-int *v_state_his;
-int *v_state_bit;
-int *v_state_next;
-int *v_state_output;
-int *v_cr_punc;
+int* cuv_seq;
+int* cuv_bits;
+int* cuv_state_his;
+int* cuv_state_bit;
+int* cuv_state_next;
+int* cuv_state_output;
+int* cuv_cr_punc;
 
 __global__
 void cuDemodChopSamp(int n, cuFloatComplex* sig, cuFloatComplex* sigfft)
@@ -275,117 +277,132 @@ void cuDemodQamToLlr(int n, int nCBPSS, cuFloatComplex* sigfft, float* llr, cuFl
   // sigfft[i] = make_cuFloatComplex(llrOffset + scIndex*2, llrOffset + scIndex*2 + 1);
 }
 
-__global__
-void cuDecodeViterbi(float* llr, int trellis, int crlen, int* punc, int*s_output, int* s_next, int* seq)
+__global__ void cuDecodeViterbi(float* llr,
+                                int len,
+                                int trellis,
+                                int crlen,
+                                int* punc,
+                                int* s_his,
+                                int* s_output,
+                                int* s_next)
 {
-  __shared__ float v_accum_err0[64];
-  __shared__ float v_accum_err1[64];
-  __shared__ float v_tab_t[4];
-  int i = threadIdx.x;
-  int v_cr_p = 0;
-  int tmpUsed = 0;
-  float *v_ae_pPre, *v_ae_pCur, *v_ae_pTmp;
-  float v_acc_tmp0, v_acc_tmp1;
-  int v_next0, v_next1;
-  int v_t = 0;
+    int i = threadIdx.x;
+    int v_cr_p = 0;
+    int tmpUsed = 0;
+    float *v_ae_pPre, *v_ae_pCur, *v_ae_pTmp;
+    float v_acc_tmp0, v_acc_tmp1;
+    int v_next0, v_next1;
+    int v_t = 0;
+    __shared__ float v_accum_err0[64];
+    __shared__ float v_accum_err1[64];
+    __shared__ float v_tab_t[4];
+    __shared__ int v_punc[10];
+    __shared__ int v_output[128];
+    __shared__ int v_next[128];
 
-  if(i == 0)
-  {
-    v_accum_err0[i] = 0.0f;
-  }
-  else
-  {
-    v_accum_err0[i] = -1000000000000000.0f;
-  }
-  v_accum_err1[i] = -1000000000000000.0f;
-  v_ae_pCur = v_accum_err1;
-  v_ae_pPre = v_accum_err0;
-
-  
-  while((tmpUsed + punc[v_cr_p] + punc[v_cr_p+1])<=trellis && v_t < trellis)
-  {
-    if(i == 0)
-    {
-      v_tab_t[0] = 0.0f;
-      if(v_cr_punc[v_cr_p])
-      {
-        v_tab_t[2] = llr[tmpUsed];
-        v_tab_t[3] = llr[tmpUsed];
-        tmpUsed++;
-      }
-      else
-      {
-        v_tab_t[2] = 0.0f;
-        v_tab_t[3] = 0.0f;
-      }
-      if(v_cr_punc[v_cr_p+1])
-      {
-        v_tab_t[1] = llr[tmpUsed];
-        v_tab_t[3] += llr[tmpUsed];
-        tmpUsed++;
-      }
-      else
-      {
-        v_tab_t[1] = 0.0f;
-      }
-    }
-    __syncthreads();
-
-    v_acc_tmp0 = v_ae_pPre[i] + v_tab_t[s_output[i*2]];
-    v_acc_tmp1 = v_ae_pPre[i] + v_tab_t[s_output[i*2+1]];
-
-    if((i%2) == 0)
-    {
-      v_next0 = s_next[i*2];
-      v_next1 = s_next[i*2+1];
-      if (v_acc_tmp0 > v_ae_pCur[v_next0])
-      {
-        v_ae_pCur[v_next0] = v_acc_tmp0;
-        v_state_his[(v_t+1)*64 + v_next0] = i;
-      }
-      if (v_acc_tmp1 > v_ae_pCur[v_next1])
-      {
-        v_ae_pCur[v_next1] = v_acc_tmp1;
-        v_state_his[(v_t+1)*64 + v_next1] = i;
-      }
-    }
-    __syncthreads();
-
-    if((i%2) == 1)
-    {
-      v_next0 = s_next[i*2];
-      v_next1 = s_next[i*2+1];
-      if (v_acc_tmp0 > v_ae_pCur[v_next0])
-      {
-        v_ae_pCur[v_next0] = v_acc_tmp0;
-        v_state_his[(v_t+1)*64 + v_next0] = i;
-      }
-      if (v_acc_tmp1 > v_ae_pCur[v_next1])
-      {
-        v_ae_pCur[v_next1] = v_acc_tmp1;
-        v_state_his[(v_t+1)*64 + v_next1] = i;
-      }
+    if (i < crlen) {
+        v_punc[i] = punc[i];
     }
 
-    v_ae_pTmp = v_ae_pPre;
-    v_ae_pPre = v_ae_pCur;
-    v_ae_pCur = v_ae_pTmp;
+    v_output[i * 2] = s_output[i * 2];
+    v_output[i * 2 + 1] = s_output[i * 2 + 1];
+    v_next[i * 2] = s_next[i * 2];
+    v_next[i * 2 + 1] = s_next[i * 2 + 1];
 
-    v_ae_pCur[i] = -1000000000000000.0f;
-
-    v_cr_p += 2;
-    if(v_cr_p >= crlen)
-    {v_cr_p = 0;}
-  }
-
-  if(i == 0)
-  {
-    seq[trellis] = 0;
-    for (int j = trellis; j > 0; j--)
-    {
-      seq[j-1] = v_state_his[j*64 + seq[j]];
+    if (i == 0) {
+        v_accum_err0[i] = 0.0f;
+    } else {
+        v_accum_err0[i] = -1000000000000000.0f;
     }
-  }
+    v_accum_err1[i] = -1000000000000000.0f;
+    v_ae_pCur = v_accum_err1;
+    v_ae_pPre = v_accum_err0;
+
+    while ((tmpUsed + v_punc[v_cr_p] + v_punc[v_cr_p + 1]) <= len && v_t < trellis) {
+        if (i == 0) {
+            v_tab_t[0] = 0.0f;
+            if (v_punc[v_cr_p]) {
+                v_tab_t[2] = llr[tmpUsed];
+                v_tab_t[3] = llr[tmpUsed];
+                tmpUsed++;
+            } else {
+                v_tab_t[2] = 0.0f;
+                v_tab_t[3] = 0.0f;
+            }
+            if (v_punc[v_cr_p + 1]) {
+                v_tab_t[1] = llr[tmpUsed];
+                v_tab_t[3] += llr[tmpUsed];
+                tmpUsed++;
+            } else {
+                v_tab_t[1] = 0.0f;
+            }
+        }
+        __syncthreads();
+
+        v_acc_tmp0 = v_ae_pPre[i] + v_tab_t[v_output[i * 2]];
+        v_acc_tmp1 = v_ae_pPre[i] + v_tab_t[v_output[i * 2 + 1]];
+
+        if ((i % 2) == 0) {
+            v_next0 = v_next[i * 2];
+            v_next1 = v_next[i * 2 + 1];
+            if (v_acc_tmp0 > v_ae_pCur[v_next0]) {
+                v_ae_pCur[v_next0] = v_acc_tmp0;
+                s_his[(v_t + 1) * 64 + v_next0] = i;
+            }
+            if (v_acc_tmp1 > v_ae_pCur[v_next1]) {
+                v_ae_pCur[v_next1] = v_acc_tmp1;
+                s_his[(v_t + 1) * 64 + v_next1] = i;
+            }
+        }
+        __syncthreads();
+
+        if ((i % 2) == 1) {
+            v_next0 = v_next[i * 2];
+            v_next1 = v_next[i * 2 + 1];
+            if (v_acc_tmp0 > v_ae_pCur[v_next0]) {
+                v_ae_pCur[v_next0] = v_acc_tmp0;
+                s_his[(v_t + 1) * 64 + v_next0] = i;
+            }
+            if (v_acc_tmp1 > v_ae_pCur[v_next1]) {
+                v_ae_pCur[v_next1] = v_acc_tmp1;
+                s_his[(v_t + 1) * 64 + v_next1] = i;
+            }
+        }
+
+        v_ae_pTmp = v_ae_pPre;
+        v_ae_pPre = v_ae_pCur;
+        v_ae_pCur = v_ae_pTmp;
+
+        v_ae_pCur[i] = -1000000000000000.0f;
+
+        v_cr_p += 2;
+        if (v_cr_p >= crlen) {
+            v_cr_p = 0;
+        }
+
+        v_t++;
+    }
+}
+
+__global__ void cuDecodeTb1(int trellis, int* s_his, int* s_seq)
+{
+    s_seq[trellis] = 0;
+    for (int j = trellis; j > 0; j--) {
+        s_seq[j - 1] = s_his[j * 64 + s_seq[j]];
+    }
+}
+
+__global__ void cuDecodeTb2(int trellis, int* s_seq, int* s_next, int* bits)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= trellis) {
+        return;
+    }
+    if (s_seq[i + 1] == s_next[s_seq[i] * 2 + 1]) {
+        bits[i] = 1;
+    } else {
+        bits[i] = 0;
+    }
 }
 
 void cuDemodMall()
@@ -469,20 +486,20 @@ void cuDemodMall()
   cudaMemcpy(demodDemap64QamNL, mapDeintNonlegacy64Qam, 312*sizeof(int), cudaMemcpyHostToDevice);
   cudaMemcpy(demodDemap256QamNL, mapDeintNonlegacy256Qam, 416*sizeof(int), cudaMemcpyHostToDevice);
 
-  cudaMalloc(&v_state_his, sizeof(int) * 64 * (CUDEMOD_V_MAX+1));
-  cudaMalloc(&v_state_bit, sizeof(int) * (CUDEMOD_V_MAX+1));
-  cudaMalloc(&v_state_next, sizeof(int) * 128);
-  cudaMemcpy(v_state_next, SV_STATE_NEXT, 128*sizeof(int), cudaMemcpyHostToDevice);
-  cudaMalloc(&v_state_output, sizeof(int) * 128);
-  cudaMemcpy(v_state_output, SV_STATE_OUTPUT, 128*sizeof(int), cudaMemcpyHostToDevice);
-  cudaMalloc(&v_cr_punc, sizeof(int) * 22);
+  cudaMalloc(&cuv_seq, sizeof(int) * CUDEMOD_V_MAX);
+  cudaMalloc(&cuv_bits, sizeof(int) * CUDEMOD_V_MAX);
+  cudaMalloc(&cuv_state_his, sizeof(int) * 64 * (CUDEMOD_V_MAX + 1));
+  cudaMalloc(&cuv_state_bit, sizeof(int) * (CUDEMOD_V_MAX + 1));
+  cudaMalloc(&cuv_state_next, sizeof(int) * 128);
+  cudaMemcpy(cuv_state_next, SV_STATE_NEXT, 128 * sizeof(int), cudaMemcpyHostToDevice);
+  cudaMalloc(&cuv_state_output, sizeof(int) * 128);
+  cudaMemcpy(
+      cuv_state_output, SV_STATE_OUTPUT, 128 * sizeof(int), cudaMemcpyHostToDevice);
+  cudaMalloc(&cuv_cr_punc, sizeof(int) * 22);
   int tmpPunc[22] = {
-    1, 1,
-    1, 1, 1, 0,
-    1, 1, 1, 0, 0, 1,
-    1, 1, 1, 0, 0, 1, 1, 0, 0, 1
+      1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1
   };
-  cudaMemcpy(v_cr_punc, tmpPunc, 22*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(cuv_cr_punc, tmpPunc, 22 * sizeof(int), cudaMemcpyHostToDevice);
 }
 
 void cuDemodFree()
@@ -507,11 +524,13 @@ void cuDemodFree()
   cudaFree(demodDemap64QamNL);
   cudaFree(demodDemap256QamNL);
 
-  cudaFree(v_state_his);
-  cudaFree(v_state_bit);
-  cudaFree(v_state_next);
-  cudaFree(v_state_output);
-  cudaFree(v_cr_punc);
+  cudaFree(cuv_seq);
+  cudaFree(cuv_bits);
+  cudaFree(cuv_state_his);
+  cudaFree(cuv_state_bit);
+  cudaFree(cuv_state_next);
+  cudaFree(cuv_state_output);
+  cudaFree(cuv_cr_punc);
 }
 
 void cuDemodChanSiso(cuFloatComplex *chan)
@@ -529,6 +548,11 @@ void cuDemodSigCopy(int i, int n, const cuFloatComplex *sig)
 
 void cuDemodSiso(c8p_mod* m)
 {
+  int cuv_llr_len = m->nSym * m->nCBPS;
+  int* cuv_cr_punc_p;
+  int cuv_cr_len;
+  int cuv_trellis;
+
   cuDemodChopSamp<<<(m->nSym * m->nSymSamp)/1024 + 1, 1024>>>(m->nSym * m->nSymSamp, demodSig, demodSigFft);
   for(int symIter=0; symIter < ((m->nSym + CUDEMOD_FFT_BATCH - 1) / CUDEMOD_FFT_BATCH); symIter++ )   // each round inlcudes 256 batches
   {
@@ -590,12 +614,45 @@ void cuDemodSiso(c8p_mod* m)
     }
   }
 
-  cudaMemset(v_state_his, 0, sizeof(int) * 64 * (CUDEMOD_V_MAX+1));
+  if(m->format == C8P_F_L || m->format == C8P_F_HT)
+  {
+    cuv_trellis = 22 + m->len*8;
+  }
+  else
+  {
+    cuv_trellis = m->nSym * m->nDBPS;
+  }
+  
+  if (m->cr == C8P_CR_12) {
+      cuv_cr_len = 2;
+      cuv_cr_punc_p = &cuv_cr_punc[0];
+  } else if (m->cr == C8P_CR_23) {
+      cuv_cr_len = 4;
+      cuv_cr_punc_p = &cuv_cr_punc[2];
+  } else if (m->cr == C8P_CR_34) {
+      cuv_cr_len = 6;
+      cuv_cr_punc_p = &cuv_cr_punc[6];
+  } else {
+      cuv_cr_len = 10;
+      cuv_cr_punc_p = &cuv_cr_punc[12];
+  }
+  cudaMemset(cuv_state_his, 0, sizeof(int) * 64 * (cuv_trellis + 1));
+  cuDecodeViterbi<<<1, 64>>>(demodSigLlr,
+                              cuv_llr_len,
+                              cuv_trellis,
+                              cuv_cr_len,
+                              cuv_cr_punc_p,
+                              cuv_state_his,
+                              cuv_state_output,
+                              cuv_state_next);
+  cuDecodeTb1<<<1, 1>>>(cuv_trellis, cuv_state_his, cuv_seq);
+  cuDecodeTb2<<<(cuv_trellis + 1023) / 1024, 1024>>>(cuv_trellis, cuv_seq, cuv_state_next, cuv_bits);
 
 }
 
-void cuDemodDebug(int n, cuFloatComplex* outcomp, int m, float* outfloat)
+void cuDemodDebug(int n, cuFloatComplex* outcomp, int m, float* outfloat, int o, int* outint)
 {
   cudaMemcpy(outcomp, demodSigFft, n*sizeof(cuFloatComplex), cudaMemcpyDeviceToHost);
   cudaMemcpy(outfloat, demodSigLlr, m*sizeof(float), cudaMemcpyDeviceToHost);
+  cudaMemcpy(outint, cuv_bits, o*sizeof(int), cudaMemcpyDeviceToHost);
 }

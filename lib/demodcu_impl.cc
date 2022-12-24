@@ -50,8 +50,6 @@ namespace gr {
       d_sDemod = DEMOD_S_RDTAG;
       set_tag_propagation_policy(block::TPP_DONT);
       cuDemodMall();
-      memset((uint8_t*) d_debugComp, 0, sizeof(gr_complex) * 8192);
-      memset((uint8_t*) d_debugFloat, 0, sizeof(float) * 8192);
       d_sampCount = 0;
       d_usUsed = 0;
       d_usUsedCu = 0;
@@ -253,7 +251,11 @@ namespace gr {
           cuDemodSiso(&d_m);
           d_tcu3 = std::chrono::high_resolution_clock::now();
           d_usUsedCu2 += std::chrono::duration_cast<std::chrono::microseconds>(d_tcu3 - d_tcu2).count();
-          cuDemodDebug(d_m.nSym * 64, (cuFloatComplex*) d_debugComp, d_m.nSym * d_m.nCBPSS, d_debugFloat);
+
+          gr_complex d_debugComp[8192];
+          float d_debugFloat[8192];
+          int d_debugInt[8192];
+          cuDemodDebug(d_m.nSym * 64, (cuFloatComplex*) d_debugComp, d_m.nSym * d_m.nCBPSS, d_debugFloat, d_m.nSym * d_m.nDBPS, d_debugInt);
           dout<<std::endl;
           dout<<"[";
           for(int i=0;i<d_m.nSym * d_m.nCBPSS;i++){
@@ -268,9 +270,16 @@ namespace gr {
           }
           dout<<"]";
           dout<<std::endl;
+          dout<<"coded llr number: "<<d_m.nSym * d_m.nCBPSS<<std::endl;
           dout<<std::endl;
           for(int i=0;i<d_m.nSym * d_m.nCBPSS;i++){
             dout<<d_debugFloat[i]<<", ";
+          }
+          dout<<std::endl;
+          dout<<std::endl;
+          dout<<"decoded bits number: "<<d_m.nSym * d_m.nDBPS<<std::endl;
+          for(int i=0;i<d_m.nSym * d_m.nDBPS;i++){
+            dout<<d_debugInt[i]<<", ";
           }
           dout<<std::endl;
           // go to clean

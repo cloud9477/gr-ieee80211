@@ -166,11 +166,11 @@ if __name__ == "__main__":
     # pkt = genMac80211UdpMPDU(udpPayload)
     # for mcsIter in range(0, 8):
     #     phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.L, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
-    #     ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0, cfoHz = 0.0, num = 1, gap = True, gapLen = 10000)
+    #     ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0, cfoHz = 0.0, num = 10, gap = True, gapLen = 10000)
     #     ssMultiList.append(ssFinal)
     # for mcsIter in range(0, 8):
     #     phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.HT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
-    #     ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0, cfoHz = 0.0, num = 1, gap = True, gapLen = 10000)
+    #     ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0, cfoHz = 0.0, num = 10, gap = True, gapLen = 10000)
     #     ssMultiList.append(ssFinal)
     pkts = genMac80211UdpAmpduVht([udpPayload])
     for mcsIter in range(0, 9):

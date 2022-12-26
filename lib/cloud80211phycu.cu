@@ -119,7 +119,7 @@ void cuPreProc(int n, const cuFloatComplex *sig, float* ac, cuFloatComplex* conj
 }
 
 /*--------------------------------------------------------------------------------------------------------*/
-uint8_t descramSeq[128][127] = {
+unsigned char descramSeq[128][127] = {
 {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,},
 {1,0,0,0,1,0,0,1,1,0,0,0,1,0,1,1,1,0,1,0,1,1,0,1,1,0,0,0,0,0,1,1,0,0,1,1,0,1,0,1,0,0,1,1,1,0,0,1,1,1,1,0,1,1,0,1,0,0,0,0,1,0,1,0,1,0,1,1,1,1,1,0,1,0,0,1,0,1,0,0,0,1,1,0,1,1,1,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1,0,1,1,1,1,0,0,1,0,1,1,0,0,1,0,0,1,0,0,0,0,0,0,},
 {0,1,0,0,0,1,0,0,1,1,0,0,0,1,0,1,1,1,0,1,0,1,1,0,1,1,0,0,0,0,0,1,1,0,0,1,1,0,1,0,1,0,0,1,1,1,0,0,1,1,1,1,0,1,1,0,1,0,0,0,0,1,0,1,0,1,0,1,1,1,1,1,0,1,0,0,1,0,1,0,0,0,1,1,0,1,1,1,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1,0,1,1,1,1,0,0,1,0,1,1,0,0,1,0,0,1,0,0,0,0,0,},
@@ -279,12 +279,14 @@ int* demodDemap64QamNL;
 int* demodDemap256QamNL;
 
 int* cuv_seq;
-int* cuv_bits;
 int* cuv_state_his;
 int* cuv_state_bit;
 int* cuv_state_next;
 int* cuv_state_output;
 int* cuv_cr_punc;
+unsigned char* cuv_bits;
+unsigned char* cuv_descram_seq;
+unsigned char* cuv_bytes;
 
 __global__
 void cuDemodChopSamp(int n, cuFloatComplex* sig, cuFloatComplex* sigfft)
@@ -308,25 +310,6 @@ void cuDemodChanComp(int n, cuFloatComplex* sigfft, cuFloatComplex* chan)
     sigfft[i] = cuCdivf(sigfft[i], chan[offset]);
   }
 }
-
-// __global__
-// void cuDemodChanComp(int n, cuFloatComplex* sigfft, cuFloatComplex* chan)
-// {
-//   int i = threadIdx.x;
-//   int I = blockIdx.x * blockDim.x + threadIdx.x;
-//   int offset = I % 64;
-//   __shared__ cuFloatComplex chanIn[64];
-//   if(I >= n)
-//   {
-//     return;
-//   }
-//   if(i < 64)
-//   {
-//     chanIn[i] = chan[i];
-//   }
-//   __syncthreads();
-//   sigfft[I] = cuCdivf(sigfft[I], chanIn[offset]);
-// }
 
 __global__
 void cuDemodQamToLlr(int n, int nCBPSS, cuFloatComplex* sigfft, float* llr, cuFloatComplex* p, int* deshift, int* deint)
@@ -523,7 +506,7 @@ __global__ void cuDecodeTb1(int trellis, int* s_his, int* s_seq)
     }
 }
 
-__global__ void cuDecodeTb2(int trellis, int* s_seq, int* s_next, int* bits)
+__global__ void cuDecodeTb2(int trellis, int* s_seq, int* s_next, unsigned char* bits)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= trellis) {
@@ -534,6 +517,44 @@ __global__ void cuDecodeTb2(int trellis, int* s_seq, int* s_next, int* bits)
     } else {
         bits[i] = 0;
     }
+}
+
+__global__ void cuDecodeDescram(int trellis, unsigned char* bits, unsigned char* desseq)
+{
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  __shared__ int v_descram_init;
+  if (i >= trellis) {
+      return;
+  }
+
+  if (i == 0) {
+      v_descram_init = 0;
+      for (int j = 0; j < 7; j++) {
+          v_descram_init |= (bits[j] << j);
+      }
+      v_descram_init = v_descram_init * 127;
+  }
+
+  __syncthreads();
+  if (i < 7) {
+      bits[i] = 0;
+  } else {
+      bits[i] = bits[i] ^ desseq[v_descram_init + ((i - 7) % 127)];
+  }
+}
+
+__global__ void cuDecodeB2B(int n, unsigned char* bits, unsigned char* bytes)
+{
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if(i >= n)
+  {
+    return;
+  }
+  bytes[i] = 0;
+  for(int j=0;j<8;j++)
+  {
+    bytes[i] |= (bits[i*8+j]<<j);
+  }
 }
 
 void cuDemodMall()
@@ -618,7 +639,8 @@ void cuDemodMall()
   cudaMemcpy(demodDemap256QamNL, mapDeintNonlegacy256Qam, 416*sizeof(int), cudaMemcpyHostToDevice);
 
   cudaMalloc(&cuv_seq, sizeof(int) * CUDEMOD_V_MAX);
-  cudaMalloc(&cuv_bits, sizeof(int) * CUDEMOD_V_MAX);
+  cudaMalloc(&cuv_bits, sizeof(unsigned char) * CUDEMOD_V_MAX);
+  cudaMalloc(&cuv_bytes, sizeof(unsigned char) * CUDEMOD_V_MAX);
   cudaMalloc(&cuv_state_his, sizeof(int) * 64 * (CUDEMOD_V_MAX + 1));
   cudaMalloc(&cuv_state_bit, sizeof(int) * (CUDEMOD_V_MAX + 1));
   cudaMalloc(&cuv_state_next, sizeof(int) * 128);
@@ -631,6 +653,8 @@ void cuDemodMall()
       1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1
   };
   cudaMemcpy(cuv_cr_punc, tmpPunc, 22 * sizeof(int), cudaMemcpyHostToDevice);
+  cudaMalloc(&cuv_descram_seq, sizeof(unsigned char) * 128 * 127);
+  cudaMemcpy(cuv_descram_seq, descramSeq, sizeof(unsigned char) * 128 * 127, cudaMemcpyHostToDevice);
 }
 
 void cuDemodFree()
@@ -657,11 +681,13 @@ void cuDemodFree()
 
   cudaFree(cuv_seq);
   cudaFree(cuv_bits);
+  cudaFree(cuv_bytes);
   cudaFree(cuv_state_his);
   cudaFree(cuv_state_bit);
   cudaFree(cuv_state_next);
   cudaFree(cuv_state_output);
   cudaFree(cuv_cr_punc);
+  cudaFree(cuv_descram_seq);
 }
 
 void cuDemodChanSiso(cuFloatComplex *chan)
@@ -677,7 +703,7 @@ void cuDemodSigCopy(int i, int n, const cuFloatComplex *sig)
   }
 }
 
-void cuDemodSiso(c8p_mod* m)
+void cuDemodSiso(c8p_mod* m, unsigned char* psduBytes)
 {
   int cuv_llr_len = m->nSym * m->nCBPS;
   int* cuv_cr_punc_p;
@@ -778,12 +804,14 @@ void cuDemodSiso(c8p_mod* m)
                               cuv_state_next);
   cuDecodeTb1<<<1, 1>>>(cuv_trellis, cuv_state_his, cuv_seq);
   cuDecodeTb2<<<(cuv_trellis + 1023) / 1024, 1024>>>(cuv_trellis, cuv_seq, cuv_state_next, cuv_bits);
-
+  cuDecodeDescram<<<(cuv_trellis + 1023) / 1024, 1024>>>(cuv_trellis, cuv_bits, cuv_descram_seq);
+  cuDecodeB2B<<<(m->len + 1023) / 1024, 1024>>>(m->len, &cuv_bits[16], cuv_bytes);
+  cudaMemcpy(psduBytes, cuv_bytes, m->len*sizeof(unsigned char), cudaMemcpyDeviceToHost);
 }
 
-void cuDemodDebug(int n, cuFloatComplex* outcomp, int m, float* outfloat, int o, int* outint)
+void cuDemodDebug(int n, cuFloatComplex* outcomp, int m, float* outfloat, int o, unsigned char* outint)
 {
   cudaMemcpy(outcomp, demodSigFft, n*sizeof(cuFloatComplex), cudaMemcpyDeviceToHost);
   cudaMemcpy(outfloat, demodSigLlr, m*sizeof(float), cudaMemcpyDeviceToHost);
-  cudaMemcpy(outint, cuv_bits, o*sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(outint, cuv_bytes, o*sizeof(unsigned char), cudaMemcpyDeviceToHost);
 }

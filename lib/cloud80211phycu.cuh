@@ -57,7 +57,7 @@ void cuDemodMall();
 void cuDemodFree();
 void cuDemodChanSiso(cuFloatComplex *chan);
 void cuDemodSigCopy(int i, int n, const cuFloatComplex *sig);
-void cuDemodSiso(c8p_mod* m);
-void cuDemodDebug(int n, cuFloatComplex* outcomp, int m, float* outfloat, int o, int* outint);
+void cuDemodSiso(c8p_mod* m, unsigned char* psduBytes);
+void cuDemodDebug(int n, cuFloatComplex* outcomp, int m, float* outfloat, int o, unsigned char* outint);
 
 #endif /* INCLUDED_IEEE80211_SIGNAL_IMPL_H */

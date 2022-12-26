@@ -23,6 +23,7 @@
 
 #include <gnuradio/ieee80211/demodcu.h>
 #include <gnuradio/fft/fft.h>
+#include <boost/crc.hpp>
 #include "cloud80211phy.h"
 #include "cloud80211phycu.cuh"
 
@@ -82,6 +83,13 @@ namespace gr {
       int d_nSampTotoal;
       int d_nSampCopied;
       int d_nTrellis;
+      boost::crc_32_type d_crc32;
+      uint8_t d_psduBytes[CUDEMOD_B_MAX];
+      // packet counter
+      uint64_t d_nPktCorrect;
+      uint64_t d_legacyMcsCount[8];
+      uint64_t d_vhtMcsCount[10];
+      uint64_t d_htMcsCount[8];
       // performance
       std::chrono::_V2::system_clock::time_point d_ts;
       std::chrono::_V2::system_clock::time_point d_te;
@@ -105,6 +113,7 @@ namespace gr {
            gr_vector_int &ninput_items,
            gr_vector_const_void_star &input_items,
            gr_vector_void_star &output_items);
+      void packetAssemble();
       void fftDemod(const gr_complex* sig, gr_complex* res);
       void nonLegacyChanEstimate(const gr_complex* sig1);
       void vhtSigBDemod(const gr_complex* sig1);

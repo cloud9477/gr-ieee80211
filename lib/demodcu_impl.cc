@@ -48,8 +48,15 @@ namespace gr {
       d_nUsed = 0;
       d_debug = true;
       d_sDemod = DEMOD_S_RDTAG;
+      d_nPktCorrect = 0;
+      memset(d_vhtMcsCount, 0, sizeof(uint64_t) * 10);
+      memset(d_legacyMcsCount, 0, sizeof(uint64_t) * 8);
+      memset(d_htMcsCount, 0, sizeof(uint64_t) * 8);
       set_tag_propagation_policy(block::TPP_DONT);
+      dout << "ieee80211 demodcu, cuda mall"<<std::endl;
       cuDemodMall();
+      dout << "ieee80211 demodcu, cuda mall finish"<<std::endl;
+
       d_sampCount = 0;
       d_usUsed = 0;
       d_usUsedCu = 0;
@@ -248,40 +255,51 @@ namespace gr {
           d_nUsed += (d_nSampTotoal - d_nSampCopied);
           // then run cuda to demod and decode
           d_tcu2 = std::chrono::high_resolution_clock::now();
-          cuDemodSiso(&d_m);
+          cuDemodSiso(&d_m, d_psduBytes);
           d_tcu3 = std::chrono::high_resolution_clock::now();
           d_usUsedCu2 += std::chrono::duration_cast<std::chrono::microseconds>(d_tcu3 - d_tcu2).count();
 
-          gr_complex d_debugComp[8192];
-          float d_debugFloat[8192];
-          int d_debugInt[8192];
-          cuDemodDebug(d_m.nSym * 64, (cuFloatComplex*) d_debugComp, d_m.nSym * d_m.nCBPSS, d_debugFloat, d_m.nSym * d_m.nDBPS, d_debugInt);
-          dout<<std::endl;
-          dout<<"[";
-          for(int i=0;i<d_m.nSym * d_m.nCBPSS;i++){
-            if(d_debugFloat[i] > 0.0f)
-            {
-              dout<<"1, ";
-            }
-            else
-            {
-              dout<<"0, ";
-            }
+          dout<<"ieee80211 demodcu, decoded bytes: "<<d_m.len<<std::endl;
+          dout<<std::hex;
+          for(int i=0;i<d_m.len;i++){
+            dout<<(int)d_psduBytes[i]<<",";
           }
-          dout<<"]";
+          dout<<std::dec;
           dout<<std::endl;
-          dout<<"coded llr number: "<<d_m.nSym * d_m.nCBPSS<<std::endl;
-          dout<<std::endl;
-          for(int i=0;i<d_m.nSym * d_m.nCBPSS;i++){
-            dout<<d_debugFloat[i]<<", ";
-          }
-          dout<<std::endl;
-          dout<<std::endl;
-          dout<<"decoded bits number: "<<d_m.nSym * d_m.nDBPS<<std::endl;
-          for(int i=0;i<d_m.nSym * d_m.nDBPS;i++){
-            dout<<d_debugInt[i]<<", ";
-          }
-          dout<<std::endl;
+          
+          packetAssemble();
+
+          // gr_complex d_debugComp[8192];
+          // float d_debugFloat[8192];
+          // uint8_t d_debugInt[8192];
+          // cuDemodDebug(d_m.nSym * 64, (cuFloatComplex*) d_debugComp, d_m.nSym * d_m.nCBPSS, d_debugFloat, d_m.nSym * d_m.nDBPS, d_debugInt);
+          // dout<<std::endl;
+          // dout<<"[";
+          // for(int i=0;i<d_m.nSym * d_m.nCBPSS;i++){
+          //   if(d_debugFloat[i] > 0.0f)
+          //   {
+          //     dout<<"1, ";
+          //   }
+          //   else
+          //   {
+          //     dout<<"0, ";
+          //   }
+          // }
+          // dout<<"]";
+          // dout<<std::endl;
+          // dout<<"coded llr number: "<<d_m.nSym * d_m.nCBPSS<<", trellis: "<<22 + d_m.len*8<<std::endl;
+          // dout<<std::endl;
+          // for(int i=0;i<d_m.nSym * d_m.nCBPSS;i++){
+          //   dout<<d_debugFloat[i]<<", ";
+          // }
+          // dout<<std::endl;
+          // dout<<std::endl;
+          // dout<<"decoded bits number: "<<d_m.nSym * d_m.nDBPS<<std::endl;
+          // for(int i=0;i<d_m.len;i++){
+          //   dout<<std::hex<<(int)d_debugInt[i]<<", ";
+          // }
+          // dout<<std::dec;
+          // dout<<std::endl;
           // go to clean
           d_sDemod = DEMOD_S_CLEAN;
         }
@@ -314,6 +332,176 @@ namespace gr {
 
       consume_each (d_nUsed);
       return 0;
+    }
+
+    void
+    demodcu_impl::packetAssemble()
+    {
+      if(d_m.format == C8P_F_VHT)
+      {
+        int tmpDeliBits[24];
+        int tmpEof = 0, tmpLen = 0, tmpProcP = 0;
+        while(true)
+        {
+          if((d_m.len - tmpProcP) < 4)
+          {
+            break;
+          }
+          // get info from delimiter
+          for(int i=0;i<3;i++)
+          {
+            for(int j=0;j<8;j++)
+            {
+              tmpDeliBits[i*8+j] = (d_psduBytes[tmpProcP+i] >> j) & 1;
+            }
+          }
+          tmpEof = tmpDeliBits[0];
+          tmpLen |= (((int)tmpDeliBits[2])<<12);
+          tmpLen |= (((int)tmpDeliBits[3])<<13);
+          for(int i=0;i<12;i++)
+          {
+            tmpLen |= (((int)tmpDeliBits[4+i])<<i);
+          }
+          dout << "ieee80211 demodcu, vht pkt sf len: "<<tmpLen<<std::endl;
+          if(d_m.len < (tmpProcP + 4 + tmpLen))
+          {
+            break;
+          }
+          // write info into delimiter part
+          d_crc32.reset();
+          d_crc32.process_bytes(&d_psduBytes[tmpProcP+4], tmpLen);
+          if (d_crc32.checksum() != 558161692) {
+            dout << "ieee80211 decode, vht crc32 wrong, total:"<< d_nPktCorrect;
+            dout << ",0:"<<d_vhtMcsCount[0];
+            dout << ",1:"<<d_vhtMcsCount[1];
+            dout << ",2:"<<d_vhtMcsCount[2];
+            dout << ",3:"<<d_vhtMcsCount[3];
+            dout << ",4:"<<d_vhtMcsCount[4];
+            dout << ",5:"<<d_vhtMcsCount[5];
+            dout << ",6:"<<d_vhtMcsCount[6];
+            dout << ",7:"<<d_vhtMcsCount[7];
+            dout << ",8:"<<d_vhtMcsCount[8];
+            dout << ",9:"<<d_vhtMcsCount[9];
+            dout << std::endl;
+            tmpProcP = tmpProcP + 4 + tmpLen;
+          }
+          else
+          {
+            d_nPktCorrect++;
+            if(d_m.mcs >= 0 && d_m.mcs < 10)
+            {
+              d_vhtMcsCount[d_m.mcs]++;
+            }
+            dout << "ieee80211 decode, vht crc32 correct, total:" << d_nPktCorrect;
+            dout << ",0:"<<d_vhtMcsCount[0];
+            dout << ",1:"<<d_vhtMcsCount[1];
+            dout << ",2:"<<d_vhtMcsCount[2];
+            dout << ",3:"<<d_vhtMcsCount[3];
+            dout << ",4:"<<d_vhtMcsCount[4];
+            dout << ",5:"<<d_vhtMcsCount[5];
+            dout << ",6:"<<d_vhtMcsCount[6];
+            dout << ",7:"<<d_vhtMcsCount[7];
+            dout << ",8:"<<d_vhtMcsCount[8];
+            dout << ",9:"<<d_vhtMcsCount[9];
+            dout << std::endl;
+            // 1 byte packet format, 2 byte len
+            d_psduBytes[tmpProcP+1] = d_m.format;    // byte 0 format
+            d_psduBytes[tmpProcP+2] = tmpLen%256;  // byte 1-2 packet len
+            d_psduBytes[tmpProcP+3] = tmpLen/256;
+            pmt::pmt_t tmpMeta = pmt::make_dict();
+            tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(tmpLen+3));
+            pmt::pmt_t tmpPayload = pmt::make_blob(&d_psduBytes[tmpProcP + 1], tmpLen+3);
+            message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
+            tmpProcP = tmpProcP + 4 + tmpLen;
+          }
+          if(tmpEof)
+          {
+            break;
+          }
+        }
+      }
+      else
+      {
+        // a and n general packet
+        if(d_m.ampdu)
+        {
+          // n ampdu, to be added
+        }
+        else
+        { 
+          d_crc32.reset();
+          d_crc32.process_bytes(d_psduBytes, d_m.len);
+          if (d_crc32.checksum() != 558161692) {
+            if(d_m.format == C8P_F_L)
+            {
+              dout << "ieee80211 decode, legacy crc32 wrong, total:"<< d_nPktCorrect;
+              dout << ",0:"<<d_legacyMcsCount[0];
+              dout << ",1:"<<d_legacyMcsCount[1];
+              dout << ",2:"<<d_legacyMcsCount[2];
+              dout << ",3:"<<d_legacyMcsCount[3];
+              dout << ",4:"<<d_legacyMcsCount[4];
+              dout << ",5:"<<d_legacyMcsCount[5];
+              dout << ",6:"<<d_legacyMcsCount[6];
+              dout << ",7:"<<d_legacyMcsCount[7];
+              dout << std::endl;
+            }
+            else
+            {
+              dout << "ieee80211 decode, ht crc32 wrong, total:"<< d_nPktCorrect;
+              dout << ",0:"<<d_htMcsCount[0];
+              dout << ",1:"<<d_htMcsCount[1];
+              dout << ",2:"<<d_htMcsCount[2];
+              dout << ",3:"<<d_htMcsCount[3];
+              dout << ",4:"<<d_htMcsCount[4];
+              dout << ",5:"<<d_htMcsCount[5];
+              dout << ",6:"<<d_htMcsCount[6];
+              dout << ",7:"<<d_htMcsCount[7];
+              dout << std::endl;
+            }
+          }
+          else
+          {
+            d_nPktCorrect++;
+            if(d_m.format == C8P_F_L && d_m.mcs < 8)
+            {
+              d_legacyMcsCount[d_m.mcs]++;
+              dout << "ieee80211 decode, legacy crc32 correct, total:"<< d_nPktCorrect;
+              dout << ",0:"<<d_legacyMcsCount[0];
+              dout << ",1:"<<d_legacyMcsCount[1];
+              dout << ",2:"<<d_legacyMcsCount[2];
+              dout << ",3:"<<d_legacyMcsCount[3];
+              dout << ",4:"<<d_legacyMcsCount[4];
+              dout << ",5:"<<d_legacyMcsCount[5];
+              dout << ",6:"<<d_legacyMcsCount[6];
+              dout << ",7:"<<d_legacyMcsCount[7];
+              dout << std::endl;
+            }
+            else if(d_m.format == C8P_F_HT && d_m.mcs < 16)
+            {
+              d_htMcsCount[d_m.mcs%8]++;
+              dout << "ieee80211 decode, ht crc32 correct, total:"<< d_nPktCorrect;
+              dout << ",0:"<<d_htMcsCount[0];
+              dout << ",1:"<<d_htMcsCount[1];
+              dout << ",2:"<<d_htMcsCount[2];
+              dout << ",3:"<<d_htMcsCount[3];
+              dout << ",4:"<<d_htMcsCount[4];
+              dout << ",5:"<<d_htMcsCount[5];
+              dout << ",6:"<<d_htMcsCount[6];
+              dout << ",7:"<<d_htMcsCount[7];
+              dout << std::endl;
+            }
+            else
+            {
+              dout << "ieee80211 decode, format "<<d_m.format<<" mcs error: "<< d_m.mcs<<std::endl;
+              return;
+            }
+            pmt::pmt_t tmpMeta = pmt::make_dict();
+            tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(d_m.len+3));
+            pmt::pmt_t tmpPayload = pmt::make_blob(d_psduBytes, d_m.len+3);
+            message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
+          }
+        }
+      }
     }
 
     void

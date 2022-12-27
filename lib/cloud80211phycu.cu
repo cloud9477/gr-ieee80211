@@ -260,10 +260,10 @@ cuFloatComplex* demodChanSiso;
 cuFloatComplex* demodSig;
 cuFloatComplex* demodSigFft;
 cufftHandle demodPlan;
-float* demodSigLlr;
 cuFloatComplex* pilotsLegacy;
 cuFloatComplex* pilotsHt;
 cuFloatComplex* pilotsVht;
+float* demodSigLlr;
 
 int* demodDemapFftL;
 int* demodDemapBpskL;
@@ -280,7 +280,6 @@ int* demodDemap256QamNL;
 
 int* cuv_seq;
 int* cuv_state_his;
-int* cuv_state_bit;
 int* cuv_state_next;
 int* cuv_state_output;
 int* cuv_cr_punc;
@@ -432,6 +431,7 @@ __global__ void cuDecodeViterbi(float* llr,
     v_ae_pCur = v_accum_err1;
     v_ae_pPre = v_accum_err0;
 
+    __syncthreads();
     while ((tmpUsed + v_punc[v_cr_p] + v_punc[v_cr_p + 1]) <= len && v_t < trellis) {
         if (i == 0) {
             v_tab_t[0] = 0.0f;
@@ -451,8 +451,8 @@ __global__ void cuDecodeViterbi(float* llr,
                 v_tab_t[1] = 0.0f;
             }
         }
-        __syncthreads();
 
+        __syncthreads();
         v_acc_tmp0 = v_ae_pPre[i] + v_tab_t[v_output[i * 2]];
         v_acc_tmp1 = v_ae_pPre[i] + v_tab_t[v_output[i * 2 + 1]];
 
@@ -468,8 +468,8 @@ __global__ void cuDecodeViterbi(float* llr,
                 s_his[(v_t + 1) * 64 + v_next1] = i;
             }
         }
-        __syncthreads();
 
+        __syncthreads();
         if ((i % 2) == 1) {
             v_next0 = v_next[i * 2];
             v_next1 = v_next[i * 2 + 1];
@@ -483,17 +483,15 @@ __global__ void cuDecodeViterbi(float* llr,
             }
         }
 
+        __syncthreads();
         v_ae_pTmp = v_ae_pPre;
         v_ae_pPre = v_ae_pCur;
         v_ae_pCur = v_ae_pTmp;
-
         v_ae_pCur[i] = -1000000000000000.0f;
-
         v_cr_p += 2;
         if (v_cr_p >= crlen) {
             v_cr_p = 0;
         }
-
         v_t++;
     }
 }
@@ -524,22 +522,22 @@ __global__ void cuDecodeDescram(int trellis, unsigned char* bits, unsigned char*
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   __shared__ int v_descram_init;
   if (i >= trellis) {
-      return;
+    return;
   }
 
-  if (i == 0) {
-      v_descram_init = 0;
-      for (int j = 0; j < 7; j++) {
-          v_descram_init |= (bits[j] << j);
-      }
-      v_descram_init = v_descram_init * 127;
+  if (threadIdx.x == 0) {   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! shared value only shared by threads in the same block
+    v_descram_init = 0;
+    for (int j = 0; j < 7; j++) {
+        v_descram_init |= (bits[j] << j);
+    }
+    v_descram_init = v_descram_init * 127;
   }
 
   __syncthreads();
   if (i < 7) {
-      bits[i] = 0;
+    bits[i] = 0;
   } else {
-      bits[i] = bits[i] ^ desseq[v_descram_init + ((i - 7) % 127)];
+    bits[i] = bits[i] ^ desseq[v_descram_init + ((i - 7) % 127)];
   }
 }
 
@@ -559,19 +557,22 @@ __global__ void cuDecodeB2B(int n, unsigned char* bits, unsigned char* bytes)
 
 void cuDemodMall()
 {
-  cudaMalloc(&demodChanSiso, sizeof(cuFloatComplex) * 64);
-  cudaMalloc(&demodSig, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 80);
-  cudaMalloc(&demodSigFft, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 64);
-  if(cufftPlan1d(&demodPlan, 64, CUFFT_C2C, CUDEMOD_FFT_BATCH) != CUFFT_SUCCESS){
-    std::cout<<"cloud80211 cufft, plan creation failed"<<std::endl;
-  }
-  cudaMalloc(&demodSigLlr, sizeof(float) * CUDEMOD_S_MAX * 52 * 8);
-  cudaMemset(demodSigLlr, 0, sizeof(float) * CUDEMOD_S_MAX * 52 * 8);
-
+  cudaError_t err;
+  err = cudaMalloc(&demodChanSiso, sizeof(cuFloatComplex) * 64);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc siso chan error."<<std::endl;}
+  err = cudaMalloc(&demodSig, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 80);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc siso sig error."<<std::endl;}
+  err = cudaMalloc(&demodSigFft, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 64);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc siso sig fft error."<<std::endl;}
+  cufftResult errfft = cufftPlan1d(&demodPlan, 64, CUFFT_C2C, CUDEMOD_FFT_BATCH);
+  if(errfft){ std::cout<<"cloud80211 cufft, plan creation failed"<<std::endl;}
+  err = cudaMalloc(&pilotsLegacy, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 4);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc siso legacy pilots error."<<std::endl;}
+  err = cudaMalloc(&pilotsHt, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 4);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc siso ht pilots error."<<std::endl;}
+  err = cudaMalloc(&pilotsVht, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 4);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc siso vht pilots error."<<std::endl;}
   cuFloatComplex pListTmp[CUDEMOD_S_MAX * 4];
-  cudaMalloc(&pilotsLegacy, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 4);
-  cudaMalloc(&pilotsHt, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 4);
-  cudaMalloc(&pilotsVht, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 4);
   for(int i=0;i<CUDEMOD_S_MAX;i++)
   {
     pListTmp[i*4] = make_cuFloatComplex(1.0f * PILOT_P[(i+1)%127], 0.0f);
@@ -595,7 +596,6 @@ void cuDemodMall()
     pTmp[3] = tmpPilot;
   }
   cudaMemcpy(pilotsHt, pListTmp, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 4, cudaMemcpyHostToDevice);
-
   float pTmp2[4] = {1.0f, 1.0f, 1.0f, -1.0f};
   for(int i=0;i<CUDEMOD_S_MAX;i++)
   {
@@ -611,23 +611,34 @@ void cuDemodMall()
     pTmp2[3] = tmpPilot;
   }
   cudaMemcpy(pilotsVht, pListTmp, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 4, cudaMemcpyHostToDevice);
+  err = cudaMalloc(&demodSigLlr, sizeof(float) * CUDEMOD_L_MAX);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc llr error."<<std::endl;}
+  cudaMemset(demodSigLlr, 0, sizeof(float) * CUDEMOD_L_MAX);
   
-  
-  cudaMalloc(&demodDemapFftL, sizeof(int) * 64);
+  err = cudaMalloc(&demodDemapFftL, sizeof(int) * 64);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc siso legacy fft shift error."<<std::endl;}
   cudaMemcpy(demodDemapFftL, mapDeshiftFftLegacy, 64*sizeof(int), cudaMemcpyHostToDevice);
-  cudaMalloc(&demodDemapBpskL, sizeof(int) * 48);
-  cudaMalloc(&demodDemapQpskL, sizeof(int) * 96);
-  cudaMalloc(&demodDemap16QamL, sizeof(int) * 192);
-  cudaMalloc(&demodDemap64QamL, sizeof(int) * 288);
-
-  cudaMalloc(&demodDemapFftNL, sizeof(int) * 64);
+  err = cudaMalloc(&demodDemapFftNL, sizeof(int) * 64);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc siso non legacy fft shift error."<<std::endl;}
   cudaMemcpy(demodDemapFftNL, mapDeshiftFftNonlegacy, 64*sizeof(int), cudaMemcpyHostToDevice);
-  cudaMalloc(&demodDemapBpskNL, sizeof(int) * 52);
-  cudaMalloc(&demodDemapQpskNL, sizeof(int) * 104);
-  cudaMalloc(&demodDemap16QamNL, sizeof(int) * 208);
-  cudaMalloc(&demodDemap64QamNL, sizeof(int) * 312);
-  cudaMalloc(&demodDemap256QamNL, sizeof(int) * 416);
-
+  err = cudaMalloc(&demodDemapBpskL, sizeof(int) * 48);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc siso deint legacy bpsk error."<<std::endl;}
+  err = cudaMalloc(&demodDemapQpskL, sizeof(int) * 96);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc siso deint legacy qpsk error."<<std::endl;}
+  err = cudaMalloc(&demodDemap16QamL, sizeof(int) * 192);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc siso deint legacy 16qam error."<<std::endl;}
+  err = cudaMalloc(&demodDemap64QamL, sizeof(int) * 288);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc siso deint legacy 64qam error."<<std::endl;}
+  err = cudaMalloc(&demodDemapBpskNL, sizeof(int) * 52);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc siso deint non legacy bpsk error."<<std::endl;}
+  err = cudaMalloc(&demodDemapQpskNL, sizeof(int) * 104);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc siso deint non legacy qpsk error."<<std::endl;}
+  err = cudaMalloc(&demodDemap16QamNL, sizeof(int) * 208);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc siso deint non legacy 16qam error."<<std::endl;}
+  err = cudaMalloc(&demodDemap64QamNL, sizeof(int) * 312);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc siso deint non legacy 64qam error."<<std::endl;}
+  err = cudaMalloc(&demodDemap256QamNL, sizeof(int) * 416);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc siso deint non legacy 256qam error."<<std::endl;}
   cudaMemcpy(demodDemapBpskL, mapDeintLegacyBpsk, 48*sizeof(int), cudaMemcpyHostToDevice);
   cudaMemcpy(demodDemapQpskL, mapDeintLegacyQpsk, 96*sizeof(int), cudaMemcpyHostToDevice);
   cudaMemcpy(demodDemap16QamL, mapDeintLegacy16Qam, 192*sizeof(int), cudaMemcpyHostToDevice);
@@ -638,22 +649,26 @@ void cuDemodMall()
   cudaMemcpy(demodDemap64QamNL, mapDeintNonlegacy64Qam, 312*sizeof(int), cudaMemcpyHostToDevice);
   cudaMemcpy(demodDemap256QamNL, mapDeintNonlegacy256Qam, 416*sizeof(int), cudaMemcpyHostToDevice);
 
-  cudaMalloc(&cuv_seq, sizeof(int) * CUDEMOD_V_MAX);
-  cudaMalloc(&cuv_bits, sizeof(unsigned char) * CUDEMOD_V_MAX);
-  cudaMalloc(&cuv_bytes, sizeof(unsigned char) * CUDEMOD_V_MAX);
-  cudaMalloc(&cuv_state_his, sizeof(int) * 64 * (CUDEMOD_V_MAX + 1));
-  cudaMalloc(&cuv_state_bit, sizeof(int) * (CUDEMOD_V_MAX + 1));
-  cudaMalloc(&cuv_state_next, sizeof(int) * 128);
+  err = cudaMalloc(&cuv_seq, sizeof(int) * (CUDEMOD_T_MAX + 1));
+  if(err){ std::cout<<"cloud80211 demodcu, malloc decode seq error."<<std::endl;}
+  err = cudaMalloc(&cuv_bits, sizeof(unsigned char) * CUDEMOD_T_MAX);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc decode bits error."<<std::endl;}
+  err = cudaMalloc(&cuv_bytes, sizeof(unsigned char) * CUDEMOD_B_MAX);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc decode bytes error."<<std::endl;}
+  err = cudaMalloc(&cuv_state_his, sizeof(int) * 64 * (CUDEMOD_T_MAX + 1));
+  if(err){ std::cout<<"cloud80211 demodcu, malloc decode state his error."<<std::endl;}
+  err = cudaMalloc(&cuv_state_next, sizeof(int) * 128);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc decode state next error."<<std::endl;}
   cudaMemcpy(cuv_state_next, SV_STATE_NEXT, 128 * sizeof(int), cudaMemcpyHostToDevice);
-  cudaMalloc(&cuv_state_output, sizeof(int) * 128);
-  cudaMemcpy(
-      cuv_state_output, SV_STATE_OUTPUT, 128 * sizeof(int), cudaMemcpyHostToDevice);
-  cudaMalloc(&cuv_cr_punc, sizeof(int) * 22);
-  int tmpPunc[22] = {
-      1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1
-  };
+  err = cudaMalloc(&cuv_state_output, sizeof(int) * 128);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc decode state output error."<<std::endl;}
+  cudaMemcpy(cuv_state_output, SV_STATE_OUTPUT, 128 * sizeof(int), cudaMemcpyHostToDevice);
+  err = cudaMalloc(&cuv_cr_punc, sizeof(int) * 22);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc decode punc map error."<<std::endl;}
+  int tmpPunc[22] = {1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1};
   cudaMemcpy(cuv_cr_punc, tmpPunc, 22 * sizeof(int), cudaMemcpyHostToDevice);
-  cudaMalloc(&cuv_descram_seq, sizeof(unsigned char) * 128 * 127);
+  err = cudaMalloc(&cuv_descram_seq, sizeof(unsigned char) * 128 * 127);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc decode descramble seq error."<<std::endl;}
   cudaMemcpy(cuv_descram_seq, descramSeq, sizeof(unsigned char) * 128 * 127, cudaMemcpyHostToDevice);
 }
 
@@ -683,7 +698,6 @@ void cuDemodFree()
   cudaFree(cuv_bits);
   cudaFree(cuv_bytes);
   cudaFree(cuv_state_his);
-  cudaFree(cuv_state_bit);
   cudaFree(cuv_state_next);
   cudaFree(cuv_state_output);
   cudaFree(cuv_cr_punc);
@@ -807,11 +821,4 @@ void cuDemodSiso(c8p_mod* m, unsigned char* psduBytes)
   cuDecodeDescram<<<(cuv_trellis + 1023) / 1024, 1024>>>(cuv_trellis, cuv_bits, cuv_descram_seq);
   cuDecodeB2B<<<(m->len + 1023) / 1024, 1024>>>(m->len, &cuv_bits[16], cuv_bytes);
   cudaMemcpy(psduBytes, cuv_bytes, m->len*sizeof(unsigned char), cudaMemcpyDeviceToHost);
-}
-
-void cuDemodDebug(int n, cuFloatComplex* outcomp, int m, float* outfloat, int o, unsigned char* outint)
-{
-  cudaMemcpy(outcomp, demodSigFft, n*sizeof(cuFloatComplex), cudaMemcpyDeviceToHost);
-  cudaMemcpy(outfloat, demodSigLlr, m*sizeof(float), cudaMemcpyDeviceToHost);
-  cudaMemcpy(outint, cuv_bytes, o*sizeof(unsigned char), cudaMemcpyDeviceToHost);
 }

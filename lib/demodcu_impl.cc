@@ -46,7 +46,7 @@ namespace gr {
       message_port_register_out(pmt::mp("out"));
       d_nProc = 0;
       d_nUsed = 0;
-      d_debug = true;
+      d_debug = false;
       d_sDemod = DEMOD_S_RDTAG;
       d_nPktCorrect = 0;
       memset(d_vhtMcsCount, 0, sizeof(uint64_t) * 10);
@@ -68,7 +68,9 @@ namespace gr {
      */
     demodcu_impl::~demodcu_impl()
     {
+      dout << "ieee80211 demodcu, cuda free"<<std::endl;
       cuDemodFree();
+      dout << "ieee80211 demodcu, cuda free finish"<<std::endl;
     }
 
     void
@@ -120,7 +122,7 @@ namespace gr {
           {
             d_te = std::chrono::high_resolution_clock::now();
             d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
-            dout<<"demodcu procd samp: "<<d_sampCount<<", used time cu: "<<d_usUsedCu<<" cu2: "<<d_usUsedCu2<<", used time: "<<d_usUsed<<"us, avg "<<((double)d_sampCount / (double)d_usUsed)<<" samp/us"<<std::endl;
+            std::cout<<"demodcu procd samp: "<<d_sampCount<<", used time cu: "<<d_usUsedCu<<" cu2: "<<d_usUsedCu2<<", used time: "<<d_usUsed<<"us, avg "<<((double)d_sampCount / (double)d_usUsed)<<" samp/us"<<std::endl;
           }
           d_nSampConsumed = 0;
           d_nSigLSamp = d_nSigLSamp + 320;
@@ -172,7 +174,7 @@ namespace gr {
         {
           // go to vht
           signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
-          //dout<<"ieee80211 demodcu, vht a check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
+          // dout<<"ieee80211 demodcu, vht a check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
           d_sDemod = DEMOD_S_VHT;
           d_nSampConsumed += 160;
           d_nUsed += 160;
@@ -185,7 +187,7 @@ namespace gr {
           if(signalCheckHt(d_sigHtBits))
           {
             signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
-            //dout<<"ieee80211 demodcu, ht check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
+            // dout<<"ieee80211 demodcu, ht check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
             d_sDemod = DEMOD_S_HT;
             d_nSampConsumed += 160;
             d_nUsed += 160;
@@ -197,7 +199,7 @@ namespace gr {
             cuDemodChanSiso((cuFloatComplex*) d_H);
             d_nSampTotoal = d_m.nSymSamp * d_m.nSym;
             d_sDemod = DEMOD_S_DEMOD;
-            //dout<<"ieee80211 demodcu, check format legacy packet"<<std::endl;
+            // dout<<"ieee80211 demodcu, check format legacy packet"<<std::endl;
           }
         }
       }
@@ -208,6 +210,7 @@ namespace gr {
         nonLegacyChanEstimate(&inSig[d_nUsed + 80]);
         vhtSigBDemod(&inSig[d_nUsed + 80 + d_m.nLTF*80]);
         signalParserVhtB(d_sigVhtB20Bits, &d_m);
+        // dout<<"ieee80211 demodcu, vht b len:"<<d_m.len<<", mcs:"<<d_m.mcs<<std::endl;
         int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
         if((tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80))
         {
@@ -258,49 +261,9 @@ namespace gr {
           cuDemodSiso(&d_m, d_psduBytes);
           d_tcu3 = std::chrono::high_resolution_clock::now();
           d_usUsedCu2 += std::chrono::duration_cast<std::chrono::microseconds>(d_tcu3 - d_tcu2).count();
-
-          dout<<"ieee80211 demodcu, decoded bytes: "<<d_m.len<<std::endl;
-          dout<<std::hex;
-          for(int i=0;i<d_m.len;i++){
-            dout<<(int)d_psduBytes[i]<<",";
-          }
-          dout<<std::dec;
-          dout<<std::endl;
-          
           packetAssemble();
-
-          // gr_complex d_debugComp[8192];
-          // float d_debugFloat[8192];
-          // uint8_t d_debugInt[8192];
-          // cuDemodDebug(d_m.nSym * 64, (cuFloatComplex*) d_debugComp, d_m.nSym * d_m.nCBPSS, d_debugFloat, d_m.nSym * d_m.nDBPS, d_debugInt);
-          // dout<<std::endl;
-          // dout<<"[";
-          // for(int i=0;i<d_m.nSym * d_m.nCBPSS;i++){
-          //   if(d_debugFloat[i] > 0.0f)
-          //   {
-          //     dout<<"1, ";
-          //   }
-          //   else
-          //   {
-          //     dout<<"0, ";
-          //   }
-          // }
-          // dout<<"]";
-          // dout<<std::endl;
-          // dout<<"coded llr number: "<<d_m.nSym * d_m.nCBPSS<<", trellis: "<<22 + d_m.len*8<<std::endl;
-          // dout<<std::endl;
-          // for(int i=0;i<d_m.nSym * d_m.nCBPSS;i++){
-          //   dout<<d_debugFloat[i]<<", ";
-          // }
-          // dout<<std::endl;
-          // dout<<std::endl;
-          // dout<<"decoded bits number: "<<d_m.nSym * d_m.nDBPS<<std::endl;
-          // for(int i=0;i<d_m.len;i++){
-          //   dout<<std::hex<<(int)d_debugInt[i]<<", ";
-          // }
-          // dout<<std::dec;
-          // dout<<std::endl;
           // go to clean
+          // dout << "ieee80211 demodcu, copy done, go to clean" << std::endl;
           d_sDemod = DEMOD_S_CLEAN;
         }
         else
@@ -362,7 +325,7 @@ namespace gr {
           {
             tmpLen |= (((int)tmpDeliBits[4+i])<<i);
           }
-          dout << "ieee80211 demodcu, vht pkt sf len: "<<tmpLen<<std::endl;
+          // dout << "ieee80211 demodcu, vht pkt sf len: "<<tmpLen<<std::endl;
           if(d_m.len < (tmpProcP + 4 + tmpLen))
           {
             break;
@@ -518,7 +481,7 @@ namespace gr {
       if(d_m.format == C8P_F_VHT && d_m.sumu)
       {
         // mu-mimo 2x2
-        dout<<"non legacy mu-mimo channel estimate"<<std::endl;
+        // dout<<"non legacy mu-mimo channel estimate"<<std::endl;
         fftDemod(&sig1[8], d_fftLtfOut1);
         fftDemod(&sig1[8+80], d_fftLtfOut2);
         for(int i=0;i<64;i++)
@@ -543,7 +506,7 @@ namespace gr {
       }
       else if(d_m.nSS == 1 && d_m.nLTF == 1)
       {
-        dout<<"non legacy siso channel estimate"<<std::endl;
+        // dout<<"non legacy siso channel estimate"<<std::endl;
         fftDemod(&sig1[8], d_fftLtfOut1);
         for(int i=0;i<64;i++)
         {
@@ -558,7 +521,7 @@ namespace gr {
       else
       {
         // 1 ant, ant number and nss not corresponding, only check if NDP, keep LTF and only use first LTF to demod sig b
-        dout<<"non legacy mimo channel sounding"<<std::endl;
+        // dout<<"non legacy mimo channel sounding"<<std::endl;
         memcpy(&d_mu2x1Chan[0], &sig1[8], sizeof(gr_complex) * 64);
         memcpy(&d_mu2x1Chan[64], &sig1[8+80], sizeof(gr_complex) * 64);
         fftDemod(&sig1[8], d_fftLtfOut1);
@@ -580,7 +543,7 @@ namespace gr {
     {
       if(d_m.nSS > 1)
       {
-        dout<<"ieee80211 demod, 1 ant demod sig b check if NDP"<<std::endl;
+        // dout<<"ieee80211 demod, 1 ant demod sig b check if NDP"<<std::endl;
       }
       fftDemod(&sig1[8], d_fftLtfOut1);
       for(int i=0;i<64;i++)

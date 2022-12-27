@@ -30,23 +30,10 @@
 #define PREPROC_MIN 1024
 #define PREPROC_MAX 8192
 
-/*
-Legacy  max MPDU 4095
-HT      max MPDU 7935     AMPDU 65535
-VHT     max MPDU 11454    AMPDU 1048575
-The max ampdu len can receive is indicated by different devices in HT Cap or VHT Cap
-For VHT, max is 2^20-1=1048575, the minimal su packet apeplen/4 is 2^17=131072, 131072*4=524288
-This phy only supports 20MHz, so we use 524288 here
-However, for real usage, this may not necessary
-
-#define DECODE_B_MAX 524288
-#define DECODE_V_MAX 4196000    // max llr len
-#define DECODE_D_MAX 11454      // max mpdu len
-*/
-#define CUDEMOD_S_MAX 512      // max symbol number, each fft batch is 256, this is 256 * 6
-#define CUDEMOD_B_MAX 5000     // max apmdu len
-#define CUDEMOD_V_MAX 82000    // max llr len
-#define CUDEMOD_D_MAX 1600      // max mpdu len
+#define CUDEMOD_B_MAX 4095     // max PSDU byte len
+#define CUDEMOD_T_MAX 32782    // max trellis len, psdu * 8 + 22
+#define CUDEMOD_L_MAX 65728    // max llr len, VHT CR1/2
+#define CUDEMOD_S_MAX 1366     // max symbol number, legacy nDBPS 24
 #define CUDEMOD_FFT_BATCH 64
 
 void preprocMall();
@@ -58,6 +45,5 @@ void cuDemodFree();
 void cuDemodChanSiso(cuFloatComplex *chan);
 void cuDemodSigCopy(int i, int n, const cuFloatComplex *sig);
 void cuDemodSiso(c8p_mod* m, unsigned char* psduBytes);
-void cuDemodDebug(int n, cuFloatComplex* outcomp, int m, float* outfloat, int o, unsigned char* outint);
 
 #endif /* INCLUDED_IEEE80211_SIGNAL_IMPL_H */

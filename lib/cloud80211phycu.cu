@@ -323,8 +323,8 @@ void cuDemodChanComp2(int n, cuFloatComplex* sigfft, cuFloatComplex* chan, cuFlo
   {
     tmp1 = cuCaddf(cuCmulf(sigfft[i], cuConjf(chan[offset])), cuCmulf(sigfft[i+n], cuConjf(chan[offset+64])));
     tmp2 = cuCaddf(cuCmulf(sigfft[i], cuConjf(chan[offset+128])), cuCmulf(sigfft[i+n], cuConjf(chan[offset+192])));
-    sigfft[i] = cuCaddf(cuCmulf(tmp1, chaninv[i]), cuCmulf(tmp2, chaninv[i+128]));
-    sigfft[i+n] = cuCaddf(cuCmulf(tmp1, chaninv[i+64]), cuCmulf(tmp2, chaninv[i+192]));
+    sigfft[i] = cuCaddf(cuCmulf(tmp1, chaninv[offset]), cuCmulf(tmp2, chaninv[offset+128]));
+    sigfft[i+n] = cuCaddf(cuCmulf(tmp1, chaninv[offset+64]), cuCmulf(tmp2, chaninv[offset+192]));
   }
 }
 
@@ -894,10 +894,17 @@ void cuDemodSiso(c8p_mod* m, unsigned char* psduBytes)
 
 void cuDemodMimo(c8p_mod* m, unsigned char* psduBytes)
 {
-  cuDemodChopSamp<<<(m->nSym * m->nSymSamp * 2)/1024 + 1, 1024>>>(m->nSym * m->nSymSamp * 2, demodSig, demodSigFft);
+  cuDemodChopSamp<<<(m->nSym * m->nSymSamp * 2 + 1023)/1024, 1024>>>(m->nSym * m->nSymSamp * 2, demodSig, demodSigFft);
   for(int symIter=0; symIter < ((m->nSym * 2 + CUDEMOD_FFT_BATCH - 1) / CUDEMOD_FFT_BATCH); symIter++ )   // each round inlcudes 256 batches
   {
     cufftExecC2C(demodPlan, &demodSigFft[symIter*CUDEMOD_FFT_BATCH*64], &demodSigFft[symIter*CUDEMOD_FFT_BATCH*64], CUFFT_FORWARD);
   }
-  cuDemodChanComp2<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, demodSigFft, demodChanMimo, demodChanMimoInv);
+  cuDemodChanComp2<<<(m->nSym * 64 + 1023)/1024, 1024>>>(m->nSym * 64, demodSigFft, demodChanMimo, demodChanMimoInv);
+  cuFloatComplex debug[512];
+  cudaMemcpy(debug, demodSigFft, 256*sizeof(cuFloatComplex), cudaMemcpyDeviceToHost);
+  cudaMemcpy(debug+256, demodSigFft+m->nSym * 64, 256*sizeof(cuFloatComplex), cudaMemcpyDeviceToHost);
+  for(int i=0;i<256;i++)
+  {
+    std::cout<<i<<" "<<cuCrealf(debug[i])<<", "<<cuCimagf(debug[i])<<" "<<cuCrealf(debug[i+256])<<", "<<cuCimagf(debug[i+256])<<std::endl;
+  }
 }

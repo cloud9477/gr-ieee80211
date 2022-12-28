@@ -79,8 +79,8 @@ namespace gr {
       c8p_sigHt d_sigHt;
       c8p_sigVhtA d_sigVhtA;
       gr_complex d_H_NL[64];
-      gr_complex d_H_NL22[64][4];
-      gr_complex d_H_NL22_INV[64][4];
+      gr_complex d_H_NL22[4][64];
+      gr_complex d_H_NL22_INV[4][64];
       gr_complex d_mu2x1Chan[128];
       int d_nSampTotoal;
       int d_nSampCopied;

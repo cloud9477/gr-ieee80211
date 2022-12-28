@@ -51,9 +51,9 @@ namespace gr {
       memset(d_legacyMcsCount, 0, sizeof(uint64_t) * 8);
       memset(d_htMcsCount, 0, sizeof(uint64_t) * 8);
       set_tag_propagation_policy(block::TPP_DONT);
-      std::cout << "ieee80211 demodcu, cuda mall"<<std::endl;
-      cuDemodMall();
-      std::cout << "ieee80211 demodcu, cuda mall finish"<<std::endl;
+      std::cout << "ieee80211 demodcu2, cuda mall2"<<std::endl;
+      cuDemodMall2();
+      std::cout << "ieee80211 demodcu2, cuda mall2 finish"<<std::endl;
 
       d_sampCount = 0;
       d_usUsed = 0;
@@ -66,9 +66,9 @@ namespace gr {
      */
     demodcu2_impl::~demodcu2_impl()
     {
-      std::cout << "ieee80211 demodcu, cuda free"<<std::endl;
-      cuDemodFree();
-      std::cout << "ieee80211 demodcu, cuda free finish"<<std::endl;
+      std::cout << "ieee80211 demodcu2, cuda free2"<<std::endl;
+      cuDemodFree2();
+      std::cout << "ieee80211 demodcu2, cuda free2 finish"<<std::endl;
     }
 
     void
@@ -114,7 +114,7 @@ namespace gr {
           d_nSigLSamp = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("nsamp"), pmt::from_long(-1)));
           std::vector<gr_complex> tmp_csi = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("csi"), pmt::PMT_NIL));
           std::copy(tmp_csi.begin(), tmp_csi.end(), d_H);
-          dout<<"ieee80211 demodcu, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<std::endl;
+          dout<<"ieee80211 demodcu2, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<std::endl;
           if(tmpPktSeq == 1)
           {
             d_ts = std::chrono::high_resolution_clock::now();
@@ -135,7 +135,7 @@ namespace gr {
             cuDemodChanSiso((cuFloatComplex*) d_H);
             d_nSampTotoal = d_m.nSymSamp * d_m.nSym;
             d_sDemod = DEMOD_S_DEMOD;
-            dout<<"ieee80211 demodcu, legacy packet"<<std::endl;
+            dout<<"ieee80211 demodcu2, legacy packet"<<std::endl;
           }
           else
           {
@@ -175,7 +175,7 @@ namespace gr {
         {
           // go to vht
           signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
-          dout<<"ieee80211 demodcu, vht a check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
+          dout<<"ieee80211 demodcu2, vht a check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
           d_sDemod = DEMOD_S_VHT;
           d_nSampConsumed += 160;
           d_nUsed += 160;
@@ -188,7 +188,7 @@ namespace gr {
           if(signalCheckHt(d_sigHtBits))
           {
             signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
-            dout<<"ieee80211 demodcu, ht check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
+            dout<<"ieee80211 demodcu2, ht check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
             d_sDemod = DEMOD_S_HT;
             d_nSampConsumed += 160;
             d_nUsed += 160;
@@ -200,7 +200,7 @@ namespace gr {
             cuDemodChanSiso((cuFloatComplex*) d_H);
             d_nSampTotoal = d_m.nSymSamp * d_m.nSym;
             d_sDemod = DEMOD_S_DEMOD;
-            dout<<"ieee80211 demodcu, check format legacy packet"<<std::endl;
+            dout<<"ieee80211 demodcu2, check format legacy packet"<<std::endl;
           }
         }
       }
@@ -211,11 +211,19 @@ namespace gr {
         nonLegacyChanEstimate(&inSig[d_nUsed + 80], &inSig2[d_nUsed + 80]);
         vhtSigBDemod(&inSig[d_nUsed + 80 + d_m.nLTF*80], &inSig[d_nUsed + 80 + d_m.nLTF*80]);
         signalParserVhtB(d_sigVhtB20Bits, &d_m);
-        dout<<"ieee80211 demodcu, vht b len:"<<d_m.len<<", mcs:"<<d_m.mcs<<std::endl;
+        dout<<"ieee80211 demodcu2, vht b len:"<<d_m.len<<", mcs:"<<d_m.mcs<<", nSS:"<<d_m.nSS<<std::endl;
         int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
         if((tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80))
         {
-          cuDemodChanSiso((cuFloatComplex*) d_H_NL);
+          if(d_m.nSS == 1)
+          {
+            cuDemodChanSiso((cuFloatComplex*) d_H_NL);
+          }
+          else
+          {
+            dout<<"ieee80211 demodcu2, update mimo channel vht"<<std::endl;
+            cuDemodChanMimo((cuFloatComplex*) d_H_NL22, (cuFloatComplex*) d_H_NL22_INV);
+          }
           d_nSampTotoal = d_m.nSymSamp * d_m.nSym;
           d_sDemod = DEMOD_S_DEMOD;
           d_nSampConsumed += (80 + d_m.nLTF*80 + 80);
@@ -233,7 +241,15 @@ namespace gr {
         int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
         if((tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80))
         {
-          cuDemodChanSiso((cuFloatComplex*) d_H_NL);
+          if(d_m.nSS == 1)
+          {
+            cuDemodChanSiso((cuFloatComplex*) d_H_NL);
+          }
+          else
+          {
+            dout<<"ieee80211 demodcu2, update mimo channel ht"<<std::endl;
+            cuDemodChanMimo((cuFloatComplex*) d_H_NL22, (cuFloatComplex*) d_H_NL22_INV);
+          }
           d_nSampTotoal = d_m.nSymSamp * d_m.nSym;
           d_sDemod = DEMOD_S_DEMOD;
           d_nSampConsumed += (80 + d_m.nLTF*80);
@@ -258,7 +274,7 @@ namespace gr {
           }
           else
           {
-            
+            cuDemodSigCopy2(d_nSampCopied, d_nSampCopied + d_m.nSym * 80, (d_nSampTotoal - d_nSampCopied), (const cuFloatComplex*) &inSig[d_nUsed], (const cuFloatComplex*) &inSig2[d_nUsed]);
           }
           d_tcu1 = std::chrono::high_resolution_clock::now();
           d_usUsedCu += std::chrono::duration_cast<std::chrono::microseconds>(d_tcu1 - d_tcu0).count();
@@ -266,19 +282,26 @@ namespace gr {
           d_nUsed += (d_nSampTotoal - d_nSampCopied);
           // then run cuda to demod and decode
           d_tcu2 = std::chrono::high_resolution_clock::now();
-          // cuDemodSiso(&d_m, d_psduBytes);
+          cuDemodMimo(&d_m, d_psduBytes);
           d_tcu3 = std::chrono::high_resolution_clock::now();
           d_usUsedCu2 += std::chrono::duration_cast<std::chrono::microseconds>(d_tcu3 - d_tcu2).count();
           // packetAssemble();
           // go to clean
-          // dout << "ieee80211 demodcu, copy done, go to clean" << std::endl;
+          // dout << "ieee80211 demodcu2, copy done, go to clean" << std::endl;
           d_sDemod = DEMOD_S_CLEAN;
         }
         else
         {
           // copy
           d_tcu0 = std::chrono::high_resolution_clock::now();
-          // cuDemodSigCopy(d_nSampCopied, (d_nProc - d_nUsed), (const cuFloatComplex*) &inSig[d_nUsed]);
+          if(d_m.nSS == 1)
+          {
+            cuDemodSigCopy(d_nSampCopied, (d_nProc - d_nUsed), (const cuFloatComplex*) &inSig[d_nUsed]);
+          }
+          else
+          {
+            cuDemodSigCopy2(d_nSampCopied, d_nSampCopied + d_m.nSym * 80, (d_nProc - d_nUsed), (const cuFloatComplex*) &inSig[d_nUsed], (const cuFloatComplex*) &inSig2[d_nUsed]);
+          }
           d_tcu1 = std::chrono::high_resolution_clock::now();
           d_usUsedCu += std::chrono::duration_cast<std::chrono::microseconds>(d_tcu1 - d_tcu0).count();
           d_nSampCopied += (d_nProc - d_nUsed);
@@ -333,7 +356,7 @@ namespace gr {
           {
             tmpLen |= (((int)tmpDeliBits[4+i])<<i);
           }
-          dout << "ieee80211 demodcu, vht pkt sf len: "<<tmpLen<<std::endl;
+          dout << "ieee80211 demodcu2, vht pkt sf len: "<<tmpLen<<std::endl;
           if(d_m.len < (tmpProcP + 4 + tmpLen))
           {
             break;
@@ -518,21 +541,21 @@ namespace gr {
           }
           else
           {
-            d_H_NL22[i][0] = (d_fftLtfOut1[i] - d_fftLtfOut12[i])*LTF_NL_28_F_FLOAT2[i];
-            d_H_NL22[i][1] = (d_fftLtfOut2[i] - d_fftLtfOut22[i])*LTF_NL_28_F_FLOAT2[i];
-            d_H_NL22[i][2] = (d_fftLtfOut1[i] + d_fftLtfOut12[i])*LTF_NL_28_F_FLOAT2[i];
-            d_H_NL22[i][3] = (d_fftLtfOut2[i] + d_fftLtfOut22[i])*LTF_NL_28_F_FLOAT2[i];
+            d_H_NL22[0][i] = (d_fftLtfOut1[i] - d_fftLtfOut12[i])*LTF_NL_28_F_FLOAT2[i];
+            d_H_NL22[1][i] = (d_fftLtfOut2[i] - d_fftLtfOut22[i])*LTF_NL_28_F_FLOAT2[i];
+            d_H_NL22[2][i] = (d_fftLtfOut1[i] + d_fftLtfOut12[i])*LTF_NL_28_F_FLOAT2[i];
+            d_H_NL22[3][i] = (d_fftLtfOut2[i] + d_fftLtfOut22[i])*LTF_NL_28_F_FLOAT2[i];
 
-            gr_complex a = d_H_NL22[i][0] * std::conj(d_H_NL22[i][0]) + d_H_NL22[i][1] * std::conj(d_H_NL22[i][1]);
-            gr_complex b = d_H_NL22[i][0] * std::conj(d_H_NL22[i][2]) + d_H_NL22[i][1] * std::conj(d_H_NL22[i][3]);
-            gr_complex c = d_H_NL22[i][2] * std::conj(d_H_NL22[i][0]) + d_H_NL22[i][3] * std::conj(d_H_NL22[i][1]);
-            gr_complex d = d_H_NL22[i][2] * std::conj(d_H_NL22[i][2]) + d_H_NL22[i][3] * std::conj(d_H_NL22[i][3]);
+            gr_complex a = d_H_NL22[0][i] * std::conj(d_H_NL22[0][i]) + d_H_NL22[1][i] * std::conj(d_H_NL22[1][i]);
+            gr_complex b = d_H_NL22[0][i] * std::conj(d_H_NL22[2][i]) + d_H_NL22[1][i] * std::conj(d_H_NL22[3][i]);
+            gr_complex c = d_H_NL22[2][i] * std::conj(d_H_NL22[0][i]) + d_H_NL22[3][i] * std::conj(d_H_NL22[1][i]);
+            gr_complex d = d_H_NL22[2][i] * std::conj(d_H_NL22[2][i]) + d_H_NL22[3][i] * std::conj(d_H_NL22[3][i]);
             tmpadbc = 1.0f/(a*d - b*c);
 
-            d_H_NL22_INV[i][0] = tmpadbc*d;
-            d_H_NL22_INV[i][1] = -tmpadbc*b;
-            d_H_NL22_INV[i][2] = -tmpadbc*c;
-            d_H_NL22_INV[i][3] = tmpadbc*a;
+            d_H_NL22_INV[0][i] = tmpadbc*d;
+            d_H_NL22_INV[1][i] = -tmpadbc*b;
+            d_H_NL22_INV[2][i] = -tmpadbc*c;
+            d_H_NL22_INV[3][i] = tmpadbc*a;
           }
         }
       }
@@ -568,10 +591,10 @@ namespace gr {
           {}
           else
           {
-            gr_complex tmp1 = d_fftLtfOut1[i] * std::conj(d_H_NL22[i][0]) + d_fftLtfOut2[i] * std::conj(d_H_NL22[i][1]);
-            gr_complex tmp2 = d_fftLtfOut1[i] * std::conj(d_H_NL22[i][2]) + d_fftLtfOut2[i] * std::conj(d_H_NL22[i][3]);
-            d_sig1[i] = tmp1 * d_H_NL22_INV[i][0] + tmp2 * d_H_NL22_INV[i][2];
-            d_sig2[i] = tmp1 * d_H_NL22_INV[i][1] + tmp2 * d_H_NL22_INV[i][3];
+            gr_complex tmp1 = d_fftLtfOut1[i] * std::conj(d_H_NL22[0][i]) + d_fftLtfOut2[i] * std::conj(d_H_NL22[1][i]);
+            gr_complex tmp2 = d_fftLtfOut1[i] * std::conj(d_H_NL22[2][i]) + d_fftLtfOut2[i] * std::conj(d_H_NL22[3][i]);
+            d_sig1[i] = tmp1 * d_H_NL22_INV[0][i] + tmp2 * d_H_NL22_INV[2][i];
+            d_sig2[i] = tmp1 * d_H_NL22_INV[1][i] + tmp2 * d_H_NL22_INV[3][i];
           }
         }
       }

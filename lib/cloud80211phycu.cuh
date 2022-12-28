@@ -34,16 +34,21 @@
 #define CUDEMOD_T_MAX 32782    // max trellis len, psdu * 8 + 22
 #define CUDEMOD_L_MAX 65728    // max llr len, VHT CR1/2
 #define CUDEMOD_S_MAX 1366     // max symbol number, legacy nDBPS 24
-#define CUDEMOD_FFT_BATCH 64
+#define CUDEMOD_FFT_BATCH 64    // each execution 64 symbols
 
 void preprocMall();
 void preprocFree();
 void cuPreProc(int n, const cuFloatComplex *sig, float* ac, cuFloatComplex* conj);
 
 void cuDemodMall();
+void cuDemodMall2();
 void cuDemodFree();
+void cuDemodFree2();
 void cuDemodChanSiso(cuFloatComplex *chan);
+void cuDemodChanMimo(cuFloatComplex *chan);
 void cuDemodSigCopy(int i, int n, const cuFloatComplex *sig);
+void cuDemodSigCopy2(int i, int n, const cuFloatComplex *sig, const cuFloatComplex *sig2);
 void cuDemodSiso(c8p_mod* m, unsigned char* psduBytes);
+void cuDemodMimo(c8p_mod* m, unsigned char* psduBytes);
 
 #endif /* INCLUDED_IEEE80211_SIGNAL_IMPL_H */

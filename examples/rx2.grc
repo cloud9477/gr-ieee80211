@@ -9,7 +9,7 @@ options:
     description: ''
     gen_cmake: 'On'
     gen_linking: dynamic
-    generate_options: qt_gui
+    generate_options: no_gui
     hier_block_src_path: '.:'
     id: wifirx2
     max_nouts: '0'
@@ -90,7 +90,7 @@ blocks:
     bus_structure: null
     coordinate: [8, 188.0]
     rotation: 0
-    state: disabled
+    state: enabled
 - name: blocks_file_source_0_0
   id: blocks_file_source
   parameters:
@@ -112,7 +112,7 @@ blocks:
     bus_structure: null
     coordinate: [8, 220.0]
     rotation: 0
-    state: disabled
+    state: enabled
 - name: blocks_throttle_0
   id: blocks_throttle
   parameters:
@@ -131,7 +131,7 @@ blocks:
     bus_structure: null
     coordinate: [240, 220.0]
     rotation: 0
-    state: disabled
+    state: enabled
 - name: blocks_throttle_0_0
   id: blocks_throttle
   parameters:
@@ -150,7 +150,7 @@ blocks:
     bus_structure: null
     coordinate: [240, 252.0]
     rotation: 0
-    state: disabled
+    state: enabled
 - name: ieee80211_decode_0
   id: ieee80211_decode
   parameters:
@@ -164,9 +164,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [904, 348.0]
+    coordinate: [1256, 220.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: ieee80211_demod2_0
   id: ieee80211_demod2
   parameters:
@@ -182,6 +182,21 @@ blocks:
     bus_source: false
     bus_structure: null
     coordinate: [1032, 208.0]
+    rotation: 0
+    state: disabled
+- name: ieee80211_demodcu2_0
+  id: ieee80211_demodcu2
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1248, 320.0]
     rotation: 0
     state: true
 - name: ieee80211_signal2_0
@@ -246,7 +261,27 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1056, 324.0]
+    coordinate: [1408, 196.0]
+    rotation: 0
+    state: disabled
+- name: network_socket_pdu_0_0
+  id: network_socket_pdu
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    host: 127.0.0.1
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    mtu: '65535'
+    port: '9527'
+    tcp_no_delay: 'False'
+    type: UDP_CLIENT
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1408, 308.0]
     rotation: 0
     state: true
 - name: presiso_0
@@ -697,9 +732,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [184, 340.0]
+    coordinate: [184, 300.0]
     rotation: 0
-    state: true
+    state: disabled
 
 connections:
 - [blocks_file_source_0, '0', blocks_throttle_0, '0']
@@ -710,8 +745,11 @@ connections:
 - [blocks_throttle_0_0, '0', ieee80211_signal2_0, '2']
 - [ieee80211_decode_0, out, network_socket_pdu_0, pdus]
 - [ieee80211_demod2_0, '0', ieee80211_decode_0, '0']
+- [ieee80211_demodcu2_0, out, network_socket_pdu_0_0, pdus]
 - [ieee80211_signal2_0, '0', ieee80211_demod2_0, '0']
+- [ieee80211_signal2_0, '0', ieee80211_demodcu2_0, '0']
 - [ieee80211_signal2_0, '1', ieee80211_demod2_0, '1']
+- [ieee80211_signal2_0, '1', ieee80211_demodcu2_0, '1']
 - [ieee80211_sync_0, '0', ieee80211_signal2_0, '0']
 - [ieee80211_trigger_0, '0', ieee80211_sync_0, '0']
 - [presiso_0, '0', ieee80211_trigger_0, '0']

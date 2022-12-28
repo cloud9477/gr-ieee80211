@@ -32,6 +32,7 @@ namespace py = pybind11;
     void bind_demod2(py::module& m);
     void bind_preproc(py::module& m);
     void bind_demodcu(py::module& m);
+    void bind_demodcu2(py::module& m);
 // ) END BINDING_FUNCTION_PROTOTYPES
 
 
@@ -71,5 +72,6 @@ PYBIND11_MODULE(ieee80211_python, m)
     bind_demod2(m);
     bind_preproc(m);
     bind_demodcu(m);
+    bind_demodcu2(m);
     // ) END BINDING_FUNCTION_CALLS
 }

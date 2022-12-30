@@ -250,6 +250,63 @@ unsigned char descramSeq[128][127] = {
 {0,0,0,0,1,1,1,0,1,1,1,1,0,0,1,0,1,1,0,0,1,0,0,1,0,0,0,0,0,0,1,0,0,0,1,0,0,1,1,0,0,0,1,0,1,1,1,0,1,0,1,1,0,1,1,0,0,0,0,0,1,1,0,0,1,1,0,1,0,1,0,0,1,1,1,0,0,1,1,1,1,0,1,1,0,1,0,0,0,0,1,0,1,0,1,0,1,1,1,1,1,0,1,0,0,1,0,1,0,0,0,1,1,0,1,1,1,0,0,0,1,1,1,1,1,1,1,},
 };
 
+int mapDeintstreamBpsk[104] = {
+    0, 26, 52, 78, 2, 28, 54, 80, 4, 30, 56, 82, 6, 32, 58, 84, 8, 34, 60, 86, 10, 36, 62, 88, 12, 38, 64, 90, 14, 40, 66, 92, 16, 42, 68, 94, 18, 44, 70, 96, 20, 46, 72, 98, 22, 48, 74, 100, 24, 50, 76, 102,
+    63, 89, 13, 39, 65, 91, 15, 41, 67, 93, 17, 43, 69, 95, 19, 45, 71, 97, 21, 47, 73, 99, 23, 49, 75, 101, 25, 51, 77, 103, 1, 27, 53, 79, 3, 29, 55, 81, 5, 31, 57, 83, 7, 33, 59, 85, 9, 35, 61, 87, 11, 37
+};
+
+int mapDeintstreamQpsk[208] = {
+  0, 26, 52, 78, 104, 130, 156, 182, 2, 28, 54, 80, 106, 132, 158, 184, 4, 30, 56, 82, 108, 134, 160, 186, 6, 32, 58, 84, 110, 136, 162, 188, 8, 34, 60, 86, 112, 138, 164, 190, 10, 36, 62, 88, 114, 140, 166, 192, 12, 38, 64, 90,
+  116, 142, 168, 194, 14, 40, 66, 92, 118, 144, 170, 196, 16, 42, 68, 94, 120, 146, 172, 198, 18, 44, 70, 96, 122, 148, 174, 200, 20, 46, 72, 98, 124, 150, 176, 202, 22, 48, 74, 100, 126, 152, 178, 204, 24, 50, 76, 102, 128, 154, 180, 206,
+  115, 141, 167, 193, 13, 39, 65, 91, 117, 143, 169, 195, 15, 41, 67, 93, 119, 145, 171, 197, 17, 43, 69, 95, 121, 147, 173, 199, 19, 45, 71, 97, 123, 149, 175, 201, 21, 47, 73, 99, 125, 151, 177, 203, 23, 49, 75, 101, 127, 153, 179, 205,
+  25, 51, 77, 103, 129, 155, 181, 207, 1, 27, 53, 79, 105, 131, 157, 183, 3, 29, 55, 81, 107, 133, 159, 185, 5, 31, 57, 83, 109, 135, 161, 187, 7, 33, 59, 85, 111, 137, 163, 189, 9, 35, 61, 87, 113, 139, 165, 191, 11, 37, 63, 89
+};
+
+int mapDeintstream16Qam[416] = {
+  0, 25, 52, 77, 104, 129, 156, 181, 208, 233, 260, 285, 312, 337, 364, 389, 28, 1, 80, 53, 132, 105, 184, 157, 236, 209, 288, 261, 340, 313, 392, 365, 4, 29, 56, 81, 108, 133, 160, 185, 212, 237, 264, 289, 316, 341, 368, 393, 32, 5, 84, 57,
+  136, 109, 188, 161, 240, 213, 292, 265, 344, 317, 396, 369, 8, 33, 60, 85, 112, 137, 164, 189, 216, 241, 268, 293, 320, 345, 372, 397, 36, 9, 88, 61, 140, 113, 192, 165, 244, 217, 296, 269, 348, 321, 400, 373, 12, 37, 64, 89, 116, 141, 168, 193,
+  220, 245, 272, 297, 324, 349, 376, 401, 40, 13, 92, 65, 144, 117, 196, 169, 248, 221, 300, 273, 352, 325, 404, 377, 16, 41, 68, 93, 120, 145, 172, 197, 224, 249, 276, 301, 328, 353, 380, 405, 44, 17, 96, 69, 148, 121, 200, 173, 252, 225, 304, 277,
+  356, 329, 408, 381, 20, 45, 72, 97, 124, 149, 176, 201, 228, 253, 280, 305, 332, 357, 384, 409, 48, 21, 100, 73, 152, 125, 204, 177, 256, 229, 308, 281, 360, 333, 412, 385, 24, 49, 76, 101, 128, 153, 180, 205, 232, 257, 284, 309, 336, 361, 388, 413,
+  246, 219, 298, 271, 350, 323, 402, 375, 14, 39, 66, 91, 118, 143, 170, 195, 222, 247, 274, 299, 326, 351, 378, 403, 42, 15, 94, 67, 146, 119, 198, 171, 250, 223, 302, 275, 354, 327, 406, 379, 18, 43, 70, 95, 122, 147, 174, 199, 226, 251, 278, 303,
+  330, 355, 382, 407, 46, 19, 98, 71, 150, 123, 202, 175, 254, 227, 306, 279, 358, 331, 410, 383, 22, 47, 74, 99, 126, 151, 178, 203, 230, 255, 282, 307, 334, 359, 386, 411, 50, 23, 102, 75, 154, 127, 206, 179, 258, 231, 310, 283, 362, 335, 414, 387,
+  26, 51, 78, 103, 130, 155, 182, 207, 234, 259, 286, 311, 338, 363, 390, 415, 2, 27, 54, 79, 106, 131, 158, 183, 210, 235, 262, 287, 314, 339, 366, 391, 30, 3, 82, 55, 134, 107, 186, 159, 238, 211, 290, 263, 342, 315, 394, 367, 6, 31, 58, 83,
+  110, 135, 162, 187, 214, 239, 266, 291, 318, 343, 370, 395, 34, 7, 86, 59, 138, 111, 190, 163, 242, 215, 294, 267, 346, 319, 398, 371, 10, 35, 62, 87, 114, 139, 166, 191, 218, 243, 270, 295, 322, 347, 374, 399, 38, 11, 90, 63, 142, 115, 194, 167
+};
+
+int mapDeintstream64Qam[624] = {
+  0, 25, 50, 78, 103, 128, 156, 181, 206, 234, 259, 284, 312, 337, 362, 390, 415, 440, 468, 493, 518, 546, 571, 596, 26, 54, 1, 104, 132, 79, 182, 210, 157, 260, 288, 235, 338, 366, 313, 416, 444, 391, 494, 522, 469, 572, 600, 547, 55, 2, 30, 133,
+  80, 108, 211, 158, 186, 289, 236, 264, 367, 314, 342, 445, 392, 420, 523, 470, 498, 601, 548, 576, 6, 31, 56, 84, 109, 134, 162, 187, 212, 240, 265, 290, 318, 343, 368, 396, 421, 446, 474, 499, 524, 552, 577, 602, 32, 60, 7, 110, 138, 85, 188, 216,
+  163, 266, 294, 241, 344, 372, 319, 422, 450, 397, 500, 528, 475, 578, 606, 553, 61, 8, 36, 139, 86, 114, 217, 164, 192, 295, 242, 270, 373, 320, 348, 451, 398, 426, 529, 476, 504, 607, 554, 582, 12, 37, 62, 90, 115, 140, 168, 193, 218, 246, 271, 296,
+  324, 349, 374, 402, 427, 452, 480, 505, 530, 558, 583, 608, 38, 66, 13, 116, 144, 91, 194, 222, 169, 272, 300, 247, 350, 378, 325, 428, 456, 403, 506, 534, 481, 584, 612, 559, 67, 14, 42, 145, 92, 120, 223, 170, 198, 301, 248, 276, 379, 326, 354, 457,
+  404, 432, 535, 482, 510, 613, 560, 588, 18, 43, 68, 96, 121, 146, 174, 199, 224, 252, 277, 302, 330, 355, 380, 408, 433, 458, 486, 511, 536, 564, 589, 614, 44, 72, 19, 122, 150, 97, 200, 228, 175, 278, 306, 253, 356, 384, 331, 434, 462, 409, 512, 540,
+  487, 590, 618, 565, 73, 20, 48, 151, 98, 126, 229, 176, 204, 307, 254, 282, 385, 332, 360, 463, 410, 438, 541, 488, 516, 619, 566, 594, 24, 49, 74, 102, 127, 152, 180, 205, 230, 258, 283, 308, 336, 361, 386, 414, 439, 464, 492, 517, 542, 570, 595, 620,
+  376, 323, 351, 454, 401, 429, 532, 479, 507, 610, 557, 585, 15, 40, 65, 93, 118, 143, 171, 196, 221, 249, 274, 299, 327, 352, 377, 405, 430, 455, 483, 508, 533, 561, 586, 611, 41, 69, 16, 119, 147, 94, 197, 225, 172, 275, 303, 250, 353, 381, 328, 431,
+  459, 406, 509, 537, 484, 587, 615, 562, 70, 17, 45, 148, 95, 123, 226, 173, 201, 304, 251, 279, 382, 329, 357, 460, 407, 435, 538, 485, 513, 616, 563, 591, 21, 46, 71, 99, 124, 149, 177, 202, 227, 255, 280, 305, 333, 358, 383, 411, 436, 461, 489, 514,
+  539, 567, 592, 617, 47, 75, 22, 125, 153, 100, 203, 231, 178, 281, 309, 256, 359, 387, 334, 437, 465, 412, 515, 543, 490, 593, 621, 568, 76, 23, 51, 154, 101, 129, 232, 179, 207, 310, 257, 285, 388, 335, 363, 466, 413, 441, 544, 491, 519, 622, 569, 597,
+  27, 52, 77, 105, 130, 155, 183, 208, 233, 261, 286, 311, 339, 364, 389, 417, 442, 467, 495, 520, 545, 573, 598, 623, 3, 28, 53, 81, 106, 131, 159, 184, 209, 237, 262, 287, 315, 340, 365, 393, 418, 443, 471, 496, 521, 549, 574, 599, 29, 57, 4, 107,
+  135, 82, 185, 213, 160, 263, 291, 238, 341, 369, 316, 419, 447, 394, 497, 525, 472, 575, 603, 550, 58, 5, 33, 136, 83, 111, 214, 161, 189, 292, 239, 267, 370, 317, 345, 448, 395, 423, 526, 473, 501, 604, 551, 579, 9, 34, 59, 87, 112, 137, 165, 190,
+  215, 243, 268, 293, 321, 346, 371, 399, 424, 449, 477, 502, 527, 555, 580, 605, 35, 63, 10, 113, 141, 88, 191, 219, 166, 269, 297, 244, 347, 375, 322, 425, 453, 400, 503, 531, 478, 581, 609, 556, 64, 11, 39, 142, 89, 117, 220, 167, 195, 298, 245, 273,
+};
+
+int mapDeintstream256Qam[832] = {
+  0, 25, 50, 75, 104, 129, 154, 179, 208, 233, 258, 283, 312, 337, 362, 387, 416, 441, 466, 491, 520, 545, 570, 595, 624, 649, 674, 699, 728, 753, 778, 803, 26, 51, 80, 1, 130, 155, 184, 105, 234, 259, 288, 209, 338, 363, 392, 313, 442, 467, 496, 417,
+  546, 571, 600, 521, 650, 675, 704, 625, 754, 779, 808, 729, 56, 81, 2, 27, 160, 185, 106, 131, 264, 289, 210, 235, 368, 393, 314, 339, 472, 497, 418, 443, 576, 601, 522, 547, 680, 705, 626, 651, 784, 809, 730, 755, 82, 3, 32, 57, 186, 107, 136, 161,
+  290, 211, 240, 265, 394, 315, 344, 369, 498, 419, 448, 473, 602, 523, 552, 577, 706, 627, 656, 681, 810, 731, 760, 785, 8, 33, 58, 83, 112, 137, 162, 187, 216, 241, 266, 291, 320, 345, 370, 395, 424, 449, 474, 499, 528, 553, 578, 603, 632, 657, 682, 707,
+  736, 761, 786, 811, 34, 59, 88, 9, 138, 163, 192, 113, 242, 267, 296, 217, 346, 371, 400, 321, 450, 475, 504, 425, 554, 579, 608, 529, 658, 683, 712, 633, 762, 787, 816, 737, 64, 89, 10, 35, 168, 193, 114, 139, 272, 297, 218, 243, 376, 401, 322, 347,
+  480, 505, 426, 451, 584, 609, 530, 555, 688, 713, 634, 659, 792, 817, 738, 763, 90, 11, 40, 65, 194, 115, 144, 169, 298, 219, 248, 273, 402, 323, 352, 377, 506, 427, 456, 481, 610, 531, 560, 585, 714, 635, 664, 689, 818, 739, 768, 793, 16, 41, 66, 91,
+  120, 145, 170, 195, 224, 249, 274, 299, 328, 353, 378, 403, 432, 457, 482, 507, 536, 561, 586, 611, 640, 665, 690, 715, 744, 769, 794, 819, 42, 67, 96, 17, 146, 171, 200, 121, 250, 275, 304, 225, 354, 379, 408, 329, 458, 483, 512, 433, 562, 587, 616, 537,
+  666, 691, 720, 641, 770, 795, 824, 745, 72, 97, 18, 43, 176, 201, 122, 147, 280, 305, 226, 251, 384, 409, 330, 355, 488, 513, 434, 459, 592, 617, 538, 563, 696, 721, 642, 667, 800, 825, 746, 771, 98, 19, 48, 73, 202, 123, 152, 177, 306, 227, 256, 281,
+  410, 331, 360, 385, 514, 435, 464, 489, 618, 539, 568, 593, 722, 643, 672, 697, 826, 747, 776, 801, 24, 49, 74, 99, 128, 153, 178, 203, 232, 257, 282, 307, 336, 361, 386, 411, 440, 465, 490, 515, 544, 569, 594, 619, 648, 673, 698, 723, 752, 777, 802, 827,
+  454, 479, 508, 429, 558, 583, 612, 533, 662, 687, 716, 637, 766, 791, 820, 741, 68, 93, 14, 39, 172, 197, 118, 143, 276, 301, 222, 247, 380, 405, 326, 351, 484, 509, 430, 455, 588, 613, 534, 559, 692, 717, 638, 663, 796, 821, 742, 767, 94, 15, 44, 69,
+  198, 119, 148, 173, 302, 223, 252, 277, 406, 327, 356, 381, 510, 431, 460, 485, 614, 535, 564, 589, 718, 639, 668, 693, 822, 743, 772, 797, 20, 45, 70, 95, 124, 149, 174, 199, 228, 253, 278, 303, 332, 357, 382, 407, 436, 461, 486, 511, 540, 565, 590, 615,
+  644, 669, 694, 719, 748, 773, 798, 823, 46, 71, 100, 21, 150, 175, 204, 125, 254, 279, 308, 229, 358, 383, 412, 333, 462, 487, 516, 437, 566, 591, 620, 541, 670, 695, 724, 645, 774, 799, 828, 749, 76, 101, 22, 47, 180, 205, 126, 151, 284, 309, 230, 255,
+  388, 413, 334, 359, 492, 517, 438, 463, 596, 621, 542, 567, 700, 725, 646, 671, 804, 829, 750, 775, 102, 23, 52, 77, 206, 127, 156, 181, 310, 231, 260, 285, 414, 335, 364, 389, 518, 439, 468, 493, 622, 543, 572, 597, 726, 647, 676, 701, 830, 751, 780, 805,
+  28, 53, 78, 103, 132, 157, 182, 207, 236, 261, 286, 311, 340, 365, 390, 415, 444, 469, 494, 519, 548, 573, 598, 623, 652, 677, 702, 727, 756, 781, 806, 831, 4, 29, 54, 79, 108, 133, 158, 183, 212, 237, 262, 287, 316, 341, 366, 391, 420, 445, 470, 495,
+  524, 549, 574, 599, 628, 653, 678, 703, 732, 757, 782, 807, 30, 55, 84, 5, 134, 159, 188, 109, 238, 263, 292, 213, 342, 367, 396, 317, 446, 471, 500, 421, 550, 575, 604, 525, 654, 679, 708, 629, 758, 783, 812, 733, 60, 85, 6, 31, 164, 189, 110, 135,
+  268, 293, 214, 239, 372, 397, 318, 343, 476, 501, 422, 447, 580, 605, 526, 551, 684, 709, 630, 655, 788, 813, 734, 759, 86, 7, 36, 61, 190, 111, 140, 165, 294, 215, 244, 269, 398, 319, 348, 373, 502, 423, 452, 477, 606, 527, 556, 581, 710, 631, 660, 685,
+  814, 735, 764, 789, 12, 37, 62, 87, 116, 141, 166, 191, 220, 245, 270, 295, 324, 349, 374, 399, 428, 453, 478, 503, 532, 557, 582, 607, 636, 661, 686, 711, 740, 765, 790, 815, 38, 63, 92, 13, 142, 167, 196, 117, 246, 271, 300, 221, 350, 375, 404, 325,
+};
+
 int mapDeshiftFftLegacy[64] = {
   -1, 24, 25, 26, 27, 28, 29, -1, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, -1, 43, 44, 45, 46, 47, -1, -1, -1, -1, -1, 
   -1, -1, -1, -1, -1, -1, 0, 1, 2, 3, 4, -1, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, -1, 18, 19, 20, 21, 22, 23};
@@ -280,6 +337,12 @@ int* demodDemapQpskNL;
 int* demodDemap16QamNL;
 int* demodDemap64QamNL;
 int* demodDemap256QamNL;
+
+int* demodDemapBpskNL2;
+int* demodDemapQpskNL2;
+int* demodDemap16QamNL2;
+int* demodDemap64QamNL2;
+int* demodDemap256QamNL2;
 
 int* cuv_seq;
 int* cuv_state_his;
@@ -404,6 +467,98 @@ void cuDemodQamToLlr(int n, int nCBPSS, cuFloatComplex* sigfft, float* llr, cuFl
     llr[llrOffset + deint[scIndex*8+5]] = 8.0f - fabsf(qamImag);
     llr[llrOffset + deint[scIndex*8+6]] = 4.0f - fabsf(8.0f - fabsf(qamImag));
     llr[llrOffset + deint[scIndex*8+7]] = 2.0f - fabsf(4.0f - fabsf(8.0f - fabsf(qamImag)));
+  }
+  // sigfft[i] = make_cuFloatComplex(llrOffset + scIndex*2, llrOffset + scIndex*2 + 1);
+}
+
+__global__
+void cuDemodQamToLlr2(int n, int nCBPS, cuFloatComplex* sigfft, float* llr, cuFloatComplex* p, int* deshift, int* deintstream)
+{
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  int j;  // sym index
+  int k = i % 64;  // sample index
+  int llrOffset;
+  int nCbpssShift;
+  cuFloatComplex pilotConj = make_cuFloatComplex(0.0f, 0.0f);
+  cuFloatComplex pilotAbs;
+  cuFloatComplex qam;
+  float qamReal, qamImag;
+  int scIndex = deshift[k];      // sc after fft to data sc index, 0 to 51
+
+  if(i >= n || scIndex < 0)
+  {
+    return;
+  }
+  if(i >= (n/2))
+  {
+    j = (i-n/2) / 64;
+    llrOffset = j * nCBPS;
+    nCbpssShift = nCBPS / 2;
+  }
+  else
+  {
+    j = i / 64;
+    llrOffset = j * nCBPS;
+    nCbpssShift = 0;
+  }
+
+  pilotConj = cuCaddf(pilotConj, cuCmulf(sigfft[j*64 + 43], p[j*4]));
+  pilotConj = cuCaddf(pilotConj, cuCmulf(sigfft[j*64 + 57], p[j*4+1]));
+  pilotConj = cuCaddf(pilotConj, cuCmulf(sigfft[j*64 +  7], p[j*4+2]));
+  pilotConj = cuCaddf(pilotConj, cuCmulf(sigfft[j*64 + 21], p[j*4+3]));
+  pilotAbs = make_cuFloatComplex(cuCabsf(pilotConj), 0.0f);
+  pilotConj = cuConjf(pilotConj);
+
+  qam = cuCdivf(cuCmulf(sigfft[i], pilotConj), pilotAbs);
+
+  if(nCBPS == 104)
+  {
+    qamReal = cuCrealf(qam);
+    llr[llrOffset + deintstream[nCbpssShift + scIndex]] = qamReal;
+  }
+  else if(nCBPS == 208)
+  {
+    qam = cuCmulf(qam, make_cuFloatComplex(1.4142135623730951f, 0.0f));
+    qamReal = cuCrealf(qam);
+    qamImag = cuCimagf(qam);
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*2]] = qamReal;
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*2+1]] = qamImag;
+  }
+  else if(nCBPS == 416)
+  {
+    qam = cuCmulf(qam, make_cuFloatComplex(3.1622776601683795f, 0.0f));
+    qamReal = cuCrealf(qam);
+    qamImag = cuCimagf(qam);
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*4]] = qamReal;
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*4+1]] = 2.0f - fabsf(qamReal);
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*4+2]] = qamImag;
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*4+3]] = 2.0f - fabsf(qamImag);
+  }
+  else if(nCBPS == 624)
+  {
+    qam = cuCmulf(qam, make_cuFloatComplex(6.48074069840786f, 0.0f));
+    qamReal = cuCrealf(qam);
+    qamImag = cuCimagf(qam);
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*6]] = qamReal;
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*6+1]] = 4.0f - fabsf(qamReal);
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*6+2]] = 2.0f - fabsf(4.0f - fabsf(qamReal));
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*6+3]] = qamImag;
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*6+4]] = 4.0f - fabsf(qamImag);
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*6+5]] = 2.0f - fabsf(4.0f - fabsf(qamImag));
+  }
+  else
+  {
+    qam = cuCmulf(qam, make_cuFloatComplex(13.038404810405298f, 0.0f));
+    qamReal = cuCrealf(qam);
+    qamImag = cuCimagf(qam);
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*8]] = qamReal;
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*8+1]] = 8.0f - fabsf(qamReal);
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*8+2]] = 4.0f - fabsf(8.0f - fabsf(qamReal));
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*8+3]] = 2.0f - fabsf(4.0f - fabsf(8.0f - fabsf(qamReal)));
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*8+4]] = qamImag;
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*8+5]] = 8.0f - fabsf(qamImag);
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*8+6]] = 4.0f - fabsf(8.0f - fabsf(qamImag));
+    llr[llrOffset + deintstream[nCbpssShift + scIndex*8+7]] = 2.0f - fabsf(4.0f - fabsf(8.0f - fabsf(qamImag)));
   }
   // sigfft[i] = make_cuFloatComplex(llrOffset + scIndex*2, llrOffset + scIndex*2 + 1);
 }
@@ -716,6 +871,22 @@ void cuDemodMall2()
     pTmp[3] = tmpPilot;
   }
   cudaMemcpy(pilotsHt2, pListTmp, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 4, cudaMemcpyHostToDevice);
+
+  err = cudaMalloc(&demodDemapBpskNL2, sizeof(int) * 104);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc mimo deint stream non legacy bpsk error."<<std::endl;}
+  err = cudaMalloc(&demodDemapQpskNL2, sizeof(int) * 208);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc mimo deint stream non legacy qpsk error."<<std::endl;}
+  err = cudaMalloc(&demodDemap16QamNL2, sizeof(int) * 416);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc mimo deint stream non legacy 16qam error."<<std::endl;}
+  err = cudaMalloc(&demodDemap64QamNL2, sizeof(int) * 624);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc mimo deint stream non legacy 64qam error."<<std::endl;}
+  err = cudaMalloc(&demodDemap256QamNL2, sizeof(int) * 832);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc mimo deint stream non legacy 256qam error."<<std::endl;}
+  cudaMemcpy(demodDemapBpskNL2, mapDeintstreamBpsk, 104*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(demodDemapQpskNL2, mapDeintstreamQpsk, 208*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(demodDemap16QamNL2, mapDeintstream16Qam, 416*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(demodDemap64QamNL2, mapDeintstream64Qam, 624*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(demodDemap256QamNL2, mapDeintstream256Qam, 832*sizeof(int), cudaMemcpyHostToDevice);
 }
 
 void cuDemodFree()
@@ -756,6 +927,11 @@ void cuDemodFree2()
   cudaFree(demodChanMimo);
   cudaFree(demodChanMimoInv);
   cudaFree(pilotsHt2);
+  cudaFree(demodDemapBpskNL2);
+  cudaFree(demodDemapQpskNL2);
+  cudaFree(demodDemap16QamNL2);
+  cudaFree(demodDemap64QamNL2);
+  cudaFree(demodDemap256QamNL2);
 }
 
 void cuDemodChanSiso(cuFloatComplex *chan)
@@ -894,17 +1070,75 @@ void cuDemodSiso(c8p_mod* m, unsigned char* psduBytes)
 
 void cuDemodMimo(c8p_mod* m, unsigned char* psduBytes)
 {
+  int cuv_llr_len = m->nSym * m->nCBPS;
+  int* cuv_cr_punc_p;
+  int cuv_cr_len;
+  int cuv_trellis;
+  cuFloatComplex* pilotsused;
+  if(m->format == C8P_F_HT)
+  {
+    pilotsused = pilotsHt2;
+    cuv_trellis = 22 + m->len*8;
+  }
+  else
+  {
+    pilotsused = pilotsVht;
+    cuv_trellis = m->nSym * m->nDBPS;
+  }
+
   cuDemodChopSamp<<<(m->nSym * m->nSymSamp * 2 + 1023)/1024, 1024>>>(m->nSym * m->nSymSamp * 2, demodSig, demodSigFft);
   for(int symIter=0; symIter < ((m->nSym * 2 + CUDEMOD_FFT_BATCH - 1) / CUDEMOD_FFT_BATCH); symIter++ )   // each round inlcudes 256 batches
   {
     cufftExecC2C(demodPlan, &demodSigFft[symIter*CUDEMOD_FFT_BATCH*64], &demodSigFft[symIter*CUDEMOD_FFT_BATCH*64], CUFFT_FORWARD);
   }
   cuDemodChanComp2<<<(m->nSym * 64 + 1023)/1024, 1024>>>(m->nSym * 64, demodSigFft, demodChanMimo, demodChanMimoInv);
-  cuFloatComplex debug[512];
-  cudaMemcpy(debug, demodSigFft, 256*sizeof(cuFloatComplex), cudaMemcpyDeviceToHost);
-  cudaMemcpy(debug+256, demodSigFft+m->nSym * 64, 256*sizeof(cuFloatComplex), cudaMemcpyDeviceToHost);
-  for(int i=0;i<256;i++)
+
+  if(m->mod == C8P_QAM_BPSK)
   {
-    std::cout<<i<<" "<<cuCrealf(debug[i])<<", "<<cuCimagf(debug[i])<<" "<<cuCrealf(debug[i+256])<<", "<<cuCimagf(debug[i+256])<<std::endl;
+    cuDemodQamToLlr2<<<(m->nSym * 64 * 2 + 1023)/1024, 1024>>>(m->nSym * 64 * 2, m->nCBPS, demodSigFft, demodSigLlr, pilotsused, demodDemapFftNL, demodDemapBpskNL2);
   }
+  else if(m->mod == C8P_QAM_QPSK)
+  {
+    cuDemodQamToLlr2<<<(m->nSym * 64 * 2 + 1023)/1024, 1024>>>(m->nSym * 64 * 2, m->nCBPS, demodSigFft, demodSigLlr, pilotsused, demodDemapFftNL, demodDemapQpskNL2);
+  }
+  else if(m->mod == C8P_QAM_16QAM)
+  {
+    cuDemodQamToLlr2<<<(m->nSym * 64 * 2 + 1023)/1024, 1024>>>(m->nSym * 64 * 2, m->nCBPS, demodSigFft, demodSigLlr, pilotsused, demodDemapFftNL, demodDemap16QamNL2);
+  }
+  else if(m->mod == C8P_QAM_64QAM)
+  {
+    cuDemodQamToLlr2<<<(m->nSym * 64 * 2 + 1023)/1024, 1024>>>(m->nSym * 64 * 2, m->nCBPS, demodSigFft, demodSigLlr, pilotsused, demodDemapFftNL, demodDemap64QamNL2);
+  }
+  else
+  {
+    cuDemodQamToLlr2<<<(m->nSym * 64 * 2 + 1023)/1024, 1024>>>(m->nSym * 64 * 2, m->nCBPS, demodSigFft, demodSigLlr, pilotsused, demodDemapFftNL, demodDemap256QamNL2);
+  }
+
+  if (m->cr == C8P_CR_12) {
+      cuv_cr_len = 2;
+      cuv_cr_punc_p = &cuv_cr_punc[0];
+  } else if (m->cr == C8P_CR_23) {
+      cuv_cr_len = 4;
+      cuv_cr_punc_p = &cuv_cr_punc[2];
+  } else if (m->cr == C8P_CR_34) {
+      cuv_cr_len = 6;
+      cuv_cr_punc_p = &cuv_cr_punc[6];
+  } else {
+      cuv_cr_len = 10;
+      cuv_cr_punc_p = &cuv_cr_punc[12];
+  }
+  cudaMemset(cuv_state_his, 0, sizeof(int) * 64 * (cuv_trellis + 1));
+  cuDecodeViterbi<<<1, 64>>>(demodSigLlr,
+                              cuv_llr_len,
+                              cuv_trellis,
+                              cuv_cr_len,
+                              cuv_cr_punc_p,
+                              cuv_state_his,
+                              cuv_state_output,
+                              cuv_state_next);
+  cuDecodeTb1<<<1, 1>>>(cuv_trellis, cuv_state_his, cuv_seq);
+  cuDecodeTb2<<<(cuv_trellis + 1023) / 1024, 1024>>>(cuv_trellis, cuv_seq, cuv_state_next, cuv_bits);
+  cuDecodeDescram<<<(cuv_trellis + 1023) / 1024, 1024>>>(cuv_trellis, cuv_bits, cuv_descram_seq);
+  cuDecodeB2B<<<(m->len + 1023) / 1024, 1024>>>(m->len, &cuv_bits[16], cuv_bytes);
+  cudaMemcpy(psduBytes, cuv_bytes, m->len*sizeof(unsigned char), cudaMemcpyDeviceToHost);
 }

@@ -285,7 +285,7 @@ namespace gr {
           cuDemodMimo(&d_m, d_psduBytes);
           d_tcu3 = std::chrono::high_resolution_clock::now();
           d_usUsedCu2 += std::chrono::duration_cast<std::chrono::microseconds>(d_tcu3 - d_tcu2).count();
-          // packetAssemble();
+          packetAssemble();
           // go to clean
           // dout << "ieee80211 demodcu2, copy done, go to clean" << std::endl;
           d_sDemod = DEMOD_S_CLEAN;

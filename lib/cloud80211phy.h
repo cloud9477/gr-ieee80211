@@ -130,6 +130,8 @@ class c8p_sigVhtA
         int ldpcExtra;
 };
 
+extern const int C8P_LEGACY_DP_SC[64];
+extern const int C8P_LEGACY_D_SC[64];
 extern const int FFT_26_DEMAP[64];
 extern const int FFT_26_SHIFT_DEMAP[128];
 extern const gr_complex LTF_L_26_F_COMP[64];

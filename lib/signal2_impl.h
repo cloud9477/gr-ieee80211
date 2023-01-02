@@ -35,8 +35,6 @@
 #define F_HT 1
 #define F_VHT 2
 
-#define dout d_debug&&std::cout
-
 namespace gr {
   namespace ieee80211 {
 
@@ -47,7 +45,8 @@ namespace gr {
       int d_nProc;
       int d_nGen;
       int d_sSignal;
-      bool d_debug;
+      int d_nUsed;
+      int d_nPassed;
       // tag
       float t_rad;
       float t_snr;
@@ -84,7 +83,6 @@ namespace gr {
            gr_vector_int &ninput_items,
            gr_vector_const_void_star &input_items,
            gr_vector_void_star &output_items);
-      void fftDemod(gr_complex* in, gr_complex* out);
     };
 
   } // namespace ieee80211

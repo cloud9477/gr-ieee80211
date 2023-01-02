@@ -200,7 +200,7 @@ namespace gr {
         {
           for(int i=0;i<d_nGen;i++)
           {
-            tmpRadStep = (float)d_nSampleCopied * d_cfoRad;
+            tmpRadStep = (float)(d_nSampleCopied + 224) * d_cfoRad;
             outSig1[i] = inSig1[i+d_nUsed] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
             d_nSampleCopied++;
           }
@@ -212,7 +212,7 @@ namespace gr {
           int tmpNumGen = d_nSample - d_nSampleCopied;
           for(int i=0;i<tmpNumGen;i++)
           {
-            tmpRadStep = (float)d_nSampleCopied * d_cfoRad;
+            tmpRadStep = (float)(d_nSampleCopied + 224) * d_cfoRad;
             outSig1[i] = inSig1[i+d_nUsed] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));   // * cfo
             d_nSampleCopied++;
           }

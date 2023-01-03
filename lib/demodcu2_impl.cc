@@ -209,7 +209,7 @@ namespace gr {
       {
         // get channel and signal b
         nonLegacyChanEstimate(&inSig[d_nUsed + 80], &inSig2[d_nUsed + 80]);
-        vhtSigBDemod(&inSig[d_nUsed + 80 + d_m.nLTF*80], &inSig[d_nUsed + 80 + d_m.nLTF*80]);
+        vhtSigBDemod(&inSig[d_nUsed + 80 + d_m.nLTF*80], &inSig2[d_nUsed + 80 + d_m.nLTF*80]);
         signalParserVhtB(d_sigVhtB20Bits, &d_m);
         dout<<"ieee80211 demodcu2, vht b len:"<<d_m.len<<", mcs:"<<d_m.mcs<<", nSS:"<<d_m.nSS<<std::endl;
         int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);

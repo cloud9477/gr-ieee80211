@@ -93,6 +93,8 @@ namespace gr {
       int d_pilotP;
       float d_pilot[4];
       float d_pilot2[4];
+      gr_complex d_pilotVhtB[4];
+      gr_complex d_pilotVhtB2[4];
       // non-legacy channel
       /*      P_LTF 4x4
       | 1 -1  1  1 |
@@ -124,7 +126,7 @@ namespace gr {
       void htChanUpdate(const gr_complex* sig1, const gr_complex* sig2);
       void legacyChanUpdate(const gr_complex* sig1);
       void vhtSigBDemod(const gr_complex* sig1, const gr_complex* sig2);
-      void fft(const gr_complex* sig, gr_complex* res);
+      void fftDemod(const gr_complex* sig, gr_complex* res);
       void pilotShift(float* pilots);
 
     };

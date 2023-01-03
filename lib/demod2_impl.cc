@@ -115,8 +115,8 @@ namespace gr {
         {
           if(d_nProc >= 160)
           {
-            fft(&inSig1[8], d_fftLtfOut1);
-            fft(&inSig1[8+80], d_fftLtfOut2);
+            fftDemod(&inSig1[8], d_fftLtfOut1);
+            fftDemod(&inSig1[8+80], d_fftLtfOut2);
             for(int i=0;i<64;i++)
             {
               if(i==0 || (i>=27 && i<=37))
@@ -429,7 +429,7 @@ namespace gr {
       {
         if(d_m.nLTF == 1)
         {
-          fft(&sig1[8], d_fftLtfOut1);
+          fftDemod(&sig1[8], d_fftLtfOut1);
           for(int i=0;i<64;i++)
           {
             if(i==0 || (i>=29 && i<=35))
@@ -443,11 +443,10 @@ namespace gr {
       }
       else if(d_m.nSS == 2)
       {
-        fft(&sig1[8], d_fftLtfOut1);
-        fft(&sig2[8], d_fftLtfOut2);
-        fft(&sig1[8+80], d_fftLtfOut12);
-        fft(&sig2[8+80], d_fftLtfOut22);
-        gr_complex tmpadbc;
+        fftDemod(&sig1[8], d_fftLtfOut1);
+        fftDemod(&sig2[8], d_fftLtfOut2);
+        fftDemod(&sig1[8+80], d_fftLtfOut12);
+        fftDemod(&sig2[8+80], d_fftLtfOut22);
         for(int i=0;i<64;i++)
         {
           if(i==0 || (i>=29 && i<=35))
@@ -459,11 +458,39 @@ namespace gr {
             d_H_NL[i][1] = (d_fftLtfOut2[i] - d_fftLtfOut22[i])*LTF_NL_28_F_FLOAT2[i];
             d_H_NL[i][2] = (d_fftLtfOut1[i] + d_fftLtfOut12[i])*LTF_NL_28_F_FLOAT2[i];
             d_H_NL[i][3] = (d_fftLtfOut2[i] + d_fftLtfOut22[i])*LTF_NL_28_F_FLOAT2[i];
-
-            gr_complex a = d_H_NL[i][0] * std::conj(d_H_NL[i][0]) + d_H_NL[i][1] * std::conj(d_H_NL[i][1]);
-            gr_complex b = d_H_NL[i][0] * std::conj(d_H_NL[i][2]) + d_H_NL[i][1] * std::conj(d_H_NL[i][3]);
-            gr_complex c = d_H_NL[i][2] * std::conj(d_H_NL[i][0]) + d_H_NL[i][3] * std::conj(d_H_NL[i][1]);
-            gr_complex d = d_H_NL[i][2] * std::conj(d_H_NL[i][2]) + d_H_NL[i][3] * std::conj(d_H_NL[i][3]);
+          }
+        }
+        if(d_m.format == C8P_F_VHT)
+        {
+          d_H_NL[7][0] = (d_H_NL[6][0] + d_H_NL[8][0]) / 2.0f;
+          d_H_NL[7][1] = (d_H_NL[6][1] + d_H_NL[8][1]) / 2.0f;
+          d_H_NL[7][2] = (d_H_NL[6][2] + d_H_NL[8][2]) / 2.0f;
+          d_H_NL[7][3] = (d_H_NL[6][3] + d_H_NL[8][3]) / 2.0f;
+          d_H_NL[21][0] = (d_H_NL[20][0] + d_H_NL[22][0]) / 2.0f;
+          d_H_NL[21][1] = (d_H_NL[20][1] + d_H_NL[22][1]) / 2.0f;
+          d_H_NL[21][2] = (d_H_NL[20][2] + d_H_NL[22][2]) / 2.0f;
+          d_H_NL[21][3] = (d_H_NL[20][3] + d_H_NL[22][3]) / 2.0f;
+          d_H_NL[43][0] = (d_H_NL[42][0] + d_H_NL[44][0]) / 2.0f;
+          d_H_NL[43][1] = (d_H_NL[42][1] + d_H_NL[44][1]) / 2.0f;
+          d_H_NL[43][2] = (d_H_NL[42][2] + d_H_NL[44][2]) / 2.0f;
+          d_H_NL[43][3] = (d_H_NL[42][3] + d_H_NL[44][3]) / 2.0f;
+          d_H_NL[57][0] = (d_H_NL[56][0] + d_H_NL[58][0]) / 2.0f;
+          d_H_NL[57][1] = (d_H_NL[56][1] + d_H_NL[58][1]) / 2.0f;
+          d_H_NL[57][2] = (d_H_NL[56][2] + d_H_NL[58][2]) / 2.0f;
+          d_H_NL[57][3] = (d_H_NL[56][3] + d_H_NL[58][3]) / 2.0f;
+        }
+        gr_complex tmpadbc, a, b, c, d;
+        for(int i=0;i<64;i++)
+        {
+          if(i==0 || (i>=29 && i<=35))
+          {
+          }
+          else
+          {
+            a = d_H_NL[i][0] * std::conj(d_H_NL[i][0]) + d_H_NL[i][1] * std::conj(d_H_NL[i][1]);
+            b = d_H_NL[i][0] * std::conj(d_H_NL[i][2]) + d_H_NL[i][1] * std::conj(d_H_NL[i][3]);
+            c = d_H_NL[i][2] * std::conj(d_H_NL[i][0]) + d_H_NL[i][3] * std::conj(d_H_NL[i][1]);
+            d = d_H_NL[i][2] * std::conj(d_H_NL[i][2]) + d_H_NL[i][3] * std::conj(d_H_NL[i][3]);
             tmpadbc = 1.0f/(a*d - b*c);
 
             d_H_NL_INV[i][0] = tmpadbc*d;
@@ -484,7 +511,7 @@ namespace gr {
     {
       if(d_m.nSS == 1)
       {
-        fft(&sig1[8], d_fftLtfOut1);
+        fftDemod(&sig1[8], d_fftLtfOut1);
         for(int i=0;i<64;i++)
         {
           if(i==0 || (i>=29 && i<=35))
@@ -514,8 +541,8 @@ namespace gr {
       }
       else
       {
-        fft(&sig1[8], d_fftLtfOut1);
-        fft(&sig2[8], d_fftLtfOut2);
+        fftDemod(&sig1[8], d_fftLtfOut1);
+        fftDemod(&sig2[8], d_fftLtfOut2);
 
         for(int i=0;i<64;i++)
         {
@@ -560,7 +587,7 @@ namespace gr {
     {
       if(d_m.nSS == 1)
       {
-        fft(&sig1[8], d_fftLtfOut1);
+        fftDemod(&sig1[8], d_fftLtfOut1);
         for(int i=0;i<64;i++)
         {
           if(i==0 || (i>=29 && i<=35))
@@ -590,8 +617,8 @@ namespace gr {
       }
       else
       {
-        fft(&sig1[8], d_fftLtfOut1);
-        fft(&sig2[8], d_fftLtfOut2);
+        fftDemod(&sig1[8], d_fftLtfOut1);
+        fftDemod(&sig2[8], d_fftLtfOut2);
 
         for(int i=0;i<64;i++)
         {
@@ -605,12 +632,18 @@ namespace gr {
             d_sig2[i] = tmp1 * d_H_NL_INV[i][1] + tmp2 * d_H_NL_INV[i][3];
           }
         }
-
-        gr_complex tmpPilotSum = std::conj(d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP] + d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP] + d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP] + d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]);
+        gr_complex tmpPilotSum = std::conj(
+          d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP]*d_pilotVhtB[2] + 
+          d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP]*d_pilotVhtB[3] + 
+          d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP]*d_pilotVhtB[0] + 
+          d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]*d_pilotVhtB[1] +
+          d_sig2[7]*d_pilot[2]*PILOT_P[d_pilotP]*d_pilotVhtB2[2] + 
+          d_sig2[21]*d_pilot[3]*PILOT_P[d_pilotP]*d_pilotVhtB2[3] + 
+          d_sig2[43]*d_pilot[0]*PILOT_P[d_pilotP]*d_pilotVhtB2[0] + 
+          d_sig2[57]*d_pilot[1]*PILOT_P[d_pilotP]*d_pilotVhtB2[1]);
         pilotShift(d_pilot);
         d_pilotP = (d_pilotP + 1) % 127;
         float tmpPilotSumAbs = std::abs(tmpPilotSum);
-
         int j=26;
         for(int i=0;i<64;i++)
         {
@@ -633,7 +666,7 @@ namespace gr {
     {
       if(d_m.nSS == 1)
       {
-        fft(&sig1[8], d_fftLtfOut1);
+        fftDemod(&sig1[8], d_fftLtfOut1);
         for(int i=0;i<64;i++)
         {
           if(i==0 || (i>=29 && i<=35))
@@ -646,8 +679,8 @@ namespace gr {
       }
       else if(d_m.nSS == 2)
       {
-        fft(&sig1[8], d_fftLtfOut1);
-        fft(&sig2[8], d_fftLtfOut2);
+        fftDemod(&sig1[8], d_fftLtfOut1);
+        fftDemod(&sig2[8], d_fftLtfOut2);
         for(int i=0;i<64;i++)
         {
           if(i==0 || (i>=29 && i<=35))
@@ -660,6 +693,14 @@ namespace gr {
             d_sig2[i] = tmp1 * d_H_NL_INV[i][1] + tmp2 * d_H_NL_INV[i][3];
           }
         }
+        d_pilotVhtB[2] = std::conj(d_sig1[7]);
+        d_pilotVhtB[3] = std::conj(-d_sig1[21]);
+        d_pilotVhtB[0] = std::conj(d_sig1[43]);
+        d_pilotVhtB[1] = std::conj(d_sig1[57]);
+        d_pilotVhtB2[2] = std::conj(d_sig2[7]);
+        d_pilotVhtB2[3] = std::conj(-d_sig2[21]);
+        d_pilotVhtB2[0] = std::conj(d_sig2[43]);
+        d_pilotVhtB2[1] = std::conj(d_sig2[57]);
       }
       else
       {
@@ -667,7 +708,6 @@ namespace gr {
       }
       gr_complex tmpPilotSum = std::conj(d_sig1[7] - d_sig1[21] + d_sig1[43] + d_sig1[57]);
       float tmpPilotSumAbs = std::abs(tmpPilotSum);
-      
       int j=26;
       for(int i=0;i<64;i++)
       {
@@ -683,9 +723,7 @@ namespace gr {
           }
           else if(d_m.nSS == 2)
           {
-            gr_complex tmpSig1 = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
-            gr_complex tmpSig2 = d_sig2[i] * tmpPilotSum / tmpPilotSumAbs;
-            d_sigVhtB20IntedLlr[j] = ((tmpSig1 + tmpSig2)/2.0f).real();
+            d_sigVhtB20IntedLlr[j] = ((d_sig1[i] + d_sig2[i])/2.0f).real();
           }
           else
           {}
@@ -704,7 +742,7 @@ namespace gr {
     void
     demod2_impl::legacyChanUpdate(const gr_complex* sig1)
     {
-      fft(&sig1[8], d_fftLtfOut1);
+      fftDemod(&sig1[8], d_fftLtfOut1);
       for(int i=0;i<64;i++)
       {
         if(i==0 || (i>=27 && i<=37))
@@ -732,7 +770,7 @@ namespace gr {
     }
 
     void
-    demod2_impl::fft(const gr_complex* sig, gr_complex* res)
+    demod2_impl::fftDemod(const gr_complex* sig, gr_complex* res)
     {
       memcpy(d_ofdm_fft.get_inbuf(), sig, sizeof(gr_complex)*64);
       d_ofdm_fft.execute();

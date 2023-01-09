@@ -499,6 +499,40 @@ namespace gr {
             d_H_NL_INV[i][3] = tmpadbc*a;
           }
         }
+        // get the pilots from nl ltf
+        // only for 2x2
+        gr_complex tmp1, tmp2, tmps1, tmps2;
+        int i = 7;
+        tmp1 = d_fftLtfOut1[i] * std::conj(d_H_NL[i][0]) + d_fftLtfOut2[i] * std::conj(d_H_NL[i][1]);
+        tmp2 = d_fftLtfOut1[i] * std::conj(d_H_NL[i][2]) + d_fftLtfOut2[i] * std::conj(d_H_NL[i][3]);
+        tmps1 = tmp1 * d_H_NL_INV[i][0] + tmp2 * d_H_NL_INV[i][2];
+        tmps2 = tmp1 * d_H_NL_INV[i][1] + tmp2 * d_H_NL_INV[i][3];
+        d_pilotNlLtf[2] = std::conj(tmps1);
+        d_pilotNlLtf2[2] = std::conj(tmps2);
+
+        i = 21;
+        tmp1 = d_fftLtfOut1[i] * std::conj(d_H_NL[i][0]) + d_fftLtfOut2[i] * std::conj(d_H_NL[i][1]);
+        tmp2 = d_fftLtfOut1[i] * std::conj(d_H_NL[i][2]) + d_fftLtfOut2[i] * std::conj(d_H_NL[i][3]);
+        tmps1 = tmp1 * d_H_NL_INV[i][0] + tmp2 * d_H_NL_INV[i][2];
+        tmps2 = tmp1 * d_H_NL_INV[i][1] + tmp2 * d_H_NL_INV[i][3];
+        d_pilotNlLtf[3] = std::conj(tmps1);
+        d_pilotNlLtf2[3] = std::conj(tmps2);
+
+        i = 43;
+        tmp1 = d_fftLtfOut1[i] * std::conj(d_H_NL[i][0]) + d_fftLtfOut2[i] * std::conj(d_H_NL[i][1]);
+        tmp2 = d_fftLtfOut1[i] * std::conj(d_H_NL[i][2]) + d_fftLtfOut2[i] * std::conj(d_H_NL[i][3]);
+        tmps1 = tmp1 * d_H_NL_INV[i][0] + tmp2 * d_H_NL_INV[i][2];
+        tmps2 = tmp1 * d_H_NL_INV[i][1] + tmp2 * d_H_NL_INV[i][3];
+        d_pilotNlLtf[0] = std::conj(tmps1);
+        d_pilotNlLtf2[0] = std::conj(tmps2);
+
+        i = 57;
+        tmp1 = d_fftLtfOut1[i] * std::conj(d_H_NL[i][0]) + d_fftLtfOut2[i] * std::conj(d_H_NL[i][1]);
+        tmp2 = d_fftLtfOut1[i] * std::conj(d_H_NL[i][2]) + d_fftLtfOut2[i] * std::conj(d_H_NL[i][3]);
+        tmps1 = tmp1 * d_H_NL_INV[i][0] + tmp2 * d_H_NL_INV[i][2];
+        tmps2 = tmp1 * d_H_NL_INV[i][1] + tmp2 * d_H_NL_INV[i][3];
+        d_pilotNlLtf[1] = std::conj(-tmps1);
+        d_pilotNlLtf2[1] = std::conj(-tmps2);
       }
       else
       {
@@ -557,14 +591,20 @@ namespace gr {
           }
         }
 
-        gr_complex tmpPilotSum = std::conj(d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP] + d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP] + d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP] + d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]);
-        gr_complex tmpPilotSum2 = std::conj(d_sig2[7]*d_pilot2[2]*PILOT_P[d_pilotP] + d_sig2[21]*d_pilot2[3]*PILOT_P[d_pilotP] + d_sig2[43]*d_pilot2[0]*PILOT_P[d_pilotP] + d_sig2[57]*d_pilot2[1]*PILOT_P[d_pilotP]);
+        gr_complex tmpPilotSum = std::conj(
+          d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP]*d_pilotNlLtf[2] + 
+          d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP]*d_pilotNlLtf[3] + 
+          d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP]*d_pilotNlLtf[0] + 
+          d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]*d_pilotNlLtf[1] +
+          d_sig2[7]*d_pilot2[2]*PILOT_P[d_pilotP]*d_pilotNlLtf2[2] + 
+          d_sig2[21]*d_pilot2[3]*PILOT_P[d_pilotP]*d_pilotNlLtf2[3] + 
+          d_sig2[43]*d_pilot2[0]*PILOT_P[d_pilotP]*d_pilotNlLtf2[0] + 
+          d_sig2[57]*d_pilot2[1]*PILOT_P[d_pilotP]*d_pilotNlLtf2[1]);
 
         pilotShift(d_pilot);
         pilotShift(d_pilot2);
         d_pilotP = (d_pilotP + 1) % 127;
         float tmpPilotSumAbs = std::abs(tmpPilotSum);
-        float tmpPilotSumAbs2 = std::abs(tmpPilotSum2);
 
         int j=26;
         for(int i=0;i<64;i++)
@@ -574,7 +614,7 @@ namespace gr {
           else
           {
             d_qam[0][j] = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
-            d_qam[1][j] = d_sig2[i] * tmpPilotSum2 / tmpPilotSumAbs2;
+            d_qam[1][j] = d_sig2[i] * tmpPilotSum / tmpPilotSumAbs;
             j++;
             if(j >= 52){j = 0;}
           }
@@ -633,14 +673,14 @@ namespace gr {
           }
         }
         gr_complex tmpPilotSum = std::conj(
-          d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP]*d_pilotVhtB[2] + 
-          d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP]*d_pilotVhtB[3] + 
-          d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP]*d_pilotVhtB[0] + 
-          d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]*d_pilotVhtB[1] +
-          d_sig2[7]*d_pilot[2]*PILOT_P[d_pilotP]*d_pilotVhtB2[2] + 
-          d_sig2[21]*d_pilot[3]*PILOT_P[d_pilotP]*d_pilotVhtB2[3] + 
-          d_sig2[43]*d_pilot[0]*PILOT_P[d_pilotP]*d_pilotVhtB2[0] + 
-          d_sig2[57]*d_pilot[1]*PILOT_P[d_pilotP]*d_pilotVhtB2[1]);
+          d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP]*d_pilotNlLtf[2] + 
+          d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP]*d_pilotNlLtf[3] + 
+          d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP]*d_pilotNlLtf[0] + 
+          d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]*d_pilotNlLtf[1] +
+          d_sig2[7]*d_pilot[2]*PILOT_P[d_pilotP]*d_pilotNlLtf2[2] + 
+          d_sig2[21]*d_pilot[3]*PILOT_P[d_pilotP]*d_pilotNlLtf2[3] + 
+          d_sig2[43]*d_pilot[0]*PILOT_P[d_pilotP]*d_pilotNlLtf2[0] + 
+          d_sig2[57]*d_pilot[1]*PILOT_P[d_pilotP]*d_pilotNlLtf2[1]);
         pilotShift(d_pilot);
         d_pilotP = (d_pilotP + 1) % 127;
         float tmpPilotSumAbs = std::abs(tmpPilotSum);
@@ -693,14 +733,6 @@ namespace gr {
             d_sig2[i] = tmp1 * d_H_NL_INV[i][1] + tmp2 * d_H_NL_INV[i][3];
           }
         }
-        d_pilotVhtB[2] = std::conj(d_sig1[7]);
-        d_pilotVhtB[3] = std::conj(-d_sig1[21]);
-        d_pilotVhtB[0] = std::conj(d_sig1[43]);
-        d_pilotVhtB[1] = std::conj(d_sig1[57]);
-        d_pilotVhtB2[2] = std::conj(d_sig2[7]);
-        d_pilotVhtB2[3] = std::conj(-d_sig2[21]);
-        d_pilotVhtB2[0] = std::conj(d_sig2[43]);
-        d_pilotVhtB2[1] = std::conj(d_sig2[57]);
       }
       else
       {

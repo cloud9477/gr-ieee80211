@@ -93,8 +93,8 @@ namespace gr {
       int d_pilotP;
       float d_pilot[4];
       float d_pilot2[4];
-      gr_complex d_pilotVhtB[4];
-      gr_complex d_pilotVhtB2[4];
+      gr_complex d_pilotNlLtf[4];
+      gr_complex d_pilotNlLtf2[4];
       // non-legacy channel
       /*      P_LTF 4x4
       | 1 -1  1  1 |

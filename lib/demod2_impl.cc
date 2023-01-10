@@ -716,6 +716,20 @@ namespace gr {
             d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i][0];
           }
         }
+        gr_complex tmpPilotSum = std::conj(d_sig1[7] - d_sig1[21] + d_sig1[43] + d_sig1[57]);
+        float tmpPilotSumAbs = std::abs(tmpPilotSum);
+        int j=26;
+        for(int i=0;i<64;i++)
+        {
+          if(i==0 || (i>=29 && i<=35) || i==7 || i==21 || i==43 || i==57)
+          {}
+          else
+          {
+            d_sigVhtB20IntedLlr[j] = (d_sig1[i] * tmpPilotSum / tmpPilotSumAbs).real();
+            j++;
+            if(j >= 52){j = 0;}
+          }
+        }
       }
       else if(d_m.nSS == 2)
       {
@@ -733,35 +747,32 @@ namespace gr {
             d_sig2[i] = tmp1 * d_H_NL_INV[i][1] + tmp2 * d_H_NL_INV[i][3];
           }
         }
+        gr_complex tmpPilotSum = std::conj(
+          d_sig1[7]*d_pilotNlLtf[2] - 
+          d_sig1[21]*d_pilotNlLtf[3] + 
+          d_sig1[43]*d_pilotNlLtf[0] + 
+          d_sig1[57]*d_pilotNlLtf[1] +
+          d_sig2[7]*d_pilotNlLtf2[2] - 
+          d_sig2[21]*d_pilotNlLtf2[3] + 
+          d_sig2[43]*d_pilotNlLtf2[0] + 
+          d_sig2[57]*d_pilotNlLtf2[1]);
+        float tmpPilotSumAbs = std::abs(tmpPilotSum);
+        int j=26;
+        for(int i=0;i<64;i++)
+        {
+          if(i==0 || (i>=29 && i<=35) || i==7 || i==21 || i==43 || i==57)
+          {}
+          else
+          {
+            d_sigVhtB20IntedLlr[j] = ((d_sig1[i] * tmpPilotSum / tmpPilotSumAbs).real() + (d_sig2[i] * tmpPilotSum / tmpPilotSumAbs).real())/2.0f;
+            j++;
+            if(j >= 52){j = 0;}
+          }
+        }
       }
       else
       {
         // not supported
-      }
-      gr_complex tmpPilotSum = std::conj(d_sig1[7] - d_sig1[21] + d_sig1[43] + d_sig1[57]);
-      float tmpPilotSumAbs = std::abs(tmpPilotSum);
-      int j=26;
-      for(int i=0;i<64;i++)
-      {
-        if(i==0 || (i>=29 && i<=35) || i==7 || i==21 || i==43 || i==57)
-        {}
-        else
-        {
-          if(d_m.nSS == 1)
-          {
-            gr_complex tmpSig1 = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
-            // dout<<"sig b LLR "<<i<<" "<<tmpSig1.real()<<std::endl;
-            d_sigVhtB20IntedLlr[j] = tmpSig1.real();
-          }
-          else if(d_m.nSS == 2)
-          {
-            d_sigVhtB20IntedLlr[j] = ((d_sig1[i] + d_sig2[i])/2.0f).real();
-          }
-          else
-          {}
-          j++;
-          if(j >= 52){j = 0;}
-        }
       }
       
       for(int i=0;i<52;i++)

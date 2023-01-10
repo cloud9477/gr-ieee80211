@@ -533,7 +533,7 @@ namespace gr {
         fftDemod(&sig2[8], d_fftLtfOut2);
         fftDemod(&sig1[8+80], d_fftLtfOut12);
         fftDemod(&sig2[8+80], d_fftLtfOut22);
-        gr_complex tmpadbc;
+
         for(int i=0;i<64;i++)
         {
           if(i==0 || (i>=29 && i<=35))
@@ -545,11 +545,39 @@ namespace gr {
             d_H_NL22[1][i] = (d_fftLtfOut2[i] - d_fftLtfOut22[i])*LTF_NL_28_F_FLOAT2[i];
             d_H_NL22[2][i] = (d_fftLtfOut1[i] + d_fftLtfOut12[i])*LTF_NL_28_F_FLOAT2[i];
             d_H_NL22[3][i] = (d_fftLtfOut2[i] + d_fftLtfOut22[i])*LTF_NL_28_F_FLOAT2[i];
-
-            gr_complex a = d_H_NL22[0][i] * std::conj(d_H_NL22[0][i]) + d_H_NL22[1][i] * std::conj(d_H_NL22[1][i]);
-            gr_complex b = d_H_NL22[0][i] * std::conj(d_H_NL22[2][i]) + d_H_NL22[1][i] * std::conj(d_H_NL22[3][i]);
-            gr_complex c = d_H_NL22[2][i] * std::conj(d_H_NL22[0][i]) + d_H_NL22[3][i] * std::conj(d_H_NL22[1][i]);
-            gr_complex d = d_H_NL22[2][i] * std::conj(d_H_NL22[2][i]) + d_H_NL22[3][i] * std::conj(d_H_NL22[3][i]);
+          }
+        }
+        if(d_m.format == C8P_F_VHT)
+        {
+          d_H_NL22[0][7] = (d_H_NL22[0][6] + d_H_NL22[0][8]) / 2.0f;
+          d_H_NL22[1][7] = (d_H_NL22[1][6] + d_H_NL22[1][8]) / 2.0f;
+          d_H_NL22[2][7] = (d_H_NL22[2][6] + d_H_NL22[2][8]) / 2.0f;
+          d_H_NL22[3][7] = (d_H_NL22[3][6] + d_H_NL22[3][8]) / 2.0f;
+          d_H_NL22[0][21] = (d_H_NL22[0][20] + d_H_NL22[0][22]) / 2.0f;
+          d_H_NL22[1][21] = (d_H_NL22[1][20] + d_H_NL22[1][22]) / 2.0f;
+          d_H_NL22[2][21] = (d_H_NL22[2][20] + d_H_NL22[2][22]) / 2.0f;
+          d_H_NL22[3][21] = (d_H_NL22[3][20] + d_H_NL22[3][22]) / 2.0f;
+          d_H_NL22[0][43] = (d_H_NL22[0][42] + d_H_NL22[0][44]) / 2.0f;
+          d_H_NL22[1][43] = (d_H_NL22[1][42] + d_H_NL22[1][44]) / 2.0f;
+          d_H_NL22[2][43] = (d_H_NL22[2][42] + d_H_NL22[2][44]) / 2.0f;
+          d_H_NL22[3][43] = (d_H_NL22[3][42] + d_H_NL22[3][44]) / 2.0f;
+          d_H_NL22[0][57] = (d_H_NL22[0][56] + d_H_NL22[0][58]) / 2.0f;
+          d_H_NL22[1][57] = (d_H_NL22[1][56] + d_H_NL22[1][58]) / 2.0f;
+          d_H_NL22[2][57] = (d_H_NL22[2][56] + d_H_NL22[2][58]) / 2.0f;
+          d_H_NL22[3][57] = (d_H_NL22[3][56] + d_H_NL22[3][58]) / 2.0f;
+        }
+        gr_complex tmpadbc, a, b, c, d;
+        for(int i=0;i<64;i++)
+        {
+          if(i==0 || (i>=29 && i<=35))
+          {
+          }
+          else
+          {
+            a = d_H_NL22[0][i] * std::conj(d_H_NL22[0][i]) + d_H_NL22[1][i] * std::conj(d_H_NL22[1][i]);
+            b = d_H_NL22[0][i] * std::conj(d_H_NL22[2][i]) + d_H_NL22[1][i] * std::conj(d_H_NL22[3][i]);
+            c = d_H_NL22[2][i] * std::conj(d_H_NL22[0][i]) + d_H_NL22[3][i] * std::conj(d_H_NL22[1][i]);
+            d = d_H_NL22[2][i] * std::conj(d_H_NL22[2][i]) + d_H_NL22[3][i] * std::conj(d_H_NL22[3][i]);
             tmpadbc = 1.0f/(a*d - b*c);
 
             d_H_NL22_INV[0][i] = tmpadbc*d;
@@ -558,6 +586,40 @@ namespace gr {
             d_H_NL22_INV[3][i] = tmpadbc*a;
           }
         }
+        // get the pilots from nl ltf
+        // only for 2x2
+        gr_complex tmp1, tmp2, tmps1, tmps2;
+        int i = 7;
+        tmp1 = d_fftLtfOut1[i] * std::conj(d_H_NL22[0][i]) + d_fftLtfOut2[i] * std::conj(d_H_NL22[1][i]);
+        tmp2 = d_fftLtfOut1[i] * std::conj(d_H_NL22[2][i]) + d_fftLtfOut2[i] * std::conj(d_H_NL22[3][i]);
+        tmps1 = tmp1 * d_H_NL22_INV[0][i] + tmp2 * d_H_NL22_INV[2][i];
+        tmps2 = tmp1 * d_H_NL22_INV[1][i] + tmp2 * d_H_NL22_INV[3][i];
+        d_pilotNlLtf[2] = std::conj(tmps1);
+        d_pilotNlLtf[6] = std::conj(tmps2);
+
+        i = 21;
+        tmp1 = d_fftLtfOut1[i] * std::conj(d_H_NL22[0][i]) + d_fftLtfOut2[i] * std::conj(d_H_NL22[1][i]);
+        tmp2 = d_fftLtfOut1[i] * std::conj(d_H_NL22[2][i]) + d_fftLtfOut2[i] * std::conj(d_H_NL22[3][i]);
+        tmps1 = tmp1 * d_H_NL22_INV[0][i] + tmp2 * d_H_NL22_INV[2][i];
+        tmps2 = tmp1 * d_H_NL22_INV[1][i] + tmp2 * d_H_NL22_INV[3][i];
+        d_pilotNlLtf[3] = std::conj(tmps1);
+        d_pilotNlLtf[7] = std::conj(tmps2);
+
+        i = 43;
+        tmp1 = d_fftLtfOut1[i] * std::conj(d_H_NL22[0][i]) + d_fftLtfOut2[i] * std::conj(d_H_NL22[1][i]);
+        tmp2 = d_fftLtfOut1[i] * std::conj(d_H_NL22[2][i]) + d_fftLtfOut2[i] * std::conj(d_H_NL22[3][i]);
+        tmps1 = tmp1 * d_H_NL22_INV[0][i] + tmp2 * d_H_NL22_INV[2][i];
+        tmps2 = tmp1 * d_H_NL22_INV[1][i] + tmp2 * d_H_NL22_INV[3][i];
+        d_pilotNlLtf[0] = std::conj(tmps1);
+        d_pilotNlLtf[4] = std::conj(tmps2);
+
+        i = 57;
+        tmp1 = d_fftLtfOut1[i] * std::conj(d_H_NL22[0][i]) + d_fftLtfOut2[i] * std::conj(d_H_NL22[1][i]);
+        tmp2 = d_fftLtfOut1[i] * std::conj(d_H_NL22[2][i]) + d_fftLtfOut2[i] * std::conj(d_H_NL22[3][i]);
+        tmps1 = tmp1 * d_H_NL22_INV[0][i] + tmp2 * d_H_NL22_INV[2][i];
+        tmps2 = tmp1 * d_H_NL22_INV[1][i] + tmp2 * d_H_NL22_INV[3][i];
+        d_pilotNlLtf[1] = std::conj(-tmps1);
+        d_pilotNlLtf[5] = std::conj(-tmps2);
       }
       else
       {
@@ -580,6 +642,20 @@ namespace gr {
             d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i];
           }
         }
+        gr_complex tmpPilotSum = std::conj(d_sig1[7] - d_sig1[21] + d_sig1[43] + d_sig1[57]);
+        float tmpPilotSumAbs = std::abs(tmpPilotSum);
+        int j=26;
+        for(int i=0;i<64;i++)
+        {
+          if(i==0 || (i>=29 && i<=35) || i==7 || i==21 || i==43 || i==57)
+          {}
+          else
+          {
+            d_sigVhtB20IntedLlr[j] = (d_sig1[i] * tmpPilotSum / tmpPilotSumAbs).real();
+            j++;
+            if(j >= 52){j = 0;}
+          }
+        }
       }
       else if(d_m.nSS == 2)
       {
@@ -597,40 +673,34 @@ namespace gr {
             d_sig2[i] = tmp1 * d_H_NL22_INV[1][i] + tmp2 * d_H_NL22_INV[3][i];
           }
         }
+        gr_complex tmpPilotSum = std::conj(
+          d_sig1[7]*d_pilotNlLtf[2] - 
+          d_sig1[21]*d_pilotNlLtf[3] + 
+          d_sig1[43]*d_pilotNlLtf[0] + 
+          d_sig1[57]*d_pilotNlLtf[1] +
+          d_sig2[7]*d_pilotNlLtf[6] - 
+          d_sig2[21]*d_pilotNlLtf[7] + 
+          d_sig2[43]*d_pilotNlLtf[4] + 
+          d_sig2[57]*d_pilotNlLtf[5]);
+        float tmpPilotSumAbs = std::abs(tmpPilotSum);
+        int j=26;
+        for(int i=0;i<64;i++)
+        {
+          if(i==0 || (i>=29 && i<=35) || i==7 || i==21 || i==43 || i==57)
+          {}
+          else
+          {
+            d_sigVhtB20IntedLlr[j] = ((d_sig1[i] * tmpPilotSum / tmpPilotSumAbs).real() + (d_sig2[i] * tmpPilotSum / tmpPilotSumAbs).real())/2.0f;
+            j++;
+            if(j >= 52){j = 0;}
+          }
+        }
       }
       else
       {
         // not supported
       }
-      gr_complex tmpPilotSum = std::conj(d_sig1[7] - d_sig1[21] + d_sig1[43] + d_sig1[57]);
-      float tmpPilotSumAbs = std::abs(tmpPilotSum);
-      
-      int j=26;
-      for(int i=0;i<64;i++)
-      {
-        if(i==0 || (i>=29 && i<=35) || i==7 || i==21 || i==43 || i==57)
-        {}
-        else
-        {
-          if(d_m.nSS == 1)
-          {
-            gr_complex tmpSig1 = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
-            // dout<<"sig b LLR "<<i<<" "<<tmpSig1.real()<<std::endl;
-            d_sigVhtB20IntedLlr[j] = tmpSig1.real();
-          }
-          else if(d_m.nSS == 2)
-          {
-            gr_complex tmpSig1 = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
-            gr_complex tmpSig2 = d_sig2[i] * tmpPilotSum / tmpPilotSumAbs;
-            d_sigVhtB20IntedLlr[j] = ((tmpSig1 + tmpSig2)/2.0f).real();
-          }
-          else
-          {}
-          j++;
-          if(j >= 52){j = 0;}
-        }
-      }
-      
+   
       for(int i=0;i<52;i++)
       {
         d_sigVhtB20CodedLlr[mapDeintVhtSigB20[i]] = d_sigVhtB20IntedLlr[i];

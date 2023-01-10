@@ -323,6 +323,7 @@ cuFloatComplex* pilotsLegacy;
 cuFloatComplex* pilotsHt;
 cuFloatComplex* pilotsHt2;
 cuFloatComplex* pilotsVht;
+cuFloatComplex* pilotsNlLtf2;
 float* demodSigLlr;
 
 int* demodDemapFftL;
@@ -855,6 +856,8 @@ void cuDemodMall2()
   if(err){ std::cout<<"cloud80211 demodcu, malloc mimo chan inv error."<<std::endl;}
   err = cudaMalloc(&pilotsHt2, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 4);
   if(err){ std::cout<<"cloud80211 demodcu, malloc mimo ht pilots 2 error."<<std::endl;}
+  err = cudaMalloc(&pilotsNlLtf2, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 8);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc siso nl pilots ltf 2 error."<<std::endl;}
   cuFloatComplex pListTmp[CUDEMOD_S_MAX * 4];
   float pTmp[4] = {1.0f, 1.0f, -1.0f, -1.0f};
   for(int i=0;i<CUDEMOD_S_MAX;i++)
@@ -927,6 +930,7 @@ void cuDemodFree2()
   cudaFree(demodChanMimo);
   cudaFree(demodChanMimoInv);
   cudaFree(pilotsHt2);
+  cudaFree(pilotsNlLtf2);
   cudaFree(demodDemapBpskNL2);
   cudaFree(demodDemapQpskNL2);
   cudaFree(demodDemap16QamNL2);
@@ -939,10 +943,11 @@ void cuDemodChanSiso(cuFloatComplex *chan)
   cudaMemcpy(demodChanSiso, chan, 64*sizeof(cuFloatComplex), cudaMemcpyHostToDevice);
 }
 
-void cuDemodChanMimo(cuFloatComplex *chan, cuFloatComplex *chaninv)
+void cuDemodChanMimo(cuFloatComplex *chan, cuFloatComplex *chaninv, cuFloatComplex *pilotsltf)
 {
   cudaMemcpy(demodChanMimo, chan, 256*sizeof(cuFloatComplex), cudaMemcpyHostToDevice);
   cudaMemcpy(demodChanMimoInv, chaninv, 256*sizeof(cuFloatComplex), cudaMemcpyHostToDevice);
+  cudaMemcpy(pilotsNlLtf2, pilotsltf, 8*sizeof(cuFloatComplex), cudaMemcpyHostToDevice);
 }
 
 void cuDemodSigCopy(int i, int n, const cuFloatComplex *sig)

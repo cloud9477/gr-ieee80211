@@ -85,6 +85,7 @@ namespace gr {
       int d_nSampTotoal;
       int d_nSampCopied;
       int d_nTrellis;
+      gr_complex d_pilotNlLtf[8];
       boost::crc_32_type d_crc32;
       uint8_t d_psduBytes[CUDEMOD_B_MAX];
       // packet counter

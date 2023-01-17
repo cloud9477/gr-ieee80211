@@ -95,7 +95,7 @@ namespace gr {
             d_nSigLSamp = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("nsamp"), pmt::from_long(-1)));
             std::vector<gr_complex> tmp_csi = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("csi"), pmt::PMT_NIL));
             std::copy(tmp_csi.begin(), tmp_csi.end(), d_H);
-            dout<<"ieee80211 demod, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<std::endl;
+            dout<<"ieee80211 demod, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<", samp:"<<d_nSigLSamp<<std::endl;
             d_nSampConsumed = 0;
             d_nSigLSamp = d_nSigLSamp + 320;
             if(d_nSigLMcs > 0)
@@ -212,17 +212,15 @@ namespace gr {
           {
             nonLegacyChanEstimate(&inSig1[80], &inSig2[80]);
             vhtSigBDemod(&inSig1[80 + d_m.nLTF*80], &inSig2[80 + d_m.nLTF*80]);
-
             dout<<"sig b bits:";
             for(int i=0;i<26;i++)
             {
               dout<<(int)d_sigVhtB20Bits[i]<<" ";
             }
             dout<<std::endl;
-
             signalParserVhtB(d_sigVhtB20Bits, &d_m);
             int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
-            if((tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80))
+            if(d_m.len >= 0 && (tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80))
             {
               d_unCoded = d_m.nSym * d_m.nDBPS;
               d_nTrellis = d_m.nSym * d_m.nDBPS;

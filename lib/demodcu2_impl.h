@@ -59,9 +59,9 @@ namespace gr {
       // check format
       gr_complex d_sig1[64];
       gr_complex d_sig2[64];
-      float d_sigHtIntedLlr[97];
+      float d_sigHtIntedLlr[96];
       float d_sigHtCodedLlr[96];
-      float d_sigVhtAIntedLlr[97];
+      float d_sigVhtAIntedLlr[96];
       float d_sigVhtACodedLlr[96];
       float d_sigVhtB20IntedLlr[52];
       float d_sigVhtB20CodedLlr[52];

@@ -323,6 +323,7 @@ cuFloatComplex* pilotsLegacy;
 cuFloatComplex* pilotsHt;
 cuFloatComplex* pilotsHt2;
 cuFloatComplex* pilotsVht;
+cuFloatComplex* pilotsVht2;
 cuFloatComplex* pilotsNlLtf2;
 float* demodSigLlr;
 
@@ -331,6 +332,7 @@ int* demodDemapBpskL;
 int* demodDemapQpskL;
 int* demodDemap16QamL;
 int* demodDemap64QamL;
+int* demodDemapL[6] = {NULL, NULL, NULL, NULL, NULL, NULL};
 
 int* demodDemapFftNL;
 int* demodDemapBpskNL;
@@ -338,12 +340,14 @@ int* demodDemapQpskNL;
 int* demodDemap16QamNL;
 int* demodDemap64QamNL;
 int* demodDemap256QamNL;
+int* demodDemapNL[6] = {NULL, NULL, NULL, NULL, NULL, NULL};
 
 int* demodDemapBpskNL2;
 int* demodDemapQpskNL2;
 int* demodDemap16QamNL2;
 int* demodDemap64QamNL2;
 int* demodDemap256QamNL2;
+int* demodDemapNL2[6] = {NULL, NULL, NULL, NULL, NULL, NULL};
 
 int* cuv_seq;
 int* cuv_state_his;
@@ -473,10 +477,11 @@ void cuDemodQamToLlr(int n, int nCBPSS, cuFloatComplex* sigfft, float* llr, cuFl
 }
 
 __global__
-void cuDemodQamToLlr2(int n, int nCBPS, cuFloatComplex* sigfft, float* llr, cuFloatComplex* p, int* deshift, int* deintstream)
+void cuDemodQamToLlr2(int n, int nCBPS, cuFloatComplex* sigfft, float* llr, cuFloatComplex* p, cuFloatComplex* pltf, int* deshift, int* deintstream)
 {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int j;  // sym index
+  int j2; // sym index with shift for ss2
   int k = i % 64;  // sample index
   int llrOffset;
   int nCbpssShift;
@@ -493,20 +498,26 @@ void cuDemodQamToLlr2(int n, int nCBPS, cuFloatComplex* sigfft, float* llr, cuFl
   if(i >= (n/2))
   {
     j = (i-n/2) / 64;
+    j2 = i / 64;
     llrOffset = j * nCBPS;
     nCbpssShift = nCBPS / 2;
   }
   else
   {
     j = i / 64;
+    j2 = j + (n/2)/64;
     llrOffset = j * nCBPS;
     nCbpssShift = 0;
   }
 
-  pilotConj = cuCaddf(pilotConj, cuCmulf(sigfft[j*64 + 43], p[j*4]));
-  pilotConj = cuCaddf(pilotConj, cuCmulf(sigfft[j*64 + 57], p[j*4+1]));
-  pilotConj = cuCaddf(pilotConj, cuCmulf(sigfft[j*64 +  7], p[j*4+2]));
-  pilotConj = cuCaddf(pilotConj, cuCmulf(sigfft[j*64 + 21], p[j*4+3]));
+  pilotConj = cuCaddf(pilotConj, cuCmulf(cuCmulf(sigfft[j*64 + 43], p[j*8]), pltf[0]));
+  pilotConj = cuCaddf(pilotConj, cuCmulf(cuCmulf(sigfft[j*64 + 57], p[j*8+1]), pltf[1]));
+  pilotConj = cuCaddf(pilotConj, cuCmulf(cuCmulf(sigfft[j*64 +  7], p[j*8+2]), pltf[2]));
+  pilotConj = cuCaddf(pilotConj, cuCmulf(cuCmulf(sigfft[j*64 + 21], p[j*8+3]), pltf[3]));
+  pilotConj = cuCaddf(pilotConj, cuCmulf(cuCmulf(sigfft[j2*64 + 43], p[j*8+4]), pltf[4]));
+  pilotConj = cuCaddf(pilotConj, cuCmulf(cuCmulf(sigfft[j2*64 + 57], p[j*8+5]), pltf[5]));
+  pilotConj = cuCaddf(pilotConj, cuCmulf(cuCmulf(sigfft[j2*64 +  7], p[j*8+6]), pltf[6]));
+  pilotConj = cuCaddf(pilotConj, cuCmulf(cuCmulf(sigfft[j2*64 + 21], p[j*8+7]), pltf[7]));
   pilotAbs = make_cuFloatComplex(cuCabsf(pilotConj), 0.0f);
   pilotConj = cuConjf(pilotConj);
 
@@ -822,6 +833,15 @@ void cuDemodMall()
   cudaMemcpy(demodDemap16QamNL, mapDeintNonlegacy16Qam, 208*sizeof(int), cudaMemcpyHostToDevice);
   cudaMemcpy(demodDemap64QamNL, mapDeintNonlegacy64Qam, 312*sizeof(int), cudaMemcpyHostToDevice);
   cudaMemcpy(demodDemap256QamNL, mapDeintNonlegacy256Qam, 416*sizeof(int), cudaMemcpyHostToDevice);
+  demodDemapL[C8P_QAM_BPSK] = demodDemapBpskL;
+  demodDemapL[C8P_QAM_QPSK] = demodDemapQpskL;
+  demodDemapL[C8P_QAM_16QAM] = demodDemap16QamL;
+  demodDemapL[C8P_QAM_64QAM] = demodDemap64QamL;
+  demodDemapNL[C8P_QAM_BPSK] = demodDemapBpskNL;
+  demodDemapNL[C8P_QAM_QPSK] = demodDemapQpskNL;
+  demodDemapNL[C8P_QAM_16QAM] = demodDemap16QamNL;
+  demodDemapNL[C8P_QAM_64QAM] = demodDemap64QamNL;
+  demodDemapNL[C8P_QAM_256QAM] = demodDemap256QamNL;
 
   err = cudaMalloc(&cuv_seq, sizeof(int) * (CUDEMOD_T_MAX + 1));
   if(err){ std::cout<<"cloud80211 demodcu, malloc decode seq error."<<std::endl;}
@@ -854,26 +874,61 @@ void cuDemodMall2()
   if(err){ std::cout<<"cloud80211 demodcu, malloc mimo chan error."<<std::endl;}
   err = cudaMalloc(&demodChanMimoInv, sizeof(cuFloatComplex) * 256);
   if(err){ std::cout<<"cloud80211 demodcu, malloc mimo chan inv error."<<std::endl;}
-  err = cudaMalloc(&pilotsHt2, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 4);
+  err = cudaMalloc(&pilotsHt2, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 8);
   if(err){ std::cout<<"cloud80211 demodcu, malloc mimo ht pilots 2 error."<<std::endl;}
+  err = cudaMalloc(&pilotsVht2, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 8);
+  if(err){ std::cout<<"cloud80211 demodcu, malloc mimo vht pilots 2 error."<<std::endl;}
   err = cudaMalloc(&pilotsNlLtf2, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 8);
   if(err){ std::cout<<"cloud80211 demodcu, malloc siso nl pilots ltf 2 error."<<std::endl;}
-  cuFloatComplex pListTmp[CUDEMOD_S_MAX * 4];
-  float pTmp[4] = {1.0f, 1.0f, -1.0f, -1.0f};
+  cuFloatComplex pListTmp[CUDEMOD_S_MAX * 8];
+  float pTmp[8] = {1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f};
   for(int i=0;i<CUDEMOD_S_MAX;i++)
   {
-    pListTmp[i*4] = make_cuFloatComplex(pTmp[0] * PILOT_P[(i+3)%127], 0.0f);
-    pListTmp[i*4+1] = make_cuFloatComplex(pTmp[1] * PILOT_P[(i+3)%127], 0.0f);
-    pListTmp[i*4+2] = make_cuFloatComplex(pTmp[2] * PILOT_P[(i+3)%127], 0.0f);
-    pListTmp[i*4+3] = make_cuFloatComplex(pTmp[3] * PILOT_P[(i+3)%127], 0.0f);
+    pListTmp[i*8] = make_cuFloatComplex(pTmp[0] * PILOT_P[(i+3)%127], 0.0f);
+    pListTmp[i*8+1] = make_cuFloatComplex(pTmp[1] * PILOT_P[(i+3)%127], 0.0f);
+    pListTmp[i*8+2] = make_cuFloatComplex(pTmp[2] * PILOT_P[(i+3)%127], 0.0f);
+    pListTmp[i*8+3] = make_cuFloatComplex(pTmp[3] * PILOT_P[(i+3)%127], 0.0f);
+    pListTmp[i*8+4] = make_cuFloatComplex(pTmp[4] * PILOT_P[(i+3)%127], 0.0f);
+    pListTmp[i*8+5] = make_cuFloatComplex(pTmp[5] * PILOT_P[(i+3)%127], 0.0f);
+    pListTmp[i*8+6] = make_cuFloatComplex(pTmp[6] * PILOT_P[(i+3)%127], 0.0f);
+    pListTmp[i*8+7] = make_cuFloatComplex(pTmp[7] * PILOT_P[(i+3)%127], 0.0f);
 
     float tmpPilot = pTmp[0];
     pTmp[0] = pTmp[1];
     pTmp[1] = pTmp[2];
     pTmp[2] = pTmp[3];
     pTmp[3] = tmpPilot;
+    tmpPilot = pTmp[4];
+    pTmp[4] = pTmp[5];
+    pTmp[5] = pTmp[6];
+    pTmp[6] = pTmp[7];
+    pTmp[7] = tmpPilot;
   }
-  cudaMemcpy(pilotsHt2, pListTmp, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 4, cudaMemcpyHostToDevice);
+  cudaMemcpy(pilotsHt2, pListTmp, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 8, cudaMemcpyHostToDevice);
+  float pTmp2[8] = {1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, -1.0f};
+  for(int i=0;i<CUDEMOD_S_MAX;i++)
+  {
+    pListTmp[i*8] = make_cuFloatComplex(pTmp2[0] * PILOT_P[(i+4)%127], 0.0f);
+    pListTmp[i*8+1] = make_cuFloatComplex(pTmp2[1] * PILOT_P[(i+4)%127], 0.0f);
+    pListTmp[i*8+2] = make_cuFloatComplex(pTmp2[2] * PILOT_P[(i+4)%127], 0.0f);
+    pListTmp[i*8+3] = make_cuFloatComplex(pTmp2[3] * PILOT_P[(i+4)%127], 0.0f);
+    pListTmp[i*8+4] = make_cuFloatComplex(pTmp2[4] * PILOT_P[(i+4)%127], 0.0f);
+    pListTmp[i*8+5] = make_cuFloatComplex(pTmp2[5] * PILOT_P[(i+4)%127], 0.0f);
+    pListTmp[i*8+6] = make_cuFloatComplex(pTmp2[6] * PILOT_P[(i+4)%127], 0.0f);
+    pListTmp[i*8+7] = make_cuFloatComplex(pTmp2[7] * PILOT_P[(i+4)%127], 0.0f);
+
+    float tmpPilot = pTmp2[0];
+    pTmp2[0] = pTmp2[1];
+    pTmp2[1] = pTmp2[2];
+    pTmp2[2] = pTmp2[3];
+    pTmp2[3] = tmpPilot;
+    tmpPilot = pTmp2[4];
+    pTmp2[4] = pTmp2[5];
+    pTmp2[5] = pTmp2[6];
+    pTmp2[6] = pTmp2[7];
+    pTmp2[7] = tmpPilot;
+  }
+  cudaMemcpy(pilotsVht2, pListTmp, sizeof(cuFloatComplex) * CUDEMOD_S_MAX * 8, cudaMemcpyHostToDevice);
 
   err = cudaMalloc(&demodDemapBpskNL2, sizeof(int) * 104);
   if(err){ std::cout<<"cloud80211 demodcu, malloc mimo deint stream non legacy bpsk error."<<std::endl;}
@@ -890,6 +945,11 @@ void cuDemodMall2()
   cudaMemcpy(demodDemap16QamNL2, mapDeintstream16Qam, 416*sizeof(int), cudaMemcpyHostToDevice);
   cudaMemcpy(demodDemap64QamNL2, mapDeintstream64Qam, 624*sizeof(int), cudaMemcpyHostToDevice);
   cudaMemcpy(demodDemap256QamNL2, mapDeintstream256Qam, 832*sizeof(int), cudaMemcpyHostToDevice);
+  demodDemapNL2[C8P_QAM_BPSK] = demodDemapBpskNL2;
+  demodDemapNL2[C8P_QAM_QPSK] = demodDemapQpskNL2;
+  demodDemapNL2[C8P_QAM_16QAM] = demodDemap16QamNL2;
+  demodDemapNL2[C8P_QAM_64QAM] = demodDemap64QamNL2;
+  demodDemapNL2[C8P_QAM_256QAM] = demodDemap256QamNL2;
 }
 
 void cuDemodFree()
@@ -930,6 +990,7 @@ void cuDemodFree2()
   cudaFree(demodChanMimo);
   cudaFree(demodChanMimoInv);
   cudaFree(pilotsHt2);
+  cudaFree(pilotsVht2);
   cudaFree(pilotsNlLtf2);
   cudaFree(demodDemapBpskNL2);
   cudaFree(demodDemapQpskNL2);
@@ -973,76 +1034,38 @@ void cuDemodSiso(c8p_mod* m, unsigned char* psduBytes)
   int* cuv_cr_punc_p;
   int cuv_cr_len;
   int cuv_trellis;
+  cuFloatComplex* pilotsused;
+  int* demapfftused;
+  int* demapqamused;
 
+  if(m->format == C8P_F_L)
+  {
+    cuv_trellis = 22 + m->len*8;
+    pilotsused = pilotsLegacy;
+    demapfftused = demodDemapFftL;
+    demapqamused = demodDemapL[m->mod];
+  }
+  else if(m->format == C8P_F_HT)
+  {
+    cuv_trellis = 22 + m->len*8;
+    pilotsused = pilotsHt;
+    demapfftused = demodDemapFftNL;
+    demapqamused = demodDemapNL[m->mod];
+  }
+  else
+  {
+    cuv_trellis = m->nSym * m->nDBPS;
+    pilotsused = pilotsVht;
+    demapfftused = demodDemapFftNL;
+    demapqamused = demodDemapNL[m->mod];
+  }
   cuDemodChopSamp<<<(m->nSym * m->nSymSamp)/1024 + 1, 1024>>>(m->nSym * m->nSymSamp, demodSig, demodSigFft);
   for(int symIter=0; symIter < ((m->nSym + CUDEMOD_FFT_BATCH - 1) / CUDEMOD_FFT_BATCH); symIter++ )   // each round inlcudes 256 batches
   {
     cufftExecC2C(demodPlan, &demodSigFft[symIter*CUDEMOD_FFT_BATCH*64], &demodSigFft[symIter*CUDEMOD_FFT_BATCH*64], CUFFT_FORWARD);
   }
   cuDemodChanComp<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, demodSigFft, demodChanSiso);
-  if(m->format == C8P_F_L)
-  {
-    if(m->mod == C8P_QAM_BPSK)
-    {
-      cuDemodQamToLlr<<<(m->nSym * 64)/256 + 1, 256>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsLegacy, demodDemapFftL, demodDemapBpskL);
-    }
-    else if(m->mod == C8P_QAM_QPSK)
-    {
-      cuDemodQamToLlr<<<(m->nSym * 64)/256 + 1, 256>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsLegacy, demodDemapFftL, demodDemapQpskL);
-    }
-    else if(m->mod == C8P_QAM_16QAM)
-    {
-      cuDemodQamToLlr<<<(m->nSym * 64)/256 + 1, 256>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsLegacy, demodDemapFftL, demodDemap16QamL);
-    }
-    else
-    {
-      cuDemodQamToLlr<<<(m->nSym * 64)/256 + 1, 256>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsLegacy, demodDemapFftL, demodDemap64QamL);
-    }
-  }
-  else
-  {
-    if(m->mod == C8P_QAM_BPSK)
-    {
-      if(m->format == C8P_F_HT)
-      {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsHt, demodDemapFftNL, demodDemapBpskNL);}
-      else
-      {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsVht, demodDemapFftNL, demodDemapBpskNL);}
-    }
-    else if(m->mod == C8P_QAM_QPSK)
-    {
-      if(m->format == C8P_F_HT)
-      {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsHt, demodDemapFftNL, demodDemapQpskNL);}
-      else
-      {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsVht, demodDemapFftNL, demodDemapQpskNL);}
-    }
-    else if(m->mod == C8P_QAM_16QAM)
-    {
-      if(m->format == C8P_F_HT)
-      {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsHt, demodDemapFftNL, demodDemap16QamNL);}
-      else
-      {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsVht, demodDemapFftNL, demodDemap16QamNL);}
-    }
-    else if(m->mod == C8P_QAM_64QAM)
-    {
-      if(m->format == C8P_F_HT)
-      {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsHt, demodDemapFftNL, demodDemap64QamNL);}
-      else
-      {cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsVht, demodDemapFftNL, demodDemap64QamNL);}
-    }
-    else
-    {
-      cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsVht, demodDemapFftNL, demodDemap256QamNL);
-    }
-  }
-
-  if(m->format == C8P_F_L || m->format == C8P_F_HT)
-  {
-    cuv_trellis = 22 + m->len*8;
-  }
-  else
-  {
-    cuv_trellis = m->nSym * m->nDBPS;
-  }
+  cuDemodQamToLlr<<<(m->nSym * 64)/1024 + 1, 1024>>>(m->nSym * 64, m->nCBPSS, demodSigFft, demodSigLlr, pilotsused, demapfftused, demapqamused);
   
   if (m->cr == C8P_CR_12) {
       cuv_cr_len = 2;
@@ -1080,6 +1103,8 @@ void cuDemodMimo(c8p_mod* m, unsigned char* psduBytes)
   int cuv_cr_len;
   int cuv_trellis;
   cuFloatComplex* pilotsused;
+  int* demapqamused;
+
   if(m->format == C8P_F_HT)
   {
     pilotsused = pilotsHt2;
@@ -1087,37 +1112,17 @@ void cuDemodMimo(c8p_mod* m, unsigned char* psduBytes)
   }
   else
   {
-    pilotsused = pilotsVht;
+    pilotsused = pilotsVht2;
     cuv_trellis = m->nSym * m->nDBPS;
   }
-
+  demapqamused = demodDemapNL2[m->mod];
   cuDemodChopSamp<<<(m->nSym * m->nSymSamp * 2 + 1023)/1024, 1024>>>(m->nSym * m->nSymSamp * 2, demodSig, demodSigFft);
   for(int symIter=0; symIter < ((m->nSym * 2 + CUDEMOD_FFT_BATCH - 1) / CUDEMOD_FFT_BATCH); symIter++ )   // each round inlcudes 256 batches
   {
     cufftExecC2C(demodPlan, &demodSigFft[symIter*CUDEMOD_FFT_BATCH*64], &demodSigFft[symIter*CUDEMOD_FFT_BATCH*64], CUFFT_FORWARD);
   }
   cuDemodChanComp2<<<(m->nSym * 64 + 1023)/1024, 1024>>>(m->nSym * 64, demodSigFft, demodChanMimo, demodChanMimoInv);
-
-  if(m->mod == C8P_QAM_BPSK)
-  {
-    cuDemodQamToLlr2<<<(m->nSym * 64 * 2 + 1023)/1024, 1024>>>(m->nSym * 64 * 2, m->nCBPS, demodSigFft, demodSigLlr, pilotsused, demodDemapFftNL, demodDemapBpskNL2);
-  }
-  else if(m->mod == C8P_QAM_QPSK)
-  {
-    cuDemodQamToLlr2<<<(m->nSym * 64 * 2 + 1023)/1024, 1024>>>(m->nSym * 64 * 2, m->nCBPS, demodSigFft, demodSigLlr, pilotsused, demodDemapFftNL, demodDemapQpskNL2);
-  }
-  else if(m->mod == C8P_QAM_16QAM)
-  {
-    cuDemodQamToLlr2<<<(m->nSym * 64 * 2 + 1023)/1024, 1024>>>(m->nSym * 64 * 2, m->nCBPS, demodSigFft, demodSigLlr, pilotsused, demodDemapFftNL, demodDemap16QamNL2);
-  }
-  else if(m->mod == C8P_QAM_64QAM)
-  {
-    cuDemodQamToLlr2<<<(m->nSym * 64 * 2 + 1023)/1024, 1024>>>(m->nSym * 64 * 2, m->nCBPS, demodSigFft, demodSigLlr, pilotsused, demodDemapFftNL, demodDemap64QamNL2);
-  }
-  else
-  {
-    cuDemodQamToLlr2<<<(m->nSym * 64 * 2 + 1023)/1024, 1024>>>(m->nSym * 64 * 2, m->nCBPS, demodSigFft, demodSigLlr, pilotsused, demodDemapFftNL, demodDemap256QamNL2);
-  }
+  cuDemodQamToLlr2<<<(m->nSym * 64 * 2 + 1023)/1024, 1024>>>(m->nSym * 64 * 2, m->nCBPS, demodSigFft, demodSigLlr, pilotsused, pilotsNlLtf2, demodDemapFftNL, demapqamused);
 
   if (m->cr == C8P_CR_12) {
       cuv_cr_len = 2;

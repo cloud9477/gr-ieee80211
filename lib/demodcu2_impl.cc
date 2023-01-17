@@ -74,16 +74,16 @@ namespace gr {
     void
     demodcu2_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
     {
+      int tmpRequired = 160;
       if(d_sDemod == DEMOD_S_DEMOD)
       {
-        ninput_items_required[0] = noutput_items + (d_nSampTotoal - d_nSampCopied);
-        ninput_items_required[1] = noutput_items + (d_nSampTotoal - d_nSampCopied);
+        if((noutput_items + (d_nSampTotoal - d_nSampCopied)) <= 8000)
+          tmpRequired = noutput_items + (d_nSampTotoal - d_nSampCopied);
+        else
+          tmpRequired = 8000;
       }
-      else
-      {
-        ninput_items_required[0] = noutput_items + 160;
-        ninput_items_required[1] = noutput_items + 160;
-      }
+      ninput_items_required[0] = tmpRequired;
+      ninput_items_required[1] = tmpRequired;
     }
 
     int
@@ -115,6 +115,7 @@ namespace gr {
           std::vector<gr_complex> tmp_csi = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("csi"), pmt::PMT_NIL));
           std::copy(tmp_csi.begin(), tmp_csi.end(), d_H);
           dout<<"ieee80211 demodcu2, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<std::endl;
+          /* performance test */
           if(tmpPktSeq == 1)
           {
             d_ts = std::chrono::high_resolution_clock::now();
@@ -157,14 +158,27 @@ namespace gr {
         fftDemod(&inSig[d_nUsed + 8+80], d_fftLtfOut2);
         for(int i=0;i<64;i++)
         {
-          if( i < 27 || i > 37)
+          if(i < 27 || i > 37)
           {
             d_sig1[i] = d_fftLtfOut1[i] / d_H[i];
             d_sig2[i] = d_fftLtfOut2[i] / d_H[i];
-            d_sigHtIntedLlr[FFT_26_SHIFT_DEMAP[i]] = d_sig1[i].imag();
-            d_sigHtIntedLlr[FFT_26_SHIFT_DEMAP[i + 64]] = d_sig2[i].imag();
-            d_sigVhtAIntedLlr[FFT_26_SHIFT_DEMAP[i]] = d_sig1[i].real();
-            d_sigVhtAIntedLlr[FFT_26_SHIFT_DEMAP[i + 64]] = d_sig2[i].imag();
+          }
+        }
+        gr_complex tmpPilotSum1 = std::conj(d_sig1[7] - d_sig1[21] + d_sig1[43] + d_sig1[57]);
+        gr_complex tmpPilotSum2 = std::conj(d_sig2[7] - d_sig2[21] + d_sig2[43] + d_sig2[57]);
+        float tmpPilotSumAbs1 = std::abs(tmpPilotSum1);
+        float tmpPilotSumAbs2 = std::abs(tmpPilotSum2);
+        gr_complex tmpM1, tmpM2;
+        for(int i=0;i<64;i++)
+        {
+          if(i < 27 || i > 37)
+          {
+            tmpM1 = d_sig1[i] * tmpPilotSum1 / tmpPilotSumAbs1;
+            tmpM2 = d_sig2[i] * tmpPilotSum2 / tmpPilotSumAbs2;
+            d_sigHtIntedLlr[FFT_26_SHIFT_DEMAP[i]] = tmpM1.imag();
+            d_sigHtIntedLlr[FFT_26_SHIFT_DEMAP[i + 64]] = tmpM2.imag();
+            d_sigVhtAIntedLlr[FFT_26_SHIFT_DEMAP[i]] = tmpM1.real();
+            d_sigVhtAIntedLlr[FFT_26_SHIFT_DEMAP[i + 64]] = tmpM2.imag();
           }
         }
         //-------------- format check first check vht, then ht otherwise legacy
@@ -174,6 +188,12 @@ namespace gr {
         if(signalCheckVhtA(d_sigVhtABits))
         {
           // go to vht
+          dout<<"sig vht a bits"<<std::endl;
+          for(int i=0;i<48;i++)
+          {
+            dout<<(int)d_sigVhtABits[i]<<" ";
+          }
+          dout<<std::endl;
           signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
           dout<<"ieee80211 demodcu2, vht a check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
           d_sDemod = DEMOD_S_VHT;
@@ -187,6 +207,13 @@ namespace gr {
           SV_Decode_Sig(d_sigHtCodedLlr, d_sigHtBits, 48);
           if(signalCheckHt(d_sigHtBits))
           {
+            // go to ht
+            dout<<"sig ht bits"<<std::endl;
+            for(int i=0;i<48;i++)
+            {
+              dout<<(int)d_sigHtBits[i]<<" ";
+            }
+            dout<<std::endl;
             signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
             dout<<"ieee80211 demodcu2, ht check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
             d_sDemod = DEMOD_S_HT;
@@ -207,13 +234,18 @@ namespace gr {
 
       if(d_sDemod == DEMOD_S_VHT && ((d_nProc - d_nUsed) >= (80 + d_m.nLTF*80 + 80)))
       {
-        // get channel and signal b
         nonLegacyChanEstimate(&inSig[d_nUsed + 80], &inSig2[d_nUsed + 80]);
         vhtSigBDemod(&inSig[d_nUsed + 80 + d_m.nLTF*80], &inSig2[d_nUsed + 80 + d_m.nLTF*80]);
+        dout<<"sig b bits:";
+        for(int i=0;i<26;i++)
+        {
+          dout<<(int)d_sigVhtB20Bits[i]<<" ";
+        }
+        dout<<std::endl;
         signalParserVhtB(d_sigVhtB20Bits, &d_m);
-        dout<<"ieee80211 demodcu2, vht b len:"<<d_m.len<<", mcs:"<<d_m.mcs<<", nSS:"<<d_m.nSS<<std::endl;
+        dout<<"ieee80211 demodcu2, vht b len:"<<d_m.len<<", mcs:"<<d_m.mcs<<", nSS:"<<d_m.nSS<<", nSym:"<<d_m.nSym<<std::endl;
         int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
-        if((tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80))
+        if(d_m.len >= 0 && (tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80))
         {
           if(d_m.nSS == 1)
           {
@@ -221,8 +253,7 @@ namespace gr {
           }
           else
           {
-            dout<<"ieee80211 demodcu2, update mimo channel vht"<<std::endl;
-            cuDemodChanMimo((cuFloatComplex*) d_H_NL22, (cuFloatComplex*) d_H_NL22_INV);
+            cuDemodChanMimo((cuFloatComplex*) d_H_NL22, (cuFloatComplex*) d_H_NL22_INV, (cuFloatComplex*) d_pilotNlLtf);
           }
           d_nSampTotoal = d_m.nSymSamp * d_m.nSym;
           d_sDemod = DEMOD_S_DEMOD;
@@ -248,7 +279,7 @@ namespace gr {
           else
           {
             dout<<"ieee80211 demodcu2, update mimo channel ht"<<std::endl;
-            cuDemodChanMimo((cuFloatComplex*) d_H_NL22, (cuFloatComplex*) d_H_NL22_INV);
+            cuDemodChanMimo((cuFloatComplex*) d_H_NL22, (cuFloatComplex*) d_H_NL22_INV, (cuFloatComplex*) d_pilotNlLtf);
           }
           d_nSampTotoal = d_m.nSymSamp * d_m.nSym;
           d_sDemod = DEMOD_S_DEMOD;

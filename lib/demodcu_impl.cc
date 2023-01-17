@@ -46,7 +46,7 @@ namespace gr {
       message_port_register_out(pmt::mp("out"));
       d_nProc = 0;
       d_nUsed = 0;
-      d_debug = false;
+      d_debug = true;
       d_sDemod = DEMOD_S_RDTAG;
       d_nPktCorrect = 0;
       memset(d_vhtMcsCount, 0, sizeof(uint64_t) * 10);

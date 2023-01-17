@@ -45,7 +45,7 @@ void cuDemodMall2();
 void cuDemodFree();
 void cuDemodFree2();
 void cuDemodChanSiso(cuFloatComplex *chan);
-void cuDemodChanMimo(cuFloatComplex *chan, cuFloatComplex *chaninv);
+void cuDemodChanMimo(cuFloatComplex *chan, cuFloatComplex *chaninv, cuFloatComplex *pilotsltf);
 void cuDemodSigCopy(int i, int n, const cuFloatComplex *sig);
 void cuDemodSigCopy2(int i, int j, int n, const cuFloatComplex *sig, const cuFloatComplex *sig2);
 void cuDemodSiso(c8p_mod* m, unsigned char* psduBytes);

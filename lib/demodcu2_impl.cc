@@ -156,31 +156,7 @@ namespace gr {
       {
         fftDemod(&inSig[d_nUsed + 8], d_fftLtfOut1);
         fftDemod(&inSig[d_nUsed + 8+80], d_fftLtfOut2);
-        for(int i=0;i<64;i++)
-        {
-          if(i < 27 || i > 37)
-          {
-            d_sig1[i] = d_fftLtfOut1[i] / d_H[i];
-            d_sig2[i] = d_fftLtfOut2[i] / d_H[i];
-          }
-        }
-        gr_complex tmpPilotSum1 = std::conj(d_sig1[7] - d_sig1[21] + d_sig1[43] + d_sig1[57]);
-        gr_complex tmpPilotSum2 = std::conj(d_sig2[7] - d_sig2[21] + d_sig2[43] + d_sig2[57]);
-        float tmpPilotSumAbs1 = std::abs(tmpPilotSum1);
-        float tmpPilotSumAbs2 = std::abs(tmpPilotSum2);
-        gr_complex tmpM1, tmpM2;
-        for(int i=0;i<64;i++)
-        {
-          if(i < 27 || i > 37)
-          {
-            tmpM1 = d_sig1[i] * tmpPilotSum1 / tmpPilotSumAbs1;
-            tmpM2 = d_sig2[i] * tmpPilotSum2 / tmpPilotSumAbs2;
-            d_sigHtIntedLlr[FFT_26_SHIFT_DEMAP[i]] = tmpM1.imag();
-            d_sigHtIntedLlr[FFT_26_SHIFT_DEMAP[i + 64]] = tmpM2.imag();
-            d_sigVhtAIntedLlr[FFT_26_SHIFT_DEMAP[i]] = tmpM1.real();
-            d_sigVhtAIntedLlr[FFT_26_SHIFT_DEMAP[i + 64]] = tmpM2.imag();
-          }
-        }
+        signalNlDemodDecode(d_fftLtfOut1, d_fftLtfOut2, d_H, d_sigHtIntedLlr, d_sigVhtAIntedLlr);
         //-------------- format check first check vht, then ht otherwise legacy
         procDeintLegacyBpsk(d_sigVhtAIntedLlr, d_sigVhtACodedLlr);
         procDeintLegacyBpsk(&d_sigVhtAIntedLlr[48], &d_sigVhtACodedLlr[48]);
@@ -245,7 +221,7 @@ namespace gr {
         signalParserVhtB(d_sigVhtB20Bits, &d_m);
         dout<<"ieee80211 demodcu2, vht b len:"<<d_m.len<<", mcs:"<<d_m.mcs<<", nSS:"<<d_m.nSS<<", nSym:"<<d_m.nSym<<std::endl;
         int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
-        if(d_m.len >= 0 && (tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80))
+        if(d_m.len > 0 && (tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80) && d_m.len <= 4095)
         {
           if(d_m.nSS == 1)
           {
@@ -270,7 +246,7 @@ namespace gr {
       {
         nonLegacyChanEstimate(&inSig[d_nUsed + 80], &inSig2[d_nUsed + 80]);
         int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
-        if((tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80))
+        if(d_m.len > 0 && (tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80) && d_m.len <= 4095)
         {
           if(d_m.nSS == 1)
           {

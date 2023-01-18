@@ -40,14 +40,14 @@ const int FFT_26_DEMAP[64] = {
 };
 
 const int FFT_26_SHIFT_DEMAP[128] = {
-	71, 24, 25, 26, 27, 28, 29, 71, 30, 31, 32, 33, 34, 35, 36, 37, 
-	38, 39, 40, 41, 42, 71, 43, 44, 45, 46, 47, 71, 71, 71, 71, 71, 
-	71, 71, 71, 71, 71, 71,  0,  1,  2,  3,  4, 71,  5,  6,  7,  8,  
-	 9, 10, 11, 12, 13, 14, 15, 16, 17, 71, 18, 19, 20, 21, 22, 23, 
-	71, 72, 73, 74, 75, 76, 77, 71, 78, 79, 80, 81, 82, 83, 84, 85, 
-	86, 87, 88, 89, 90, 71, 91, 92, 93, 94, 95, 71, 71, 71, 71, 71, 
-	71, 71, 71, 71, 71, 71, 48, 49, 50, 51, 52, 71, 53, 54, 55, 56, 
-	57, 58, 59, 60, 61, 62, 63, 64, 65, 71, 66, 67, 68, 69, 70, 71
+	-1, 24, 25, 26, 27, 28, 29, -1, 30, 31, 32, 33, 34, 35, 36, 37, 
+	38, 39, 40, 41, 42, -1, 43, 44, 45, 46, 47, -1, -1, -1, -1, -1, 
+	-1, -1, -1, -1, -1, -1,  0,  1,  2,  3,  4, -1,  5,  6,  7,  8,  
+	 9, 10, 11, 12, 13, 14, 15, 16, 17, -1, 18, 19, 20, 21, 22, 23, 
+	-1, 72, 73, 74, 75, 76, 77, -1, 78, 79, 80, 81, 82, 83, 84, 85, 
+	86, 87, 88, 89, 90, -1, 91, 92, 93, 94, 95, -1, -1, -1, -1, -1, 
+	-1, -1, -1, -1, -1, -1, 48, 49, 50, 51, 52, -1, 53, 54, 55, 56, 
+	57, 58, 59, 60, 61, 62, 63, 64, 65, -1, 66, 67, 68, 69, 70, 71
 };
 
 const gr_complex LTF_L_26_F_COMP[64] = {
@@ -438,6 +438,28 @@ const gr_complex C8P_QAM_TAB_256QAM[256] = {
 /***************************************************/
 /* signal field */
 /***************************************************/
+
+void signalNlDemodDecode(gr_complex *sym1, gr_complex *sym2, gr_complex *h, float *llrht, float *llrvht)
+{
+	gr_complex tmpM1, tmpM2;
+	gr_complex tmpPilotSum1 = std::conj(sym1[7] / h[7] - sym1[21] / h[21] + sym1[43] / h[43] + sym1[57] / h[57]);
+	gr_complex tmpPilotSum2 = std::conj(sym2[7] / h[7] - sym2[21] / h[21] + sym2[43] / h[43] + sym2[57] / h[57]);
+	float tmpPilotSumAbs1 = std::abs(tmpPilotSum1);
+	float tmpPilotSumAbs2 = std::abs(tmpPilotSum2);
+	for(int i=0;i<64;i++)
+	{
+		if(FFT_26_SHIFT_DEMAP[i] > -1)
+		{
+			tmpM1 = sym1[i] / h[i] * tmpPilotSum1 / tmpPilotSumAbs1;
+			tmpM2 = sym2[i] / h[i] * tmpPilotSum2 / tmpPilotSumAbs2;
+			llrht[FFT_26_SHIFT_DEMAP[i]] = tmpM1.imag();
+			llrht[FFT_26_SHIFT_DEMAP[i + 64]] = tmpM2.imag();
+			llrvht[FFT_26_SHIFT_DEMAP[i]] = tmpM1.real();
+			llrvht[FFT_26_SHIFT_DEMAP[i + 64]] = tmpM2.imag();
+		}
+	}
+}
+
 bool signalCheckLegacy(uint8_t* inBits, int* mcs, int* len, int* nDBPS)
 {
 	uint8_t tmpSumP = 0;

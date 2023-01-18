@@ -117,41 +117,7 @@ namespace gr {
           {
             fftDemod(&inSig1[8], d_fftLtfOut1);
             fftDemod(&inSig1[8+80], d_fftLtfOut2);
-            for(int i=0;i<64;i++)
-            {
-              if(i==0 || (i>=27 && i<=37))
-              {
-              }
-              else
-              {
-                d_sig1[i] = d_fftLtfOut1[i] / d_H[i];
-                d_sig2[i] = d_fftLtfOut2[i] / d_H[i];
-              }
-            }
-            gr_complex tmpPilotSum1 = std::conj(d_sig1[7] - d_sig1[21] + d_sig1[43] + d_sig1[57]);
-            gr_complex tmpPilotSum2 = std::conj(d_sig2[7] - d_sig2[21] + d_sig2[43] + d_sig2[57]);
-            float tmpPilotSumAbs1 = std::abs(tmpPilotSum1);
-            float tmpPilotSumAbs2 = std::abs(tmpPilotSum2);
-            int j=24;
-            gr_complex tmpM1, tmpM2;
-            for(int i=0;i<64;i++)
-            {
-              if(i==0 || (i>=27 && i<=37) || i==7 || i==21 || i==43 || i==57){}
-              else
-              {
-                tmpM1 = d_sig1[i] * tmpPilotSum1 / tmpPilotSumAbs1;
-                tmpM2 = d_sig2[i] * tmpPilotSum2 / tmpPilotSumAbs2;
-                d_sigHtIntedLlr[j] = tmpM1.imag();
-                d_sigHtIntedLlr[j + 48] = tmpM2.imag();
-                d_sigVhtAIntedLlr[j] = tmpM1.real();
-                d_sigVhtAIntedLlr[j + 48] = tmpM2.imag();
-                j++;
-                if(j == 48)
-                {
-                  j = 0;
-                }
-              }
-            }
+            signalNlDemodDecode(d_fftLtfOut1, d_fftLtfOut2, d_H, d_sigHtIntedLlr, d_sigVhtAIntedLlr);
             //-------------- format check first check vht, then ht otherwise legacy
             procDeintLegacyBpsk(d_sigVhtAIntedLlr, d_sigVhtACodedLlr);
             procDeintLegacyBpsk(&d_sigVhtAIntedLlr[48], &d_sigVhtACodedLlr[48]);
@@ -220,7 +186,7 @@ namespace gr {
             dout<<std::endl;
             signalParserVhtB(d_sigVhtB20Bits, &d_m);
             int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
-            if(d_m.len >= 0 && (tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80))
+            if(d_m.len > 0 && (tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80) && d_m.len <= 4095)
             {
               d_unCoded = d_m.nSym * d_m.nDBPS;
               d_nTrellis = d_m.nSym * d_m.nDBPS;
@@ -247,7 +213,7 @@ namespace gr {
           {
             nonLegacyChanEstimate(&inSig1[80], &inSig2[80]);
             int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
-            if((tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80))
+            if(d_m.len > 0 && (tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80) && d_m.len <= 4095)
             {
               d_unCoded = d_m.len * 8 + 22;
               d_nTrellis = d_m.len * 8 + 22;

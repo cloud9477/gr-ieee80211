@@ -73,7 +73,6 @@ namespace gr {
       const gr_complex* inSig1 = static_cast<const gr_complex*>(input_items[0]);
       const gr_complex* inSig2 = static_cast<const gr_complex*>(input_items[1]);
       float* outLlrs = static_cast<float*>(output_items[0]);
-
       d_nProc = std::min(ninput_items[0], ninput_items[1]);
       d_nGen = noutput_items;
 
@@ -95,7 +94,7 @@ namespace gr {
             d_nSigLSamp = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("nsamp"), pmt::from_long(-1)));
             std::vector<gr_complex> tmp_csi = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("csi"), pmt::PMT_NIL));
             std::copy(tmp_csi.begin(), tmp_csi.end(), d_H);
-            dout<<"ieee80211 demod, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<", samp:"<<d_nSigLSamp<<std::endl;
+            dout<<"ieee80211 demod2, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<", samp:"<<d_nSigLSamp<<std::endl;
             d_nSampConsumed = 0;
             d_nSigLSamp = d_nSigLSamp + 320;
             if(d_nSigLMcs > 0)
@@ -125,14 +124,8 @@ namespace gr {
             if(signalCheckVhtA(d_sigVhtABits))
             {
               // go to vht
-              dout<<"sig vht a bits"<<std::endl;
-              for(int i=0;i<48;i++)
-              {
-                dout<<(int)d_sigVhtABits[i]<<" ";
-              }
-              dout<<std::endl;
               signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
-              dout<<"ieee80211 demod, vht a check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
+              dout<<"ieee80211 demod2, vht a check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
               d_sDemod = DEMOD_S_VHT;
               d_nSampConsumed += 160;
               consume_each(160);
@@ -146,14 +139,8 @@ namespace gr {
               if(signalCheckHt(d_sigHtBits))
               {
                 // go to ht
-                dout<<"sig ht bits"<<std::endl;
-                for(int i=0;i<48;i++)
-                {
-                  dout<<(int)d_sigHtBits[i]<<" ";
-                }
-                dout<<std::endl;
                 signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
-                dout<<"ieee80211 demod, ht check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
+                dout<<"ieee80211 demod2, ht check pass nSS:"<<d_m.nSS<<", nLTF:"<<d_m.nLTF<<", len:"<<d_m.len<<std::endl;
                 d_sDemod = DEMOD_S_HT;
                 d_nSampConsumed += 160;
                 consume_each(160);
@@ -178,15 +165,10 @@ namespace gr {
           {
             nonLegacyChanEstimate(&inSig1[80], &inSig2[80]);
             vhtSigBDemod(&inSig1[80 + d_m.nLTF*80], &inSig2[80 + d_m.nLTF*80]);
-            dout<<"sig b bits:";
-            for(int i=0;i<26;i++)
-            {
-              dout<<(int)d_sigVhtB20Bits[i]<<" ";
-            }
-            dout<<std::endl;
             signalParserVhtB(d_sigVhtB20Bits, &d_m);
-            int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
-            if(d_m.len > 0 && (tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80) && d_m.len <= 4095)
+            dout<<"ieee80211 demodcu2, vht b len:"<<d_m.len<<", mcs:"<<d_m.mcs<<", nSS:"<<d_m.nSS<<", nSym:"<<d_m.nSym<<std::endl;
+            int tmpNLegacySym = (d_nSigLLen*8 + 22 + 23)/24;
+            if(d_m.len > 0 && d_m.len <= 4095 && d_m.nSS <= 2 && (tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80))
             {
               d_unCoded = d_m.nSym * d_m.nDBPS;
               d_nTrellis = d_m.nSym * d_m.nDBPS;
@@ -196,7 +178,6 @@ namespace gr {
             }
             else
             {
-              dout<<"ieee80211 demod, vht packet length check fail"<<std::endl;
               d_sDemod = DEMOD_S_CLEAN;
             }
             d_nSampConsumed += (80 + d_m.nLTF*80 + 80);
@@ -212,8 +193,8 @@ namespace gr {
           if(d_nProc >= (80 + d_m.nLTF*80)) // STF, LTF, sig b
           {
             nonLegacyChanEstimate(&inSig1[80], &inSig2[80]);
-            int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
-            if(d_m.len > 0 && (tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80) && d_m.len <= 4095)
+            int tmpNLegacySym = (d_nSigLLen*8 + 22 + 23)/24;
+            if(d_m.len > 0 && d_m.len <= 4095 && d_m.nSS <= 2 && (tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80))
             {
               d_unCoded = d_m.len * 8 + 22;
               d_nTrellis = d_m.len * 8 + 22;
@@ -224,7 +205,6 @@ namespace gr {
             }
             else
             {
-              dout<<"ieee80211 demod, ht packet length check fail"<<std::endl;
               d_sDemod = DEMOD_S_CLEAN;
             }
             d_nSampConsumed += (80 + d_m.nLTF*80);
@@ -243,7 +223,7 @@ namespace gr {
           // config pilot
           memcpy(d_pilot, PILOT_L, sizeof(float)*4);
           d_pilotP = 1;
-          dout<<"ieee80211 demod, legacy packet"<<std::endl;
+          dout<<"ieee80211 demod2, legacy packet"<<std::endl;
           d_sDemod = DEMOD_S_WRTAG;
           consume_each(0);
           return 0;
@@ -251,7 +231,7 @@ namespace gr {
 
         case DEMOD_S_WRTAG:
         {
-          dout<<"ieee80211 demod, wr tag f:"<<d_m.format<<", ampdu:"<<d_m.ampdu<<", len:"<<d_m.len<<", mcs:"<<d_m.mcs<<", total:"<<d_m.nSym * d_m.nCBPS<<", tr:"<<d_nTrellis<<", nsym:"<<d_m.nSym<<", nSS:"<<d_m.nSS<<std::endl;
+          dout<<"ieee80211 demod2, wr tag f:"<<d_m.format<<", ampdu:"<<d_m.ampdu<<", len:"<<d_m.len<<", mcs:"<<d_m.mcs<<", total:"<<d_m.nSym * d_m.nCBPS<<", tr:"<<d_nTrellis<<", nsym:"<<d_m.nSym<<", nSS:"<<d_m.nSS<<std::endl;
           pmt::pmt_t dict = pmt::make_dict();
           dict = pmt::dict_add(dict, pmt::mp("format"), pmt::from_long(d_m.format));
           dict = pmt::dict_add(dict, pmt::mp("mcs"), pmt::from_long(d_m.mcs));
@@ -259,23 +239,8 @@ namespace gr {
           dict = pmt::dict_add(dict, pmt::mp("cr"), pmt::from_long(d_m.cr));
           dict = pmt::dict_add(dict, pmt::mp("ampdu"), pmt::from_long(d_m.ampdu));
           dict = pmt::dict_add(dict, pmt::mp("trellis"), pmt::from_long(d_nTrellis));
-          if(d_m.nSym == 0)
-          {
-            d_tagMu2x1Chan.clear();
-            d_tagMu2x1Chan.reserve(128);
-            for(int i=0;i<128;i++)
-            {
-              d_tagMu2x1Chan.push_back(d_mu2x1Chan[i]);
-            }
-            dict = pmt::dict_add(dict, pmt::mp("mu2x1chan"), pmt::init_c32vector(d_tagMu2x1Chan.size(), d_tagMu2x1Chan));
-            dict = pmt::dict_add(dict, pmt::mp("total"), pmt::from_long(1024));
-          }
-          else
-          {
-            dict = pmt::dict_add(dict, pmt::mp("total"), pmt::from_long(d_m.nSym * d_m.nCBPS));
-          }
+          dict = pmt::dict_add(dict, pmt::mp("total"), pmt::from_long(d_m.nSym * d_m.nCBPS));
           
-
           pmt::pmt_t pairs = pmt::dict_items(dict);
           for (size_t i = 0; i < pmt::length(pairs); i++) {
               pmt::pmt_t pair = pmt::nth(i, pairs);
@@ -284,14 +249,6 @@ namespace gr {
                             pmt::car(pair),
                             pmt::cdr(pair),
                             alias_pmt());
-          }
-
-          if(d_m.nSym == 0)
-          {
-            // NDP
-            d_sDemod = DEMOD_S_CLEAN;
-            consume_each(0);
-            return 1024;
           }
 
           d_nSymProcd = 0;
@@ -360,7 +317,6 @@ namespace gr {
           if(d_nProc >= (d_nSigLSamp - d_nSampConsumed))
           {
             consume_each(d_nSigLSamp - d_nSampConsumed);
-            dout << "ieee80211 demod, clean done: "<< (d_nSigLSamp - d_nSampConsumed) << std::endl;
             d_sDemod = DEMOD_S_RDTAG;
           }
           else
@@ -373,13 +329,13 @@ namespace gr {
 
         default:
         {
-          std::cout<<"ieee80211 demod state error"<<std::endl;
+          std::cout<<"ieee80211 demod2 state error"<<std::endl;
           consume_each (0);
           return (0);
         }
       }
 
-      std::cout<<"ieee80211 demod state error"<<std::endl;
+      std::cout<<"ieee80211 demod2 state error"<<std::endl;
       consume_each (0);
       return (0);
     }
@@ -736,7 +692,8 @@ namespace gr {
       }
       else
       {
-        // not supported
+        memset(d_sigVhtB20Bits, 0, 26);
+        return;
       }
       
       for(int i=0;i<52;i++)

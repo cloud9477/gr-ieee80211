@@ -96,19 +96,11 @@ namespace gr {
       gr_complex d_pilotNlLtf[4];
       gr_complex d_pilotNlLtf2[4];
       // non-legacy channel
-      /*      P_LTF 4x4
-      | 1 -1  1  1 |
-      | 1  1 -1  1 |
-      | 1  1  1 -1 |
-      |-1  1  1  1 |
-      for 2x2 in the array
-      | 0  1 |
-      | 2  3 |      */
-      gr_complex d_H_NL[64][C8P_MAX_N_LTF];
-      gr_complex d_H_NL_INV[64][C8P_MAX_N_LTF];
-      gr_complex d_qam[C8P_MAX_N_SS][52];
-      float d_llrInted[C8P_MAX_N_SS][C8P_MAX_N_CBPSS];     // interleaved LLR
-      float d_llrSpasd[C8P_MAX_N_SS][C8P_MAX_N_CBPSS];     // stream parsered LLR
+      gr_complex d_H_NL[64][4];
+      gr_complex d_H_NL_INV[64][4];
+      gr_complex d_qam[2][52];
+      float d_llrInted[2][416];     // interleaved LLR
+      float d_llrSpasd[2][416];     // stream parsered LLR
 
      public:
       demod2_impl(int mupos, int mugid);

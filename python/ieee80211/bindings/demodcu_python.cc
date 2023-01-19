@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Free Software Foundation, Inc.
+ * Copyright 2023 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(demodcu.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(59e041ed1953b4956241332de11cf278)                     */
+/* BINDTOOL_HEADER_FILE_HASH(b2c0baebce7b1e398b1dabfb2212fa65)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -30,13 +30,15 @@ namespace py = pybind11;
 void bind_demodcu(py::module& m)
 {
 
-    using demodcu    = gr::ieee80211::demodcu;
+    using demodcu    = ::gr::ieee80211::demodcu;
 
 
     py::class_<demodcu, gr::block, gr::basic_block,
         std::shared_ptr<demodcu>>(m, "demodcu", D(demodcu))
 
         .def(py::init(&demodcu::make),
+           py::arg("mupos"),
+           py::arg("mugid"),
            D(demodcu,make)
         )
         

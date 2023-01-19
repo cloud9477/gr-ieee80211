@@ -44,9 +44,6 @@ namespace gr {
       memset(d_legacyMcsCount, 0, sizeof(uint64_t) * 8);
       memset(d_htMcsCount, 0, sizeof(uint64_t) * 8);
       d_debug = d_inParam;
-      // dout << "decodesnr:"<<d_inParam<<std::endl;
-      d_sampCount = 0;
-      d_usUsed = 0;
 
       set_tag_propagation_policy(block::TPP_DONT);
     }
@@ -68,11 +65,6 @@ namespace gr {
                        gr_vector_void_star &output_items)
     {
       const float* inSig = static_cast<const float*>(input_items[0]);
-      d_ts = std::chrono::high_resolution_clock::now();
-      if(d_sampCount > 6690000)
-      {
-        std::cout<<"decode procd llr: "<<d_sampCount<<", used time: "<<d_usUsed<<"us, avg "<<((double)d_sampCount / (double)d_usUsed)<<" llr/us"<<std::endl;
-      }
       d_nProc = ninput_items[0];
       if(d_sDecode == DECODE_S_IDLE)
       {
@@ -92,12 +84,11 @@ namespace gr {
           v_trellis = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("trellis"), pmt::from_long(99999)));
           d_sDecode = DECODE_S_DECODE;
           t_nProcd = 0;
-          d_sampCount += t_nTotal;
           // dout<<"ieee80211 decode, tag f:"<<t_format<<", ampdu:"<<t_ampdu<<", len:"<<t_len<<", total:"<<t_nTotal<<", cr:"<<t_cr<<", tr:"<<v_trellis<<std::endl;
           
-          if(t_len > DECODE_B_MAX)
+          if(t_len > DECODE_B_MAX || v_trellis > DECODE_T_MAX)
           {
-            dout<<"ieee80211 decode, packet len " << t_len << " too long not supported." << std::endl;
+            dout<<"ieee80211 decode, packet len " << t_len << " or trellis len "<< v_trellis <<" not supported." << std::endl;
             d_sDecode = DECODE_S_CLEAN;
           }
           else
@@ -128,8 +119,6 @@ namespace gr {
           }
         }
         consume_each(0);
-        d_te = std::chrono::high_resolution_clock::now();
-        d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
         return 0;
       }
       else if(d_sDecode == DECODE_S_DECODE)
@@ -144,8 +133,6 @@ namespace gr {
         }
         t_nProcd += tmpProcd;
         consume_each(tmpProcd);
-        d_te = std::chrono::high_resolution_clock::now();
-        d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
         return 0;
       }
       else if(d_sDecode == DECODE_S_CLEAN)
@@ -155,8 +142,6 @@ namespace gr {
           d_sDecode = DECODE_S_IDLE;
           // dout<<"ieee80211 decode, clean:"<<(t_nTotal - t_nProcd)<<std::endl;
           consume_each((t_nTotal - t_nProcd));
-          d_te = std::chrono::high_resolution_clock::now();
-          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
           return 0;
         }
         else
@@ -164,15 +149,11 @@ namespace gr {
           t_nProcd += d_nProc;
           // dout<<"ieee80211 decode, clean:"<<d_nProc<<std::endl;
           consume_each(d_nProc);
-          d_te = std::chrono::high_resolution_clock::now();
-          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
           return 0;
         }
       }
 
       consume_each (0);
-      d_te = std::chrono::high_resolution_clock::now();
-      d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
       return 0;
     }
 
@@ -182,7 +163,7 @@ namespace gr {
       // init and input 
       for (int i = 0; i < 64; i++)
       {
-        for (int j = 0; j <= DECODE_V_MAX; j++)
+        for (int j = 0; j <= DECODE_T_MAX; j++)
         {
           v_state_his[i][j] = 0;
         }

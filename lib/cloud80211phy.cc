@@ -533,9 +533,9 @@ bool signalCheckLegacy(uint8_t* inBits, int* mcs, int* len, int* nDBPS)
 	{
 		*len |= (((int)inBits[i+5])<<i);
 	}
-	if(*len > 1600)
+	if(*len > 4095 || *len < 14)
 	{
-		return false;		// usually MTU 1500
+		return false;
 	}
 	return true;
 }

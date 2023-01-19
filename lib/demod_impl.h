@@ -88,17 +88,9 @@ namespace gr {
       int d_pilotP;
       float d_pilot[4];
       // non-legacy channel
-      gr_complex d_H_NL[64][C8P_MAX_N_LTF];
-      gr_complex d_H_NL_INV[64][C8P_MAX_N_LTF];
-      gr_complex d_qam[C8P_MAX_N_SS][52];
-      float d_llrInted[C8P_MAX_N_SS][C8P_MAX_N_CBPSS];     // interleaved LLR
-      float d_llrSpasd[C8P_MAX_N_SS][C8P_MAX_N_CBPSS];     // stream parsered LLR
-      // performance
-      int f_perfPrint;
-      std::chrono::_V2::system_clock::time_point d_ts;
-      std::chrono::_V2::system_clock::time_point d_te;
-      uint64_t d_usUsed;
-      uint64_t d_sampCount;
+      gr_complex d_H_NL[64];
+      gr_complex d_qam[52];
+      float d_llrInted[416];
 
      public:
       demod_impl(int mupos, int mugid);
@@ -111,12 +103,11 @@ namespace gr {
            gr_vector_int &ninput_items,
            gr_vector_const_void_star &input_items,
            gr_vector_void_star &output_items);
-
       void nonLegacyChanEstimate(const gr_complex* sig1);
       void nonLegacyChanUpdate(const gr_complex* sig1);
       void legacyChanUpdate(const gr_complex* sig1);
       void vhtSigBDemod(const gr_complex* sig1);
-      void fft(const gr_complex* sig, gr_complex* res);
+      void fftDemod(const gr_complex* sig, gr_complex* res);
       void pilotShift(float* pilots);
     };
 

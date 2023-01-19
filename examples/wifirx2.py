@@ -37,6 +37,7 @@ class wifirx2(gr.top_block):
         # Variables
         ##################################################
         self.samp_rate = samp_rate = 20e6
+        self.noise_amp = noise_amp = 0.17
         self.freq_132 = freq_132 = 5660e6
         self.freq_100 = freq_100 = 5500e6
 
@@ -67,8 +68,8 @@ class wifirx2(gr.top_block):
         self.connect((self.blocks_throttle_0, 0), (self.ieee80211_sync_0, 2))
         self.connect((self.blocks_throttle_0, 0), (self.presiso_0, 0))
         self.connect((self.blocks_throttle_0_0, 0), (self.ieee80211_signal2_0, 2))
-        self.connect((self.ieee80211_signal2_0, 1), (self.ieee80211_demodcu2_0, 1))
         self.connect((self.ieee80211_signal2_0, 0), (self.ieee80211_demodcu2_0, 0))
+        self.connect((self.ieee80211_signal2_0, 1), (self.ieee80211_demodcu2_0, 1))
         self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_signal2_0, 0))
         self.connect((self.ieee80211_trigger_0, 0), (self.ieee80211_sync_0, 0))
         self.connect((self.presiso_0, 1), (self.ieee80211_sync_0, 1))
@@ -82,6 +83,12 @@ class wifirx2(gr.top_block):
         self.samp_rate = samp_rate
         self.blocks_throttle_0.set_sample_rate(self.samp_rate)
         self.blocks_throttle_0_0.set_sample_rate(self.samp_rate)
+
+    def get_noise_amp(self):
+        return self.noise_amp
+
+    def set_noise_amp(self, noise_amp):
+        self.noise_amp = noise_amp
 
     def get_freq_132(self):
         return self.freq_132

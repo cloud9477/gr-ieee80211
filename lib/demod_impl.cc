@@ -43,10 +43,6 @@ namespace gr {
       d_debug = true;
       d_sDemod = DEMOD_S_RDTAG;
       set_tag_propagation_policy(block::TPP_DONT);
-
-      d_sampCount = 0;
-      d_usUsed = 0;
-      f_perfPrint = 1;
     }
 
     demod_impl::~demod_impl()
@@ -89,20 +85,9 @@ namespace gr {
             d_nSigLSamp = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("nsamp"), pmt::from_long(-1)));
             std::vector<gr_complex> tmp_csi = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("csi"), pmt::PMT_NIL));
             std::copy(tmp_csi.begin(), tmp_csi.end(), d_H);
-            dout<<"ieee80211 demod, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<std::endl;
-            if(tmpPktSeq == 1)
-            {
-              d_ts = std::chrono::high_resolution_clock::now();
-            }
-            else if(tmpPktSeq == 5000)
-            {
-              d_te = std::chrono::high_resolution_clock::now();
-              d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
-              std::cout<<"demod procd samp: "<<d_sampCount<<", used time: "<<d_usUsed<<"us, avg "<<((double)d_sampCount / (double)d_usUsed)<<" samp/us"<<std::endl;
-            }
+            dout<<"ieee80211 demod, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<", samp:"<<d_nSigLSamp<<std::endl;
             d_nSampConsumed = 0;
             d_nSigLSamp = d_nSigLSamp + 320;
-            d_sampCount += d_nSigLSamp;
             if(d_nSigLMcs > 0)
             {
               d_sDemod = DEMOD_S_LEGACY;    // go to legacy
@@ -120,43 +105,9 @@ namespace gr {
         {
           if(d_nProc >= 160)
           {
-            fft(&inSig1[8], d_fftLtfOut1);
-            fft(&inSig1[8+80], d_fftLtfOut2);
-            for(int i=0;i<64;i++)
-            {
-              if(i==0 || (i>=27 && i<=37))
-              {
-              }
-              else
-              {
-                d_sig1[i] = d_fftLtfOut1[i] / d_H[i];
-                d_sig2[i] = d_fftLtfOut2[i] / d_H[i];
-              }
-            }
-            gr_complex tmpPilotSum1 = std::conj(d_sig1[7] - d_sig1[21] + d_sig1[43] + d_sig1[57]);
-            gr_complex tmpPilotSum2 = std::conj(d_sig2[7] - d_sig2[21] + d_sig2[43] + d_sig2[57]);
-            float tmpPilotSumAbs1 = std::abs(tmpPilotSum1);
-            float tmpPilotSumAbs2 = std::abs(tmpPilotSum2);
-            int j=24;
-            gr_complex tmpM1, tmpM2;
-            for(int i=0;i<64;i++)
-            {
-              if(i==0 || (i>=27 && i<=37) || i==7 || i==21 || i==43 || i==57){}
-              else
-              {
-                tmpM1 = d_sig1[i] * tmpPilotSum1 / tmpPilotSumAbs1;
-                tmpM2 = d_sig2[i] * tmpPilotSum2 / tmpPilotSumAbs2;
-                d_sigHtIntedLlr[j] = tmpM1.imag();
-                d_sigHtIntedLlr[j + 48] = tmpM2.imag();
-                d_sigVhtAIntedLlr[j] = tmpM1.real();
-                d_sigVhtAIntedLlr[j + 48] = tmpM2.imag();
-                j++;
-                if(j == 48)
-                {
-                  j = 0;
-                }
-              }
-            }
+            fftDemod(&inSig1[8], d_fftLtfOut1);
+            fftDemod(&inSig1[8+80], d_fftLtfOut2);
+            signalNlDemodDecode(d_fftLtfOut1, d_fftLtfOut2, d_H, d_sigHtIntedLlr, d_sigVhtAIntedLlr);
             //-------------- format check first check vht, then ht otherwise legacy
             procDeintLegacyBpsk(d_sigVhtAIntedLlr, d_sigVhtACodedLlr);
             procDeintLegacyBpsk(&d_sigVhtAIntedLlr[48], &d_sigVhtACodedLlr[48]);
@@ -165,13 +116,7 @@ namespace gr {
             {
               // go to vht
               signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
-              // dout<<"sig vht a bits"<<std::endl;
-              // for(int i=0;i<48;i++)
-              // {
-              //   dout<<(int)d_sigVhtABits[i]<<" ";
-              // }
-              // dout<<std::endl;
-              dout<<"ieee80211 demod, vht a check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
+              dout<<"ieee80211 demod, vht a check pass nSS:"<<d_m.nSS<<", nLTF:"<<d_m.nLTF<<std::endl;
               d_sDemod = DEMOD_S_VHT;
               d_nSampConsumed += 160;
               consume_each(160);
@@ -185,14 +130,8 @@ namespace gr {
               if(signalCheckHt(d_sigHtBits))
               {
                 // go to ht
-                // dout<<"sig ht bits"<<std::endl;
-                // for(int i=0;i<48;i++)
-                // {
-                //   dout<<(int)d_sigHtBits[i]<<" ";
-                // }
-                // dout<<std::endl;
                 signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
-                dout<<"ieee80211 demod, ht check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
+                dout<<"ieee80211 demod, ht check pass nSS:"<<d_m.nSS<<", nLTF:"<<d_m.nLTF<<", len:"<<d_m.len<<std::endl;
                 d_sDemod = DEMOD_S_HT;
                 d_nSampConsumed += 160;
                 consume_each(160);
@@ -215,20 +154,12 @@ namespace gr {
         {
           if(d_nProc >= (80 + d_m.nLTF*80 + 80)) // STF, LTF, sig b
           {
-            // start from here to diff siso and mimo
             nonLegacyChanEstimate(&inSig1[80]);
             vhtSigBDemod(&inSig1[80 + d_m.nLTF*80]);
-
-            // dout<<"sig b bits:";
-            // for(int i=0;i<26;i++)
-            // {
-            //   dout<<(int)d_sigVhtB20Bits[i]<<" ";
-            // }
-            // dout<<std::endl;
-
             signalParserVhtB(d_sigVhtB20Bits, &d_m);
-            int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
-            if((tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80))
+            dout<<"ieee80211 demodcu2, vht b len:"<<d_m.len<<", mcs:"<<d_m.mcs<<", nSS:"<<d_m.nSS<<", nSym:"<<d_m.nSym<<std::endl;
+            int tmpNLegacySym = (d_nSigLLen*8 + 22 + 23)/24;
+            if(d_m.len >= 0 && d_m.len <= 4095 && d_m.nSS <= 2 && (tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80))  // =0 for NDP
             {
               d_unCoded = d_m.nSym * d_m.nDBPS;
               d_nTrellis = d_m.nSym * d_m.nDBPS;
@@ -238,7 +169,6 @@ namespace gr {
             }
             else
             {
-              dout<<"ieee80211 demod, vht packet length check fail"<<std::endl;
               d_sDemod = DEMOD_S_CLEAN;
             }
             // STF + n LTF + sig b
@@ -255,8 +185,8 @@ namespace gr {
           if(d_nProc >= (80 + d_m.nLTF*80)) // STF, LTF, sig b
           {
             nonLegacyChanEstimate(&inSig1[80]);
-            int tmpNLegacySym = (d_nSigLLen*8 + 22)/24 + (((d_nSigLLen*8 + 22)%24) != 0);
-            if((tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80))
+            int tmpNLegacySym = (d_nSigLLen*8 + 22 + 23)/24;
+            if(d_m.len > 0 && d_m.len <= 4095 && d_m.nSS <= 2 && (tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80))
             {
               d_unCoded = d_m.len * 8 + 22;
               d_nTrellis = d_m.len * 8 + 22;
@@ -293,7 +223,7 @@ namespace gr {
 
         case DEMOD_S_WRTAG:
         {
-          // dout<<"ieee80211 demod, wr tag f:"<<d_m.format<<", ampdu:"<<d_m.ampdu<<", len:"<<d_m.len<<", mcs:"<<d_m.mcs<<", total:"<<d_m.nSym * d_m.nCBPS<<", tr:"<<d_nTrellis<<", nsym:"<<d_m.nSym<<", nSS:"<<d_m.nSS<<std::endl;
+          dout<<"ieee80211 demod, wr tag f:"<<d_m.format<<", ampdu:"<<d_m.ampdu<<", len:"<<d_m.len<<", mcs:"<<d_m.mcs<<", total:"<<d_m.nSym * d_m.nCBPS<<", tr:"<<d_nTrellis<<", nsym:"<<d_m.nSym<<", nSS:"<<d_m.nSS<<std::endl;
           pmt::pmt_t dict = pmt::make_dict();
           dict = pmt::dict_add(dict, pmt::mp("format"), pmt::from_long(d_m.format));
           dict = pmt::dict_add(dict, pmt::mp("mcs"), pmt::from_long(d_m.mcs));
@@ -303,7 +233,7 @@ namespace gr {
           dict = pmt::dict_add(dict, pmt::mp("trellis"), pmt::from_long(d_nTrellis));
           if(d_m.nSym == 0)
           {
-            // NDP
+            // SISO has NDP
             d_tagMu2x1Chan.clear();
             d_tagMu2x1Chan.reserve(128);
             for(int i=0;i<128;i++)
@@ -318,7 +248,6 @@ namespace gr {
             dict = pmt::dict_add(dict, pmt::mp("total"), pmt::from_long(d_m.nSym * d_m.nCBPS));
           }
           
-
           pmt::pmt_t pairs = pmt::dict_items(dict);
           for (size_t i = 0; i < pmt::length(pairs); i++) {
               pmt::pmt_t pair = pmt::nth(i, pairs);
@@ -331,7 +260,7 @@ namespace gr {
 
           if(d_m.nSym == 0)
           {
-            // NDP
+            // SISO has NDP
             d_sDemod = DEMOD_S_CLEAN;
             consume_each(0);
             return 1024;
@@ -352,14 +281,14 @@ namespace gr {
             if(d_m.format == C8P_F_L)
             {
               legacyChanUpdate(&inSig1[o1]);
-              procSymQamToLlr(d_qam[0], d_llrInted[0], &d_m);
-              procSymDeintL2(d_llrInted[0], &outLlrs[o2], &d_m);
+              procSymQamToLlr(d_qam, d_llrInted, &d_m);
+              procSymDeintL2(d_llrInted, &outLlrs[o2], &d_m);
             }
             else
             {
               nonLegacyChanUpdate(&inSig1[o1]);
-              procSymQamToLlr(d_qam[0], d_llrInted[0], &d_m);
-              procSymDeintNL2SS1(d_llrInted[0], &outLlrs[o2], &d_m);
+              procSymQamToLlr(d_qam, d_llrInted, &d_m);
+              procSymDeintNL2SS1(d_llrInted, &outLlrs[o2], &d_m);
             }
 
             d_nSymProcd += 1;
@@ -415,8 +344,8 @@ namespace gr {
       {
         // mu-mimo 2x2
         dout<<"non legacy mu-mimo channel estimate"<<std::endl;
-        fft(&sig1[8], d_fftLtfOut1);
-        fft(&sig1[8+80], d_fftLtfOut2);
+        fftDemod(&sig1[8], d_fftLtfOut1);
+        fftDemod(&sig1[8+80], d_fftLtfOut2);
         for(int i=0;i<64;i++)
         {
           if(i==0 || (i>=29 && i<=35))
@@ -426,38 +355,37 @@ namespace gr {
             if(d_muPos == 0)
             {
               // ss0 LTF and LTF_N
-              d_H_NL[i][0] = (d_fftLtfOut1[i] - d_fftLtfOut2[i]) / LTF_NL_28_F_FLOAT[i] / 2.0f;
+              d_H_NL[i] = (d_fftLtfOut1[i] - d_fftLtfOut2[i]) / LTF_NL_28_F_FLOAT[i] / 2.0f;
             }
             else
             {
               // ss1 LTF and LTF
-              //d_H_NL[i][0] = (d_fftLtfOut1[i] + d_fftLtfOut2[i]) / LTF_NL_28_F_FLOAT[i] / 2.0f;
-              d_H_NL[i][0] = d_fftLtfOut1[i] / LTF_NL_28_F_FLOAT[i];
+              //d_H_NL[i] = (d_fftLtfOut1[i] + d_fftLtfOut2[i]) / LTF_NL_28_F_FLOAT[i] / 2.0f;
+              d_H_NL[i] = d_fftLtfOut1[i] / LTF_NL_28_F_FLOAT[i];
             }
           }
         }
       }
       else if(d_m.nSS == 1 && d_m.nLTF == 1)
       {
-        dout<<"non legacy siso channel estimate"<<std::endl;
-        fft(&sig1[8], d_fftLtfOut1);
+        fftDemod(&sig1[8], d_fftLtfOut1);
         for(int i=0;i<64;i++)
         {
           if(i==0 || (i>=29 && i<=35))
           {}
           else
           {
-            d_H_NL[i][0] = d_fftLtfOut1[i] / LTF_NL_28_F_FLOAT[i];
+            d_H_NL[i] = d_fftLtfOut1[i] / LTF_NL_28_F_FLOAT[i];
           }
         }
       }
       else
       {
-        // 1 ant, ant number and nss not corresponding, only check if NDP, keep LTF and only use first LTF to demod sig b
-        dout<<"non legacy mimo channel sounding"<<std::endl;
+        // nSS larger than 1, only support 2x2 channel sounding now
+        dout<<"non legacy 2x2 mimo channel sounding"<<std::endl;
         memcpy(&d_mu2x1Chan[0], &sig1[8], sizeof(gr_complex) * 64);
         memcpy(&d_mu2x1Chan[64], &sig1[8+80], sizeof(gr_complex) * 64);
-        fft(&sig1[8], d_fftLtfOut1);
+        fftDemod(&sig1[8], d_fftLtfOut1);
         for(int i=0;i<64;i++)
         {
           if(i==0 || (i>=29 && i<=35))
@@ -465,7 +393,7 @@ namespace gr {
           }
           else
           {
-            d_H_NL[i][0] = d_fftLtfOut1[i] / LTF_NL_28_F_FLOAT[i];
+            d_H_NL[i] = d_fftLtfOut1[i] / LTF_NL_28_F_FLOAT[i];
           }
         }
       }
@@ -474,17 +402,21 @@ namespace gr {
     void
     demod_impl::nonLegacyChanUpdate(const gr_complex* sig1)
     {
-      fft(&sig1[8], d_fftLtfOut1);
+      fftDemod(&sig1[8], d_fftLtfOut1);
       for(int i=0;i<64;i++)
       {
         if(i==0 || (i>=29 && i<=35))
         {}
         else
         {
-          d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i][0];
+          d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i];
         }
       }
-      gr_complex tmpPilotSum = std::conj(d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP] + d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP] + d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP] + d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]);
+      gr_complex tmpPilotSum = std::conj(
+        d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP] + 
+        d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP] + 
+        d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP] + 
+        d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]);
       pilotShift(d_pilot);
       d_pilotP = (d_pilotP + 1) % 127;
       float tmpPilotSumAbs = std::abs(tmpPilotSum);
@@ -496,7 +428,7 @@ namespace gr {
         }
         else
         {
-          d_qam[0][j] = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
+          d_qam[j] = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
           j++;
           if(j >= 52){j = 0;}
         }
@@ -510,15 +442,14 @@ namespace gr {
       {
         dout<<"ieee80211 demod, 1 ant demod sig b check if NDP"<<std::endl;
       }
-      fft(&sig1[8], d_fftLtfOut1);
+      fftDemod(&sig1[8], d_fftLtfOut1);
       for(int i=0;i<64;i++)
       {
         if(i==0 || (i>=29 && i<=35))
         {}
         else
         {
-          d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i][0];
-          // dout<<"demod nss 1 sig b qam "<<i<<", "<<d_sig1[i]<<std::endl;
+          d_sig1[i] = d_fftLtfOut1[i] / d_H_NL[i];
         }
       }
       gr_complex tmpPilotSum = std::conj(d_sig1[7] - d_sig1[21] + d_sig1[43] + d_sig1[57]);
@@ -548,7 +479,7 @@ namespace gr {
     void
     demod_impl::legacyChanUpdate(const gr_complex* sig1)
     {
-      fft(&sig1[8], d_fftLtfOut1);
+      fftDemod(&sig1[8], d_fftLtfOut1);
       for(int i=0;i<64;i++)
       {
         if(i==0 || (i>=27 && i<=37))
@@ -558,7 +489,11 @@ namespace gr {
           d_sig1[i] = d_fftLtfOut1[i] / d_H[i];
         }
       }
-      gr_complex tmpPilotSum = std::conj(d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP] + d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP] + d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP] + d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]);
+      gr_complex tmpPilotSum = std::conj(
+        d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP] + 
+        d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP] + 
+        d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP] + 
+        d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]);
       d_pilotP = (d_pilotP + 1) % 127;
       float tmpPilotSumAbs = std::abs(tmpPilotSum);
       int j=24;
@@ -568,7 +503,7 @@ namespace gr {
         {}
         else
         {
-          d_qam[0][j] = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
+          d_qam[j] = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
           j++;
           if(j >= 48){j = 0;}
         }
@@ -576,7 +511,7 @@ namespace gr {
     }
 
     void
-    demod_impl::fft(const gr_complex* sig, gr_complex* res)
+    demod_impl::fftDemod(const gr_complex* sig, gr_complex* res)
     {
       memcpy(d_ofdm_fft.get_inbuf(), sig, sizeof(gr_complex)*64);
       d_ofdm_fft.execute();

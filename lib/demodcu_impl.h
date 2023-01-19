@@ -90,20 +90,9 @@ namespace gr {
       uint64_t d_legacyMcsCount[8];
       uint64_t d_vhtMcsCount[10];
       uint64_t d_htMcsCount[8];
-      // performance
-      std::chrono::_V2::system_clock::time_point d_ts;
-      std::chrono::_V2::system_clock::time_point d_te;
-      std::chrono::_V2::system_clock::time_point d_tcu0;
-      std::chrono::_V2::system_clock::time_point d_tcu1;
-      std::chrono::_V2::system_clock::time_point d_tcu2;
-      std::chrono::_V2::system_clock::time_point d_tcu3;
-      uint64_t d_usUsedCu;
-      uint64_t d_usUsedCu2;
-      uint64_t d_usUsed;
-      uint64_t d_sampCount;
 
      public:
-      demodcu_impl();
+      demodcu_impl(int mupos, int mugid);
       ~demodcu_impl();
 
       // Where all the action really happens

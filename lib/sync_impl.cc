@@ -189,7 +189,7 @@ namespace gr {
         tmpSig1Sum += std::abs(sig[i])*std::abs(sig[i]);
         tmpSig2Sum += std::abs(sig[i+64])*std::abs(sig[i+64]);
       }
-      for(int i=0;i<SYNC_MAX_RES_LEN;i++)
+      for(int i=0;i<SYNC_MAX_RES_LEN;i++)   // sliding window to compute auto correlation
       {
         d_tmpAc[i] = std::abs(tmpMultiSum)/std::sqrt(tmpSig1Sum)/std::sqrt(tmpSig2Sum);
         tmpMultiSum -= sig[i] * std::conj(sig[i+64]);

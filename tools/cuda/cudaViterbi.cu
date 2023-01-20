@@ -1118,6 +1118,202 @@ void cpuViterbi(float* llr, int llrlen, int trellis, int cr, uint8_t* uncodedBit
     std::cout << "-----------------------------------" << std::endl;
 }
 
+void cpuViterbiTb(float* llr, int llrlen, int trellis, int cr, uint8_t* uncodedBits)
+{
+    uint8_t v_decodedBits[CUDEMOD_V_MAX];
+    uint8_t v_descramSeq[CUDEMOD_V_MAX];
+    uint8_t v_dataBits[CUDEMOD_V_MAX];
+    // cpu params
+    float v_accum_err0[64];
+    float v_accum_err1[64];
+    float *v_ae_pPre, *v_ae_pCur;
+    // int v_state_his[64][CUDEMOD_V_MAX + 1];
+    int v_state_his[CUDEMOD_V_MAX + 1][64];
+    int v_state_seq[CUDEMOD_V_MAX + 1];
+    int v_op0, v_op1, v_next0, v_next1;
+    float v_acc_tmp0, v_acc_tmp1, v_t0, v_t1;
+    float v_tab_t[4];
+    const int* v_cr_punc;
+    int v_cr_p, v_cr_len;
+    int v_t;
+    // cpu init
+    for (int i = 0; i < 64; i++) {
+        for (int j = 0; j <= trellis; j++) {
+            v_state_his[j][i] = 0;
+        }
+        v_accum_err0[i] = -1000000000000000.0f;
+        v_accum_err1[i] = -1000000000000000.0f;
+    }
+    v_accum_err0[0] = 0;
+    v_ae_pCur = &v_accum_err1[0];
+    v_ae_pPre = &v_accum_err0[0];
+    v_t = 0;
+    v_cr_p = 0;
+    if (cr == C8P_CR_12) {
+        v_cr_len = 2;
+        v_cr_punc = SV_PUNC_12;
+    } else if (cr == C8P_CR_23) {
+        v_cr_len = 4;
+        v_cr_punc = SV_PUNC_23;
+    } else if (cr == C8P_CR_34) {
+        v_cr_len = 6;
+        v_cr_punc = SV_PUNC_34;
+    } else {
+        v_cr_len = 10;
+        v_cr_punc = SV_PUNC_56;
+    }
+    // cpu decode
+    int tmpUsed = 0;
+    while ((tmpUsed + v_cr_punc[v_cr_p] + v_cr_punc[v_cr_p + 1]) <= llrlen) {
+        // std::cout << "cpu decode v_t: " << v_t << std::endl;
+        if (v_cr_punc[v_cr_p]) {
+            v_t0 = llr[tmpUsed];
+            tmpUsed++;
+        } else {
+            v_t0 = 0.0f;
+        }
+        if (v_cr_punc[v_cr_p + 1]) {
+            v_t1 = llr[tmpUsed];
+            tmpUsed++;
+        } else {
+            v_t1 = 0.0f;
+        }
+
+        v_tab_t[0] = 0.0f;
+        v_tab_t[1] = v_t1;
+        v_tab_t[2] = v_t0;
+        v_tab_t[3] = v_t1 + v_t0;
+
+        /* repeat for each possible state */
+        for (int i = 0; i < 64; i++) {
+            v_op0 = SV_STATE_OUTPUT[i][0];
+            v_op1 = SV_STATE_OUTPUT[i][1];
+
+            v_acc_tmp0 = v_ae_pPre[i] + v_tab_t[v_op0];
+            v_acc_tmp1 = v_ae_pPre[i] + v_tab_t[v_op1];
+
+            v_next0 = SV_STATE_NEXT[i][0];
+            v_next1 = SV_STATE_NEXT[i][1];
+
+            if (v_acc_tmp0 > v_ae_pCur[v_next0]) {
+                v_ae_pCur[v_next0] = v_acc_tmp0;
+                v_state_his[v_t + 1][v_next0] = i;
+            }
+
+            if (v_acc_tmp1 > v_ae_pCur[v_next1]) {
+                v_ae_pCur[v_next1] = v_acc_tmp1;
+                v_state_his[v_t + 1][v_next1] = i;
+            }
+        }
+
+        /* update accum_err_metric array */
+        float* tmp = v_ae_pPre;
+        v_ae_pPre = v_ae_pCur;
+        v_ae_pCur = tmp;
+
+        for (int i = 0; i < 64; i++) {
+            v_ae_pCur[i] = -1000000000000000.0f;
+        }
+        v_cr_p += 2;
+        if (v_cr_p >= v_cr_len) {
+            v_cr_p = 0;
+        }
+
+        v_t++;
+        if (v_t >= trellis) {
+            break;
+        }
+    }
+
+    std::cout << "cpu viterbitb tb" << std::endl;
+    int tbtrellis;
+    int tbnbits;
+    for(int tbiter=0; tbiter<(trellis-38)/8; tbiter++)
+    {
+        std::cout << tbiter << std::endl;
+        if(tbiter == ((trellis-38)/8 - 1))
+        {
+            tbtrellis = 46;
+            tbnbits = 46;
+            std::cout << "cpu viterbitb tb last round" << std::endl;
+        }
+        else
+        {
+            tbtrellis = 40;
+            tbnbits = 8;
+        }
+        v_state_seq[tbtrellis] = 0;
+        for (int j = tbtrellis; j > 0; j--) {
+            v_state_seq[j - 1] = v_state_his[j + 8*tbiter][v_state_seq[j]];
+        }
+        for (int i = 0; i <= trellis; i++) {
+            std::cout << v_state_seq[i] << ", ";
+        }
+        std::cout << std::endl;
+
+        for (int j = 0; j < tbnbits; j++) {
+            if (v_state_seq[j + 1] == SV_STATE_NEXT[v_state_seq[j]][1]) {
+                v_decodedBits[j + tbiter*8] = 1;
+            } else {
+                v_decodedBits[j + tbiter*8] = 0;
+            }
+        }
+    }
+
+    int indexError[CUDEMOD_V_MAX];
+    int totalErrorNum = 0;
+    std::cout << "cpu decoded bits" << std::endl;
+    for (int i = 0; i < trellis; i++) {
+        std::cout << (int)v_decodedBits[i] << ", ";
+    }
+    std::cout << std::endl;
+    std::cout << "cpu uncoded bits" << std::endl;
+    for (int i = 0; i < trellis; i++) {
+        std::cout << (int)uncodedBits[i] << ", ";
+        if (v_decodedBits[i] != uncodedBits[i]) {
+            indexError[totalErrorNum] = i;
+            totalErrorNum++;
+        }
+    }
+    std::cout << std::endl;
+    std::cout << "cpu decoded error bits num: " << totalErrorNum << ", total bits num: "<< trellis << std::endl;
+    for(int i=0;i<totalErrorNum;i++)
+    {
+        std::cout<<indexError[i]<<", ";
+    }
+    std::cout<<std::endl;
+
+    int state = 0;
+    int feedback;
+    for (int i = 0; i < 7; i++) {
+        if (v_decodedBits[i]) {
+            state |= 1 << (6 - i);
+        }
+    }
+    std::cout << "cpu descrambling init: " << state << std::endl;
+    memset(v_dataBits, 0, 7);
+    memset(v_descramSeq, 0, 7);
+    for (int i = 7; i < trellis; i++) {
+        feedback = ((!!(state & 64))) ^ (!!(state & 8));
+        v_descramSeq[i] = feedback;
+        v_dataBits[i] = feedback ^ (v_decodedBits[i] & 0x1);
+        state = ((state << 1) & 0x7e) | feedback;
+    }
+
+    std::cout << "cpu data bits" << std::endl;
+    for (int i = 0; i < trellis; i++) {
+        std::cout << (int)v_dataBits[i] << ", ";
+    }
+    std::cout << std::endl;
+    std::cout << std::endl;
+    std::cout << "cpu descrambling seq" << std::endl;
+    for (int i = 0; i < trellis; i++) {
+        std::cout << (int)v_descramSeq[i] << ", ";
+    }
+    std::cout << std::endl;
+    std::cout << "-----------------------------------" << std::endl;
+}
+
 float* cuv_llr;
 int* cuv_seq;
 int* cuv_bits;
@@ -1256,6 +1452,44 @@ __global__ void cuDecodeTb2(int trellis, int* s_seq, int* s_next, int* bits)
     }
 }
 
+// each thread trace back 40 to get 1 bit, the last one 32 + 6 = 38 bits
+__global__ void cuDecodeTbs(int trellis, int* s_his, int* s_next, int* bits)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned char *p_seq;
+    __shared__ unsigned char s_seq[41984];
+    if(i > (trellis-40))
+    {
+        return;
+    }
+
+    p_seq = &s_seq[threadIdx.x * 41];
+    p_seq[40] = 0;
+    for (int j = 40; j > 0; j--) {
+        p_seq[j - 1] = s_his[j * 64 + i * 64 + (int)p_seq[j]];
+    }
+
+    if(i == (trellis-40))
+    {
+        for(int j=0;j<40;j++)
+        {
+            if (p_seq[j + 1] == s_next[(int)p_seq[j] * 2 + 1]) {
+                bits[i+j] = 1;
+            } else {
+                bits[i+j] = 0;
+            }
+        }
+    }
+    else
+    {
+        if (p_seq[1] == s_next[(int)p_seq[0] * 2 + 1]) {
+            bits[i] = 1;
+        } else {
+            bits[i] = 0;
+        }
+    }
+}
+
 __global__ void cuDecodeDescram(int trellis, int* bits, int* desseq)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1341,9 +1575,12 @@ void cuDecode(float* llr, int llrlen, int trellis, int cr, uint8_t* uncodedBits)
                                cuv_state_his,
                                cuv_state_output,
                                cuv_state_next);
-    cuDecodeTb1<<<1, 1>>>(trellis, cuv_state_his, cuv_seq);
-    cuDecodeTb2<<<(trellis + 1023) / 1024, 1024>>>(
-        trellis, cuv_seq, cuv_state_next, cuv_bits);
+    /* trace back from the very end */
+    // cuDecodeTb1<<<1, 1>>>(trellis, cuv_state_his, cuv_seq);
+    // cuDecodeTb2<<<(trellis + 1023) / 1024, 1024>>>(
+    //     trellis, cuv_seq, cuv_state_next, cuv_bits);
+    /* trace back with a fixed length */
+    cuDecodeTbs<<<(trellis + 1023) / 1024, 1024>>>(trellis, cuv_state_his, cuv_state_next, cuv_bits);
     int host_int[CUDEMOD_V_MAX * 2];
     cudaMemcpy(host_int, cuv_seq, sizeof(int) * CUDEMOD_V_MAX, cudaMemcpyDeviceToHost);
     std::cout << "cuda state seq" << std::endl;
@@ -1372,16 +1609,24 @@ void cuDecode(float* llr, int llrlen, int trellis, int cr, uint8_t* uncodedBits)
         std::cout << host_int[i] << ", ";
     }
     std::cout << std::endl;
+
+    int indexError[CUDEMOD_V_MAX];
     int totalErrorNum = 0;
     std::cout << "cuda uncoded bits" << std::endl;
     for (int i = 0; i < trellis; i++) {
         std::cout << (int)uncodedBits[i] << ", ";
         if (host_int[i] != uncodedBits[i]) {
+            indexError[totalErrorNum] = i;
             totalErrorNum++;
         }
     }
     std::cout << std::endl;
     std::cout << "cuda decoded error bits num: " << totalErrorNum << std::endl;
+    for(int i=0;i<totalErrorNum;i++)
+    {
+        std::cout<<indexError[i]<<", ";
+    }
+    std::cout<<std::endl;
 
     cuDecodeDescram<<<(trellis + 1023) / 1024, 1024>>>(trellis, cuv_bits, cuv_descram_seq);
     cudaMemcpy(host_int, cuv_bits, sizeof(int) * CUDEMOD_V_MAX, cudaMemcpyDeviceToHost);
@@ -1766,15 +2011,16 @@ int main(void)
 
     cuDecodeMall();
 
-    cpuViterbi(inputllr12, 1584, 774, C8P_CR_12, uncodedBits12);
+    // cpuViterbi(inputllr12, 1584, 774, C8P_CR_12, uncodedBits12);
+    cpuViterbiTb(inputllr12, 1584, 774, C8P_CR_12, uncodedBits12);
     cuDecode(inputllr12, 1584, 774, C8P_CR_12, uncodedBits12);
-
     // cpuViterbi(inputllr23, 36, v_trellis, C8P_CR_23, uncodedBits);
     // cuDecode(inputllr23, 36, v_trellis, C8P_CR_23, uncodedBits);
     // cpuViterbi(inputllr34, 32, v_trellis, C8P_CR_34, uncodedBits);
     // cuDecode(inputllr34, 32, v_trellis, C8P_CR_34, uncodedBits);
     // cpuViterbi(inputllr56, 1248, v_trellis56, C8P_CR_56, uncodedBits56);
-    // cuDecode(inputllr56, 1248, v_trellis56, C8P_CR_56, uncodedBits56);
+    cpuViterbiTb(inputllr56, 1248, v_trellis56, C8P_CR_56, uncodedBits56);
+    cuDecode(inputllr56, 1248, v_trellis56, C8P_CR_56, uncodedBits56);
 
     cuDecodeFree();
 

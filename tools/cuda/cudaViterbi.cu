@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <chrono>
 #include <iostream>
+#include <iomanip>
 
 #define CUDEMOD_V_MAX 2400 // max llr len
 #define C8P_CR_12 0
@@ -948,6 +949,7 @@ void cpuViterbi(float* llr, int llrlen, int trellis, int cr, uint8_t* uncodedBit
     float v_accum_err1[64];
     float *v_ae_pPre, *v_ae_pCur;
     // int v_state_his[64][CUDEMOD_V_MAX + 1];
+    float v_state_err[CUDEMOD_V_MAX + 1][64];
     int v_state_his[CUDEMOD_V_MAX + 1][64];
     int v_state_seq[CUDEMOD_V_MAX + 1];
     int v_op0, v_op1, v_next0, v_next1;
@@ -960,6 +962,7 @@ void cpuViterbi(float* llr, int llrlen, int trellis, int cr, uint8_t* uncodedBit
     for (int i = 0; i < 64; i++) {
         for (int j = 0; j <= trellis; j++) {
             v_state_his[j][i] = 0;
+            v_state_err[j][i] = 0.0f;
         }
         v_accum_err0[i] = -1000000000000000.0f;
         v_accum_err1[i] = -1000000000000000.0f;
@@ -1017,11 +1020,13 @@ void cpuViterbi(float* llr, int llrlen, int trellis, int cr, uint8_t* uncodedBit
 
             if (v_acc_tmp0 > v_ae_pCur[v_next0]) {
                 v_ae_pCur[v_next0] = v_acc_tmp0;
+                v_state_err[v_t][v_next0] = v_acc_tmp0; // debug
                 v_state_his[v_t + 1][v_next0] = i;
             }
 
             if (v_acc_tmp1 > v_ae_pCur[v_next1]) {
                 v_ae_pCur[v_next1] = v_acc_tmp1;
+                v_state_err[v_t][v_next1] = v_acc_tmp1; // debug
                 v_state_his[v_t + 1][v_next1] = i;
             }
         }
@@ -1044,14 +1049,29 @@ void cpuViterbi(float* llr, int llrlen, int trellis, int cr, uint8_t* uncodedBit
             break;
         }
     }
-    // std::cout<<"cpu history"<<std::endl;
-    // for(int i=0;i<25;i++)
-    // {
-    //     for(int j=0;j<64;j++)
-    //         std::cout<<v_state_his[i][j]<<", ";
-    //     std::cout<<std::endl;
-    // }
-    // std::cout<<std::endl;
+    std::cout<<"cpu history"<<std::endl;
+    for(int j=0;j<64;j++)
+    {
+        for(int i=0;i<25;i++)
+        {
+            std::cout<<v_state_his[i][j]<<", ";
+        }
+        std::cout<<std::endl;
+    }
+    std::cout<<std::endl;
+    std::cout<<std::endl;
+    std::cout<<std::setprecision(2);
+    std::cout<<std::setiosflags(std::ios::fixed);
+    std::cout<<"cpu history err"<<std::endl;
+    for(int j=0;j<64;j++)
+    {
+        for(int i=0;i<25;i++)
+        {
+            std::cout<<v_state_err[i][j]<<", ";
+        }
+        std::cout<<std::endl;
+    }
+    std::cout<<std::endl;
 
     std::cout << "cpu state seq" << std::endl;
     v_state_seq[trellis] = 0;
@@ -2009,20 +2029,20 @@ int main(void)
     };
     int v_trellis56 = 1040;
 
-    cuDecodeMall();
+    // cuDecodeMall();
 
     // cpuViterbi(inputllr12, 1584, 774, C8P_CR_12, uncodedBits12);
-    cpuViterbiTb(inputllr12, 1584, 774, C8P_CR_12, uncodedBits12);
-    cuDecode(inputllr12, 1584, 774, C8P_CR_12, uncodedBits12);
-    // cpuViterbi(inputllr23, 36, v_trellis, C8P_CR_23, uncodedBits);
+    // cpuViterbiTb(inputllr12, 1584, 774, C8P_CR_12, uncodedBits12);
+    // cuDecode(inputllr12, 1584, 774, C8P_CR_12, uncodedBits12);
+    cpuViterbi(inputllr23, 36, v_trellis, C8P_CR_23, uncodedBits);
     // cuDecode(inputllr23, 36, v_trellis, C8P_CR_23, uncodedBits);
     // cpuViterbi(inputllr34, 32, v_trellis, C8P_CR_34, uncodedBits);
     // cuDecode(inputllr34, 32, v_trellis, C8P_CR_34, uncodedBits);
     // cpuViterbi(inputllr56, 1248, v_trellis56, C8P_CR_56, uncodedBits56);
-    cpuViterbiTb(inputllr56, 1248, v_trellis56, C8P_CR_56, uncodedBits56);
-    cuDecode(inputllr56, 1248, v_trellis56, C8P_CR_56, uncodedBits56);
+    // cpuViterbiTb(inputllr56, 1248, v_trellis56, C8P_CR_56, uncodedBits56);
+    // cuDecode(inputllr56, 1248, v_trellis56, C8P_CR_56, uncodedBits56);
 
-    cuDecodeFree();
+    // cuDecodeFree();
 
     return 0;
 }

@@ -350,6 +350,7 @@ int* demodDemap256QamNL2;
 int* demodDemapNL2[6] = {NULL, NULL, NULL, NULL, NULL, NULL};
 
 int* cuv_seq;
+int* cuv_seqtb;
 int* cuv_state_his;
 int* cuv_state_next;
 int* cuv_state_output;
@@ -702,6 +703,42 @@ __global__ void cuDecodeTb2(int trellis, int* s_seq, int* s_next, unsigned char*
     }
 }
 
+__global__ void cuDecodeTbs(int trellis, int* s_seqtb, int* s_his, int* s_next, unsigned char* bits)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j;
+    int *p_seq;
+    if(i > (trellis-CUDEMOD_VTB_LEN))
+    {
+        return;
+    }
+
+    p_seq = &s_seqtb[i * (CUDEMOD_VTB_LEN + 1)];
+    p_seq[CUDEMOD_VTB_LEN] = 0;
+    for (j = CUDEMOD_VTB_LEN; j > 0; j--) {
+        p_seq[j - 1] = s_his[j * 64 + i * 64 + p_seq[j]];
+    }
+    if(i == (trellis-CUDEMOD_VTB_LEN))
+    {
+        for(j=0;j<CUDEMOD_VTB_LEN;j++)
+        {
+            if (p_seq[j + 1] == s_next[p_seq[j] * 2 + 1]) {
+                bits[i+j] = 1;
+            } else {
+                bits[i+j] = 0;
+            }
+        }
+    }
+    else
+    {
+        if (p_seq[1] == s_next[p_seq[0] * 2 + 1]) {
+            bits[i] = 1;
+        } else {
+            bits[i] = 0;
+        }
+    }
+}
+
 __global__ void cuDecodeDescram(int trellis, unsigned char* bits, unsigned char* desseq)
 {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -845,6 +882,8 @@ void cuDemodMall()
 
   err = cudaMalloc(&cuv_seq, sizeof(int) * (CUDEMOD_T_MAX + 1));
   if(err){ std::cout<<"cloud80211 demodcu, malloc decode seq error."<<std::endl;}
+  err = cudaMalloc(&cuv_seqtb, sizeof(int) * (CUDEMOD_T_MAX + 1)*(CUDEMOD_VTB_LEN + 1));
+  if(err){ std::cout<<"cloud80211 demodcu, malloc decode seqtb error."<<std::endl;}
   err = cudaMalloc(&cuv_bits, sizeof(unsigned char) * CUDEMOD_T_MAX);
   if(err){ std::cout<<"cloud80211 demodcu, malloc decode bits error."<<std::endl;}
   err = cudaMalloc(&cuv_bytes, sizeof(unsigned char) * CUDEMOD_B_MAX);
@@ -975,6 +1014,7 @@ void cuDemodFree()
   cudaFree(demodDemap256QamNL);
 
   cudaFree(cuv_seq);
+  cudaFree(cuv_seqtb);
   cudaFree(cuv_bits);
   cudaFree(cuv_bytes);
   cudaFree(cuv_state_his);
@@ -1089,8 +1129,9 @@ void cuDemodSiso(c8p_mod* m, unsigned char* psduBytes)
                               cuv_state_his,
                               cuv_state_output,
                               cuv_state_next);
-  cuDecodeTb1<<<1, 1>>>(cuv_trellis, cuv_state_his, cuv_seq);
-  cuDecodeTb2<<<(cuv_trellis + 1023) / 1024, 1024>>>(cuv_trellis, cuv_seq, cuv_state_next, cuv_bits);
+  // cuDecodeTb1<<<1, 1>>>(cuv_trellis, cuv_state_his, cuv_seq);
+  // cuDecodeTb2<<<(cuv_trellis + 1023) / 1024, 1024>>>(cuv_trellis, cuv_seq, cuv_state_next, cuv_bits);
+  cuDecodeTbs<<<(cuv_trellis + 1023) / 1024, 1024>>>(cuv_trellis, cuv_seqtb, cuv_state_his, cuv_state_next, cuv_bits);
   cuDecodeDescram<<<(cuv_trellis + 1023) / 1024, 1024>>>(cuv_trellis, cuv_bits, cuv_descram_seq);
   cuDecodeB2B<<<(m->len + 1023) / 1024, 1024>>>(m->len, &cuv_bits[16], cuv_bytes);
   cudaMemcpy(psduBytes, cuv_bytes, m->len*sizeof(unsigned char), cudaMemcpyDeviceToHost);
@@ -1146,8 +1187,9 @@ void cuDemodMimo(c8p_mod* m, unsigned char* psduBytes)
                               cuv_state_his,
                               cuv_state_output,
                               cuv_state_next);
-  cuDecodeTb1<<<1, 1>>>(cuv_trellis, cuv_state_his, cuv_seq);
-  cuDecodeTb2<<<(cuv_trellis + 1023) / 1024, 1024>>>(cuv_trellis, cuv_seq, cuv_state_next, cuv_bits);
+  // cuDecodeTb1<<<1, 1>>>(cuv_trellis, cuv_state_his, cuv_seq);
+  // cuDecodeTb2<<<(cuv_trellis + 1023) / 1024, 1024>>>(cuv_trellis, cuv_seq, cuv_state_next, cuv_bits);
+  cuDecodeTbs<<<(cuv_trellis + 1023) / 1024, 1024>>>(cuv_trellis, cuv_seqtb, cuv_state_his, cuv_state_next, cuv_bits);
   cuDecodeDescram<<<(cuv_trellis + 1023) / 1024, 1024>>>(cuv_trellis, cuv_bits, cuv_descram_seq);
   cuDecodeB2B<<<(m->len + 1023) / 1024, 1024>>>(m->len, &cuv_bits[16], cuv_bytes);
   cudaMemcpy(psduBytes, cuv_bytes, m->len*sizeof(unsigned char), cudaMemcpyDeviceToHost);

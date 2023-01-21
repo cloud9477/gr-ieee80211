@@ -36,6 +36,8 @@
 #define CUDEMOD_S_MAX 1408     // max symbol number, legacy nDBPS 24 is 1366, round to multiple of fft batch 1408
 #define CUDEMOD_FFT_BATCH 64    // each execution 64 symbols
 
+#define CUDEMOD_VTB_LEN 80
+
 void preprocMall();
 void preprocFree();
 void cuPreProc(int n, const cuFloatComplex *sig, float* ac, cuFloatComplex* conj);

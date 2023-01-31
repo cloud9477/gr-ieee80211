@@ -4,3 +4,5 @@
 build*/
 .vscode*/
 *.cubin
+example/*.yml
+example/*.py

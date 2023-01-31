@@ -25,9 +25,9 @@ namespace gr {
   namespace ieee80211 {
 
     demod2::sptr
-    demod2::make(int mupos, int mugid)
+    demod2::make()
     {
-      return gnuradio::make_block_sptr<demod2_impl>(mupos, mugid
+      return gnuradio::make_block_sptr<demod2_impl>(
         );
     }
 
@@ -35,12 +35,10 @@ namespace gr {
     /*
      * The private constructor
      */
-    demod2_impl::demod2_impl(int mupos, int mugid)
+    demod2_impl::demod2_impl()
       : gr::block("demod2",
               gr::io_signature::make(2, 2, sizeof(gr_complex)),
               gr::io_signature::make(1, 1, sizeof(float))),
-              d_muPos(mupos),
-              d_muGroupId(mugid),
               d_ofdm_fft(64,1)
     {
       d_nProc = 0;

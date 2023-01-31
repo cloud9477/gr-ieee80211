@@ -11,7 +11,7 @@ options:
     gen_linking: dynamic
     generate_options: no_gui
     hier_block_src_path: '.:'
-    id: wifirx
+    id: wifirxcu
     max_nouts: '0'
     output_language: python
     placement: (0,0)
@@ -78,7 +78,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [184, 12]
+    coordinate: [184, 12.0]
     rotation: 0
     state: enabled
 - name: blocks_file_source_0
@@ -103,23 +103,8 @@ blocks:
     coordinate: [8, 148.0]
     rotation: 0
     state: enabled
-- name: ieee80211_decode_0
-  id: ieee80211_decode
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    maxoutbuf: '0'
-    minoutbuf: '0'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [1048, 168.0]
-    rotation: 0
-    state: enabled
-- name: ieee80211_demod_0
-  id: ieee80211_demod
+- name: ieee80211_demodcu_0
+  id: ieee80211_demodcu
   parameters:
     affinity: ''
     alias: ''
@@ -193,7 +178,7 @@ blocks:
     coordinate: [592, 12.0]
     rotation: 0
     state: true
-- name: network_socket_pdu_0_0
+- name: network_socket_pdu_0
   id: network_socket_pdu
   parameters:
     affinity: ''
@@ -210,11 +195,11 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1184, 140.0]
+    coordinate: [1064, 140.0]
     rotation: 0
     state: enabled
-- name: presiso_0
-  id: presiso
+- name: presisocu_0
+  id: presisocu
   parameters:
     affinity: ''
     alias: ''
@@ -225,21 +210,20 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [280, 120.0]
+    coordinate: [272, 120.0]
     rotation: 0
-    state: enabled
+    state: true
 
 connections:
 - [blocks_file_source_0, '0', ieee80211_signal_0, '1']
 - [blocks_file_source_0, '0', ieee80211_sync_0, '2']
-- [blocks_file_source_0, '0', presiso_0, '0']
-- [ieee80211_decode_0, out, network_socket_pdu_0_0, pdus]
-- [ieee80211_demod_0, '0', ieee80211_decode_0, '0']
-- [ieee80211_signal_0, '0', ieee80211_demod_0, '0']
+- [blocks_file_source_0, '0', presisocu_0, '0']
+- [ieee80211_demodcu_0, out, network_socket_pdu_0, pdus]
+- [ieee80211_signal_0, '0', ieee80211_demodcu_0, '0']
 - [ieee80211_sync_0, '0', ieee80211_signal_0, '0']
 - [ieee80211_trigger_0, '0', ieee80211_sync_0, '0']
-- [presiso_0, '0', ieee80211_trigger_0, '0']
-- [presiso_0, '1', ieee80211_sync_0, '1']
+- [presisocu_0, '0', ieee80211_trigger_0, '0']
+- [presisocu_0, '1', ieee80211_sync_0, '1']
 
 metadata:
   file_format: 1

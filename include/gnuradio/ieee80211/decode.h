@@ -32,7 +32,7 @@ namespace gr {
        * class. ieee80211::decode::make is the public interface for
        * creating new instances.
        */
-      static sptr make(int inpara);
+      static sptr make();
     };
 
   } // namespace ieee80211

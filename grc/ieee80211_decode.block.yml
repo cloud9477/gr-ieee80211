@@ -4,26 +4,16 @@ category: '[ieee80211]'
 
 templates:
   imports: from gnuradio import ieee80211
-  make: ieee80211.decode(${inpara})
-
-parameters:
-- id: inpara
-  label: Debug
-  dtype: int
-  default: '0'
+  make: ieee80211.decode()
 
 inputs:
 - label: inLlr
   domain: stream
   dtype: float
-#  vlen: ...
-#  optional: ...
 
 outputs:
 - domain: message
   id: out
-#  vlen: ...
-#  optional: ...
 
 #  'file_format' specifies the version of the GRC yml format used in the file
 #  and should usually not be changed.

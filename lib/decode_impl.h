@@ -82,11 +82,10 @@ namespace gr {
       uint64_t d_legacyMcsCount[8];
       uint64_t d_vhtMcsCount[10];
       uint64_t d_htMcsCount[8];
-      int d_inParam;
 
 
     public:
-      decode_impl(int inpara);
+      decode_impl();
       ~decode_impl();
 
       // Where all the action really happens

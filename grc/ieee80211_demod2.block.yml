@@ -4,17 +4,7 @@ category: '[ieee80211]'
 
 templates:
   imports: from gnuradio import ieee80211
-  make: ieee80211.demod2(${mupos}, ${mugid})
-
-parameters:
-- id: mupos
-  label: MU-MIMO User Pos
-  dtype: int
-  default: '0'
-- id: mugid
-  label: MU-MIMO Group ID
-  dtype: int
-  default: '2'
+  make: ieee80211.demod2()
 
 inputs:
 - label: inSig1
@@ -28,12 +18,6 @@ outputs:
 - label: outLlr
   domain: stream
   dtype: float
-
-asserts:
-- ${ mupos >= 0 }
-- ${ mupos <= 3 }
-- ${ mugid >= 1 }
-- ${ mugid <= 62 }
 
 #  'file_format' specifies the version of the GRC yml format used in the file
 #  and should usually not be changed.

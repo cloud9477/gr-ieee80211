@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Free Software Foundation, Inc.
+ * Copyright 2023 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(demod2.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(b21126c05f3c068ece66c2921dabd0fe)                     */
+/* BINDTOOL_HEADER_FILE_HASH(ce00088d2f09489a29c8a1becd2ba375)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -37,8 +37,6 @@ void bind_demod2(py::module& m)
         std::shared_ptr<demod2>>(m, "demod2", D(demod2))
 
         .def(py::init(&demod2::make),
-           py::arg("mupos"),
-           py::arg("mugid"),
            D(demod2,make)
         )
         

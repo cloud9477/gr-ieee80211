@@ -24,17 +24,16 @@
 namespace gr {
   namespace ieee80211 {
     decode::sptr
-    decode::make(int inpara)
+    decode::make()
     {
-      return gnuradio::make_block_sptr<decode_impl>(inpara
+      return gnuradio::make_block_sptr<decode_impl>(
         );
     }
 
-    decode_impl::decode_impl(int inpara)
+    decode_impl::decode_impl()
       : gr::block("decode",
               gr::io_signature::make(1, 1, sizeof(float)),
-              gr::io_signature::make(0, 0, 0)),
-              d_inParam(inpara)
+              gr::io_signature::make(0, 0, 0))
     {
       message_port_register_out(pmt::mp("out"));
 
@@ -43,7 +42,7 @@ namespace gr {
       memset(d_vhtMcsCount, 0, sizeof(uint64_t) * 10);
       memset(d_legacyMcsCount, 0, sizeof(uint64_t) * 8);
       memset(d_htMcsCount, 0, sizeof(uint64_t) * 8);
-      d_debug = d_inParam;
+      d_debug = false;
 
       set_tag_propagation_policy(block::TPP_DONT);
     }
@@ -368,18 +367,18 @@ namespace gr {
             d_crc32.reset();
             d_crc32.process_bytes(d_pktBytes + 3, tmpLen);
             if (d_crc32.checksum() != 558161692) {
-              dout << "ieee80211 decode, vht crc32 wrong, total:"<< d_nPktCorrect;
-              dout << ",0:"<<d_vhtMcsCount[0];
-              dout << ",1:"<<d_vhtMcsCount[1];
-              dout << ",2:"<<d_vhtMcsCount[2];
-              dout << ",3:"<<d_vhtMcsCount[3];
-              dout << ",4:"<<d_vhtMcsCount[4];
-              dout << ",5:"<<d_vhtMcsCount[5];
-              dout << ",6:"<<d_vhtMcsCount[6];
-              dout << ",7:"<<d_vhtMcsCount[7];
-              dout << ",8:"<<d_vhtMcsCount[8];
-              dout << ",9:"<<d_vhtMcsCount[9];
-              dout << std::endl;
+              std::cout << "ieee80211 decode, vht crc32 wrong, total:"<< d_nPktCorrect;
+              std::cout << ",0:"<<d_vhtMcsCount[0];
+              std::cout << ",1:"<<d_vhtMcsCount[1];
+              std::cout << ",2:"<<d_vhtMcsCount[2];
+              std::cout << ",3:"<<d_vhtMcsCount[3];
+              std::cout << ",4:"<<d_vhtMcsCount[4];
+              std::cout << ",5:"<<d_vhtMcsCount[5];
+              std::cout << ",6:"<<d_vhtMcsCount[6];
+              std::cout << ",7:"<<d_vhtMcsCount[7];
+              std::cout << ",8:"<<d_vhtMcsCount[8];
+              std::cout << ",9:"<<d_vhtMcsCount[9];
+              std::cout << std::endl;
             }
             else
             {
@@ -388,18 +387,18 @@ namespace gr {
               {
                 d_vhtMcsCount[t_mcs]++;
               }
-              dout << "ieee80211 decode, vht crc32 correct, total:" << d_nPktCorrect;
-              dout << ",0:"<<d_vhtMcsCount[0];
-              dout << ",1:"<<d_vhtMcsCount[1];
-              dout << ",2:"<<d_vhtMcsCount[2];
-              dout << ",3:"<<d_vhtMcsCount[3];
-              dout << ",4:"<<d_vhtMcsCount[4];
-              dout << ",5:"<<d_vhtMcsCount[5];
-              dout << ",6:"<<d_vhtMcsCount[6];
-              dout << ",7:"<<d_vhtMcsCount[7];
-              dout << ",8:"<<d_vhtMcsCount[8];
-              dout << ",9:"<<d_vhtMcsCount[9];
-              dout << std::endl;
+              std::cout << "ieee80211 decode, vht crc32 correct, total:" << d_nPktCorrect;
+              std::cout << ",0:"<<d_vhtMcsCount[0];
+              std::cout << ",1:"<<d_vhtMcsCount[1];
+              std::cout << ",2:"<<d_vhtMcsCount[2];
+              std::cout << ",3:"<<d_vhtMcsCount[3];
+              std::cout << ",4:"<<d_vhtMcsCount[4];
+              std::cout << ",5:"<<d_vhtMcsCount[5];
+              std::cout << ",6:"<<d_vhtMcsCount[6];
+              std::cout << ",7:"<<d_vhtMcsCount[7];
+              std::cout << ",8:"<<d_vhtMcsCount[8];
+              std::cout << ",9:"<<d_vhtMcsCount[9];
+              std::cout << std::endl;
               // 1 byte packet format
               tmpLen += 3;
               pmt::pmt_t tmpMeta = pmt::make_dict();
@@ -442,29 +441,29 @@ namespace gr {
           if (d_crc32.checksum() != 558161692) {
             if(t_format == C8P_F_L)
             {
-              dout << "ieee80211 decode, legacy crc32 wrong, total:"<< d_nPktCorrect;
-              dout << ",0:"<<d_legacyMcsCount[0];
-              dout << ",1:"<<d_legacyMcsCount[1];
-              dout << ",2:"<<d_legacyMcsCount[2];
-              dout << ",3:"<<d_legacyMcsCount[3];
-              dout << ",4:"<<d_legacyMcsCount[4];
-              dout << ",5:"<<d_legacyMcsCount[5];
-              dout << ",6:"<<d_legacyMcsCount[6];
-              dout << ",7:"<<d_legacyMcsCount[7];
-              dout << std::endl;
+              std::cout << "ieee80211 decode, legacy crc32 wrong, total:"<< d_nPktCorrect;
+              std::cout << ",0:"<<d_legacyMcsCount[0];
+              std::cout << ",1:"<<d_legacyMcsCount[1];
+              std::cout << ",2:"<<d_legacyMcsCount[2];
+              std::cout << ",3:"<<d_legacyMcsCount[3];
+              std::cout << ",4:"<<d_legacyMcsCount[4];
+              std::cout << ",5:"<<d_legacyMcsCount[5];
+              std::cout << ",6:"<<d_legacyMcsCount[6];
+              std::cout << ",7:"<<d_legacyMcsCount[7];
+              std::cout << std::endl;
             }
             else
             {
-              dout << "ieee80211 decode, ht crc32 wrong, total:"<< d_nPktCorrect;
-              dout << ",0:"<<d_htMcsCount[0];
-              dout << ",1:"<<d_htMcsCount[1];
-              dout << ",2:"<<d_htMcsCount[2];
-              dout << ",3:"<<d_htMcsCount[3];
-              dout << ",4:"<<d_htMcsCount[4];
-              dout << ",5:"<<d_htMcsCount[5];
-              dout << ",6:"<<d_htMcsCount[6];
-              dout << ",7:"<<d_htMcsCount[7];
-              dout << std::endl;
+              std::cout << "ieee80211 decode, ht crc32 wrong, total:"<< d_nPktCorrect;
+              std::cout << ",0:"<<d_htMcsCount[0];
+              std::cout << ",1:"<<d_htMcsCount[1];
+              std::cout << ",2:"<<d_htMcsCount[2];
+              std::cout << ",3:"<<d_htMcsCount[3];
+              std::cout << ",4:"<<d_htMcsCount[4];
+              std::cout << ",5:"<<d_htMcsCount[5];
+              std::cout << ",6:"<<d_htMcsCount[6];
+              std::cout << ",7:"<<d_htMcsCount[7];
+              std::cout << std::endl;
             }
           }
           else
@@ -475,30 +474,30 @@ namespace gr {
               if(t_format == C8P_F_L && t_mcs < 8)
               {
                 d_legacyMcsCount[t_mcs]++;
-                dout << "ieee80211 decode, legacy crc32 correct, total:"<< d_nPktCorrect;
-                dout << ",0:"<<d_legacyMcsCount[0];
-                dout << ",1:"<<d_legacyMcsCount[1];
-                dout << ",2:"<<d_legacyMcsCount[2];
-                dout << ",3:"<<d_legacyMcsCount[3];
-                dout << ",4:"<<d_legacyMcsCount[4];
-                dout << ",5:"<<d_legacyMcsCount[5];
-                dout << ",6:"<<d_legacyMcsCount[6];
-                dout << ",7:"<<d_legacyMcsCount[7];
-                dout << std::endl;
+                std::cout << "ieee80211 decode, legacy crc32 correct, total:"<< d_nPktCorrect;
+                std::cout << ",0:"<<d_legacyMcsCount[0];
+                std::cout << ",1:"<<d_legacyMcsCount[1];
+                std::cout << ",2:"<<d_legacyMcsCount[2];
+                std::cout << ",3:"<<d_legacyMcsCount[3];
+                std::cout << ",4:"<<d_legacyMcsCount[4];
+                std::cout << ",5:"<<d_legacyMcsCount[5];
+                std::cout << ",6:"<<d_legacyMcsCount[6];
+                std::cout << ",7:"<<d_legacyMcsCount[7];
+                std::cout << std::endl;
               }
               else if(t_format == C8P_F_HT && t_mcs < 16)
               {
                 d_htMcsCount[t_mcs%8]++;
-                dout << "ieee80211 decode, ht crc32 correct, total:"<< d_nPktCorrect;
-                dout << ",0:"<<d_htMcsCount[0];
-                dout << ",1:"<<d_htMcsCount[1];
-                dout << ",2:"<<d_htMcsCount[2];
-                dout << ",3:"<<d_htMcsCount[3];
-                dout << ",4:"<<d_htMcsCount[4];
-                dout << ",5:"<<d_htMcsCount[5];
-                dout << ",6:"<<d_htMcsCount[6];
-                dout << ",7:"<<d_htMcsCount[7];
-                dout << std::endl;
+                std::cout << "ieee80211 decode, ht crc32 correct, total:"<< d_nPktCorrect;
+                std::cout << ",0:"<<d_htMcsCount[0];
+                std::cout << ",1:"<<d_htMcsCount[1];
+                std::cout << ",2:"<<d_htMcsCount[2];
+                std::cout << ",3:"<<d_htMcsCount[3];
+                std::cout << ",4:"<<d_htMcsCount[4];
+                std::cout << ",5:"<<d_htMcsCount[5];
+                std::cout << ",6:"<<d_htMcsCount[6];
+                std::cout << ",7:"<<d_htMcsCount[7];
+                std::cout << std::endl;
               }
               else
               {

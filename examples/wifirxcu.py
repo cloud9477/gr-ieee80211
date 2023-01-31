@@ -23,13 +23,13 @@ from gnuradio.eng_arg import eng_float, intx
 from gnuradio import eng_notation
 from gnuradio import ieee80211
 from gnuradio import network
-from presiso import presiso  # grc-generated hier_block
+from presisocu import presisocu  # grc-generated hier_block
 import time
 
 
 
 
-class wifirx2(gr.top_block):
+class wifirxcu(gr.top_block):
 
     def __init__(self):
         gr.top_block.__init__(self, "Not titled yet", catch_exceptions=True)
@@ -45,34 +45,28 @@ class wifirx2(gr.top_block):
         ##################################################
         # Blocks
         ##################################################
-        self.presiso_0 = presiso()
+        self.presisocu_0 = presisocu()
         self.network_socket_pdu_0 = network.socket_pdu('UDP_CLIENT', '127.0.0.1', '9527', 65535, False)
         self.ieee80211_trigger_0 = ieee80211.trigger()
         self.ieee80211_sync_0 = ieee80211.sync()
-        self.ieee80211_signal2_0 = ieee80211.signal2()
-        self.ieee80211_demod2_0 = ieee80211.demod2()
-        self.ieee80211_decode_0 = ieee80211.decode()
-        self.blocks_file_source_0_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211GenMultipleMimo_2x2_1.bin', False, 0, 0)
-        self.blocks_file_source_0_0.set_begin_tag(pmt.PMT_NIL)
-        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211GenMultipleMimo_2x2_0.bin', False, 0, 0)
+        self.ieee80211_signal_0 = ieee80211.signal()
+        self.ieee80211_demodcu_0 = ieee80211.demodcu(0, 2)
+        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211GenMultipleSiso_1x1_0.bin', False, 0, 0)
         self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
 
 
         ##################################################
         # Connections
         ##################################################
-        self.msg_connect((self.ieee80211_decode_0, 'out'), (self.network_socket_pdu_0, 'pdus'))
-        self.connect((self.blocks_file_source_0, 0), (self.ieee80211_signal2_0, 1))
+        self.msg_connect((self.ieee80211_demodcu_0, 'out'), (self.network_socket_pdu_0, 'pdus'))
+        self.connect((self.blocks_file_source_0, 0), (self.ieee80211_signal_0, 1))
         self.connect((self.blocks_file_source_0, 0), (self.ieee80211_sync_0, 2))
-        self.connect((self.blocks_file_source_0, 0), (self.presiso_0, 0))
-        self.connect((self.blocks_file_source_0_0, 0), (self.ieee80211_signal2_0, 2))
-        self.connect((self.ieee80211_demod2_0, 0), (self.ieee80211_decode_0, 0))
-        self.connect((self.ieee80211_signal2_0, 1), (self.ieee80211_demod2_0, 1))
-        self.connect((self.ieee80211_signal2_0, 0), (self.ieee80211_demod2_0, 0))
-        self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_signal2_0, 0))
+        self.connect((self.blocks_file_source_0, 0), (self.presisocu_0, 0))
+        self.connect((self.ieee80211_signal_0, 0), (self.ieee80211_demodcu_0, 0))
+        self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_signal_0, 0))
         self.connect((self.ieee80211_trigger_0, 0), (self.ieee80211_sync_0, 0))
-        self.connect((self.presiso_0, 1), (self.ieee80211_sync_0, 1))
-        self.connect((self.presiso_0, 0), (self.ieee80211_trigger_0, 0))
+        self.connect((self.presisocu_0, 1), (self.ieee80211_sync_0, 1))
+        self.connect((self.presisocu_0, 0), (self.ieee80211_trigger_0, 0))
 
 
     def get_samp_rate(self):
@@ -102,7 +96,7 @@ class wifirx2(gr.top_block):
 
 
 
-def main(top_block_cls=wifirx2, options=None):
+def main(top_block_cls=wifirxcu, options=None):
     tb = top_block_cls()
 
     def sig_handler(sig=None, frame=None):

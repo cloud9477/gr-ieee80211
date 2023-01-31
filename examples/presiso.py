@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0
 #
 # GNU Radio Python Flow Graph
-# Title: pre_proc
+# Title: preproc
 # GNU Radio version: 3.10.1.1
 
 from gnuradio import blocks
@@ -23,7 +23,7 @@ import signal
 class presiso(gr.hier_block2):
     def __init__(self):
         gr.hier_block2.__init__(
-            self, "pre_proc",
+            self, "preproc",
                 gr.io_signature(1, 1, gr.sizeof_gr_complex*1),
                 gr.io_signature.makev(2, 2, [gr.sizeof_float*1, gr.sizeof_gr_complex*1]),
         )

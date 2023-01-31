@@ -50,10 +50,6 @@ namespace gr {
       int d_nProc;
       int d_nGen;
       int d_sDemod;
-      // parameters
-      int d_nRxAnt;
-      int d_muPos;
-      int d_muGroupId;
       // received info from tag
       std::vector<gr::tag_t> tags;
       int d_nSigLMcs;
@@ -103,7 +99,7 @@ namespace gr {
       float d_llrSpasd[2][416];     // stream parsered LLR
 
      public:
-      demod2_impl(int mupos, int mugid);
+      demod2_impl();
       ~demod2_impl();
 
       // Where all the action really happens

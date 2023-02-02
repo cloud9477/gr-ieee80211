@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Free Software Foundation, Inc.
+ * Copyright 2023 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(demodcu2.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(4be77ccb852865f5e9fad2d2cb51b377)                     */
+/* BINDTOOL_HEADER_FILE_HASH(601695862e39d6e59e1cfe92db5ecdc9)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -30,7 +30,7 @@ namespace py = pybind11;
 void bind_demodcu2(py::module& m)
 {
 
-    using demodcu2    = gr::ieee80211::demodcu2;
+    using demodcu2    = ::gr::ieee80211::demodcu2;
 
 
     py::class_<demodcu2, gr::block, gr::basic_block,

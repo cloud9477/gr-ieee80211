@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Free Software Foundation, Inc.
+ * Copyright 2023 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(preproc.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(46396558f174830d2caf38509b774b0b)                     */
+/* BINDTOOL_HEADER_FILE_HASH(f55e955cb06b0710ca0d65a593097019)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -30,7 +30,7 @@ namespace py = pybind11;
 void bind_preproc(py::module& m)
 {
 
-    using preproc    = gr::ieee80211::preproc;
+    using preproc    = ::gr::ieee80211::preproc;
 
 
     py::class_<preproc, gr::block, gr::basic_block,

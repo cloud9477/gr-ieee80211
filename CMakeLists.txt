@@ -15,7 +15,7 @@ set(CMAKE_BUILD_TYPE "Release" CACHE STRING "")
 # Project setup
 ########################################################################
 cmake_minimum_required(VERSION 3.8)
-project(gr-ieee80211 CXX C CUDA)        # added by cloud
+project(gr-ieee80211 CXX C CUDA)        #added by cloud
 enable_testing()
 
 # Install to PyBOMBS target prefix if defined
@@ -57,8 +57,8 @@ include(GrCompilerSettings)
 ########################################################################
 # Install directories
 ########################################################################
-find_package(Gnuradio COMPONENTS fft)
-find_package(UHD "3.9.7")
+find_package(Gnuradio COMPONENTS fft)   #added by cloud
+find_package(UHD "3.9.7")               #added by cloud
 
 include(GrVersion)
 

@@ -22,7 +22,6 @@
 #define INCLUDED_IEEE80211_DEMODCU2_IMPL_H
 
 #include <gnuradio/ieee80211/demodcu2.h>
-#include <gnuradio/ieee80211/demodcu.h>
 #include <gnuradio/fft/fft.h>
 #include <boost/crc.hpp>
 #include "cloud80211phy.h"

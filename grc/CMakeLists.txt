@@ -5,7 +5,6 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-
 install(FILES
     ieee80211_trigger.block.yml
     ieee80211_sync.block.yml
@@ -16,7 +15,5 @@ install(FILES
     ieee80211_encode.block.yml
     ieee80211_signal2.block.yml
     ieee80211_demod2.block.yml
-    ieee80211_preproc.block.yml
-    ieee80211_demodcu.block.yml
-    ieee80211_demodcu2.block.yml DESTINATION share/gnuradio/grc/blocks
+    DESTINATION share/gnuradio/grc/blocks
 )

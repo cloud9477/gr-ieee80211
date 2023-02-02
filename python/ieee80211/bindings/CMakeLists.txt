@@ -27,7 +27,6 @@ include(GrPybind)
 ########################################################################
 # Python Bindings
 ########################################################################
-
 list(APPEND ieee80211_python_files
     trigger_python.cc
     sync_python.cc
@@ -38,9 +37,7 @@ list(APPEND ieee80211_python_files
     encode_python.cc
     signal2_python.cc
     demod2_python.cc
-    preproc_python.cc
-    demodcu_python.cc
-    demodcu2_python.cc python_bindings.cc)
+    python_bindings.cc)
 
 GR_PYBIND_MAKE_OOT(ieee80211
    ../../..

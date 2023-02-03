@@ -460,7 +460,7 @@ const gr_complex C8P_QAM_TAB_256QAM[256] = {
 /* signal field */
 /***************************************************/
 
-void procLHSigDemodDeint(gr_complex *sym1, gr_complex *sym2, gr_complex *sig, gr_complex *h, float *llr)
+void procLHSigDemodDeint(gr_complex *sym1, gr_complex *sym2, gr_complex *sig, std::vector<gr_complex> &h, float *llr)
 {
 	gr_complex tmpPilotSum;
 	float tmpPilotSumAbs;
@@ -480,7 +480,7 @@ void procLHSigDemodDeint(gr_complex *sym1, gr_complex *sym2, gr_complex *sig, gr
 	}
 }
 
-void procNLSigDemodDeint(gr_complex *sym1, gr_complex *sym2, gr_complex *h, float *llrht, float *llrvht)
+void procNLSigDemodDeint(gr_complex *sym1, gr_complex *sym2, std::vector<gr_complex> h, float *llrht, float *llrvht)
 {
 	gr_complex tmpM1, tmpM2;
 	gr_complex tmpPilotSum1 = std::conj(sym1[7] / h[7] - sym1[21] / h[21] + sym1[43] / h[43] + sym1[57] / h[57]);

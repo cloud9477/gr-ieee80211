@@ -44,6 +44,7 @@ namespace gr {
       d_nProc = 0;
       d_debug = false;
       d_sDemod = DEMOD_S_RDTAG;
+      d_HL = std::vector<gr_complex>(64, gr_complex(0.0f, 0.0f));
       set_tag_propagation_policy(block::TPP_DONT);
     }
 
@@ -90,8 +91,7 @@ namespace gr {
             d_nSigLMcs = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("mcs"), pmt::from_long(-1)));
             d_nSigLLen = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len"), pmt::from_long(-1)));
             d_nSigLSamp = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("nsamp"), pmt::from_long(-1)));
-            std::vector<gr_complex> tmp_csi = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("csi"), pmt::PMT_NIL));
-            std::copy(tmp_csi.begin(), tmp_csi.end(), d_H);
+            d_HL = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("chan"), pmt::PMT_NIL));
             dout<<"ieee80211 demod2, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<", samp:"<<d_nSigLSamp<<std::endl;
             d_nSampConsumed = 0;
             d_nSigLSamp = d_nSigLSamp + 320;
@@ -114,7 +114,7 @@ namespace gr {
           {
             fftDemod(&inSig1[8], d_fftLtfOut1);
             fftDemod(&inSig1[8+80], d_fftLtfOut2);
-            procNLSigDemodDeint(d_fftLtfOut1, d_fftLtfOut2, d_H, d_sigHtCodedLlr, d_sigVhtACodedLlr);
+            procNLSigDemodDeint(d_fftLtfOut1, d_fftLtfOut2, d_HL, d_sigHtCodedLlr, d_sigVhtACodedLlr);
             //-------------- format check first check vht, then ht otherwise legacy
             // procDeintLegacyBpsk(d_sigVhtAIntedLlr, d_sigVhtACodedLlr);
             // procDeintLegacyBpsk(&d_sigVhtAIntedLlr[48], &d_sigVhtACodedLlr[48]);
@@ -711,7 +711,7 @@ namespace gr {
         {}
         else
         {
-          d_sig1[i] = d_fftLtfOut1[i] / d_H[i];
+          d_sig1[i] = d_fftLtfOut1[i] / d_HL[i];
         }
       }
       gr_complex tmpPilotSum = std::conj(d_sig1[7]*d_pilot[2]*PILOT_P[d_pilotP] + d_sig1[21]*d_pilot[3]*PILOT_P[d_pilotP] + d_sig1[43]*d_pilot[0]*PILOT_P[d_pilotP] + d_sig1[57]*d_pilot[1]*PILOT_P[d_pilotP]);

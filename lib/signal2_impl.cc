@@ -35,12 +35,15 @@ namespace gr {
       : gr::block("signal2",
               gr::io_signature::makev(3, 3, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex), sizeof(gr_complex)}),
               gr::io_signature::make(2, 2, sizeof(gr_complex))),
-              d_ofdm_fft(64,1)
+              d_ofdm_fft1(64,1), d_ofdm_fft2(64,1), d_ofdm_ffts(64,1)
     {
       d_nProc = 0;
       d_nSigPktSeq = 0;
       d_sSignal = S_TRIGGER;
-      d_fftSize = sizeof(gr_complex)*64;
+      d_fftin1 = d_ofdm_fft1.get_inbuf();
+      d_fftin2 = d_ofdm_fft2.get_inbuf();
+      d_fftins = d_ofdm_ffts.get_inbuf();
+      d_h = std::vector<gr_complex>(64, gr_complex(0.0f, 0.0f));
 
       set_tag_propagation_policy(block::TPP_DONT);
     }
@@ -88,11 +91,10 @@ namespace gr {
               for (auto tag : tags){
                 d_meta = pmt::dict_add(d_meta, tag.key, tag.value);
               }
-              t_rad = (float)pmt::to_double(pmt::dict_ref(d_meta, pmt::mp("rad"), pmt::from_double(0.0)));
-              d_cfoRad = t_rad;
-              t_snr = (float)pmt::to_double(pmt::dict_ref(d_meta, pmt::mp("snr"), pmt::from_double(0.0)));
+              d_cfoRad = (float)pmt::to_double(pmt::dict_ref(d_meta, pmt::mp("rad"), pmt::from_double(0.0)));
+              d_snr = (float)pmt::to_double(pmt::dict_ref(d_meta, pmt::mp("snr"), pmt::from_double(0.0)));
               d_sSignal = S_DEMOD;
-              // std::cout<<"ieee80211 signal2, rd tag cfo:"<<(t_rad) * 20000000.0f / 2.0f / M_PI<<", snr:"<<t_snr<<std::endl;
+              // std::cout<<"ieee80211 signal, rd tag cfo:"<<(d_cfoRad) * 20000000.0f / 2.0f / M_PI<<", snr:"<<d_snr<<std::endl;
             }
             else
             {
@@ -109,64 +111,37 @@ namespace gr {
       {
         if((d_nProc - d_nUsed) >= 224)
         {
-          float tmpRadStep;
-          for(int i=8;i<216;i++)
-          {
-            tmpRadStep = (float)i * d_cfoRad;
-            d_sigAfterCfoComp[i] = inSig1[i+d_nUsed] * gr_complex(cosf(tmpRadStep), sinf(tmpRadStep));
-          }
-          memcpy(d_ofdm_fft.get_inbuf(), &d_sigAfterCfoComp[8], d_fftSize);
-          d_ofdm_fft.execute();
-          memcpy(d_fftLtfOut1, d_ofdm_fft.get_outbuf(), d_fftSize);
-          memcpy(d_ofdm_fft.get_inbuf(), &d_sigAfterCfoComp[72], d_fftSize);
-          d_ofdm_fft.execute();
-          memcpy(d_fftLtfOut2, d_ofdm_fft.get_outbuf(), d_fftSize);
-          memcpy(d_ofdm_fft.get_inbuf(), &d_sigAfterCfoComp[152], d_fftSize);
-          d_ofdm_fft.execute();
-          memcpy(d_fftSigOut, d_ofdm_fft.get_outbuf(), d_fftSize);
-
+          d_sampin1 = &inSig1[8+d_nUsed];
+          d_sampin2 = &inSig1[72+d_nUsed];
+          d_sampins = &inSig1[152+d_nUsed];
           for(int i=0;i<64;i++)
           {
-            if(C8P_LEGACY_DP_SC[i])
-            {
-              d_H[i] = (d_fftLtfOut1[i] + d_fftLtfOut2[i]) / LTF_L_26_F_FLOAT[i] / 2.0f;
-              d_sig[i] = d_fftSigOut[i] / d_H[i];
-            }
+            d_fftin1[i] = d_sampin1[i] * gr_complex(cosf((i+8) * d_cfoRad), sinf((i+8) * d_cfoRad));
+            d_fftin2[i] = d_sampin2[i] * gr_complex(cosf((i+72) * d_cfoRad), sinf((i+72) * d_cfoRad));
+            d_fftins[i] = d_sampins[i] * gr_complex(cosf((i+152) * d_cfoRad), sinf((i+152) * d_cfoRad));
           }
-          gr_complex tmpPilotSum = std::conj(d_sig[7] - d_sig[21] + d_sig[43] + d_sig[57]);
-          float tmpPilotSumAbs = std::abs(tmpPilotSum);
-          for(int i=0;i<64;i++)
-          {
-            if(C8P_LEGACY_D_SC[i])
-            {
-              d_sig[i] = d_sig[i] * tmpPilotSum / tmpPilotSumAbs;
-              d_sigLegacyIntedLlr[C8P_LEGACY_D_SC[i]] = d_sig[i].real();
-            }
-          }
-          /* soft ver */
-          procDeintLegacyBpsk(d_sigLegacyIntedLlr, d_sigLegacyCodedLlr);
-          SV_Decode_Sig(d_sigLegacyCodedLlr, d_sigLegacyBits, 24);
+          d_ofdm_fft1.execute();
+          d_ofdm_fft2.execute();
+          d_ofdm_ffts.execute();
+          procLHSigDemodDeint(d_ofdm_fft1.get_outbuf(), d_ofdm_fft2.get_outbuf(), d_ofdm_ffts.get_outbuf(), d_h, d_sigLegacyCodedLlr);
+          d_decoder.decode(d_sigLegacyCodedLlr, d_sigLegacyBits, 24);
           if(signalCheckLegacy(d_sigLegacyBits, &d_nSigMcs, &d_nSigLen, &d_nSigDBPS))
           {
-            d_nSymbol = (d_nSigLen*8 + 16 + 6)/d_nSigDBPS + (((d_nSigLen*8 + 16 + 6)%d_nSigDBPS) != 0);
+            d_nSymbol = (d_nSigLen*8 + 22 + d_nSigDBPS - 1)/d_nSigDBPS;
             d_nSample = d_nSymbol * 80;
             d_nSampleCopied = 0;
             // std::cout<<"ieee80211 signal2, cfo:"<<(d_cfoRad) * 20000000.0f / 2.0f / M_PI<<", mcs: "<<d_nSigMcs<<", len:"<<d_nSigLen<<", nSym:"<<d_nSymbol<<", nSample:"<<d_nSample<<std::endl;
             // add info into tag
             d_nSigPktSeq++;
             if(d_nSigPktSeq >= 1000000000){d_nSigPktSeq = 0;}
-            std::vector<gr_complex> csi;
-            csi.reserve(64);
-            for(int i=0;i<64;i++)
-            {
-              csi.push_back(d_H[i]);
-            }
             pmt::pmt_t dict = pmt::make_dict();
+            dict = pmt::dict_add(dict, pmt::mp("cfo"), pmt::from_float(d_cfoRad * 3183098.8618379068f));  // rad * 20e6 / 2pi
+            dict = pmt::dict_add(dict, pmt::mp("snr"), pmt::from_float(d_snr));
             dict = pmt::dict_add(dict, pmt::mp("seq"), pmt::from_long(d_nSigPktSeq));
             dict = pmt::dict_add(dict, pmt::mp("mcs"), pmt::from_long(d_nSigMcs));
             dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_nSigLen));
             dict = pmt::dict_add(dict, pmt::mp("nsamp"), pmt::from_long(d_nSample));
-            dict = pmt::dict_add(dict, pmt::mp("csi"), pmt::init_c32vector(csi.size(), csi));
+            dict = pmt::dict_add(dict, pmt::mp("chan"), pmt::init_c32vector(d_h.size(), d_h));
             pmt::pmt_t pairs = pmt::dict_items(dict);
             for (size_t i = 0; i < pmt::length(pairs); i++) {
                 pmt::pmt_t pair = pmt::nth(i, pairs);

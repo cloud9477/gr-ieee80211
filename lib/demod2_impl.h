@@ -54,7 +54,7 @@ namespace gr {
       std::vector<gr::tag_t> tags;
       int d_nSigLMcs;
       int d_nSigLLen;
-      gr_complex d_H[64];
+      std::vector<gr_complex> d_HL;
       int d_nSigLSamp;
       int d_nSampConsumed;
       // check format

@@ -210,8 +210,8 @@ void procChipsToQam(const uint8_t* inChips,  gr_complex* outQam, int qamType, in
 void procInsertPilotsDc(gr_complex* sigIn, gr_complex* sigOut, gr_complex* pilots, int format);
 void procNonDataSc(gr_complex* sigIn, gr_complex* sigOut, int format);
 
-void procLHSigDemodDeint(gr_complex *sym1, gr_complex *sym2, gr_complex *sig, gr_complex *h, float *llr);
-void procNLSigDemodDeint(gr_complex *sym1, gr_complex *sym2, gr_complex *h, float *llrht, float *llrvht);
+void procLHSigDemodDeint(gr_complex *sym1, gr_complex *sym2, gr_complex *sig, std::vector<gr_complex> &h, float *llr);
+void procNLSigDemodDeint(gr_complex *sym1, gr_complex *sym2, std::vector<gr_complex> h, float *llrht, float *llrvht);
 bool signalCheckLegacy(uint8_t* inBits, int* mcs, int* len, int* nDBPS);
 bool signalCheckHt(uint8_t* inBits);
 bool signalCheckVhtA(uint8_t* inBits);

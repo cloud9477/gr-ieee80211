@@ -31,10 +31,6 @@
 #define S_COPY 2
 #define S_PAD 3
 
-#define F_LEGACY 0
-#define F_HT 1
-#define F_VHT 2
-
 namespace gr {
   namespace ieee80211 {
 
@@ -42,20 +38,16 @@ namespace gr {
     {
      private:
       // for block
+      int d_sSignal;
       int d_nProc;
       int d_nGen;
-      int d_sSignal;
       int d_nUsed;
       int d_nPassed;
-      // tag
-      float t_rad;
-      float t_snr;
       // signal soft viterbi ver
+      svSigDecoder d_decoder;
       float d_cfoRad;
-      gr_complex d_sigAfterCfoComp[240];
-      gr_complex d_H[64];
-      gr_complex d_sig[64];
-      float d_sigLegacyIntedLlr[48];
+      float d_snr;
+      std::vector<gr_complex> d_h;
       float d_sigLegacyCodedLlr[48];
       uint8_t d_sigLegacyBits[24];
       int d_nSigPktSeq;
@@ -66,11 +58,15 @@ namespace gr {
       int d_nSample;
       int d_nSampleCopied;
       // fft
-      fft::fft_complex_fwd d_ofdm_fft;
-      gr_complex d_fftLtfOut1[64];
-      gr_complex d_fftLtfOut2[64];
-      gr_complex d_fftSigOut[64];
-      size_t d_fftSize;
+      fft::fft_complex_fwd d_ofdm_fft1;
+      fft::fft_complex_fwd d_ofdm_fft2;
+      fft::fft_complex_fwd d_ofdm_ffts;
+      gr_complex *d_fftin1;
+      gr_complex *d_fftin2;
+      gr_complex *d_fftins;
+      const gr_complex *d_sampin1;
+      const gr_complex *d_sampin2;
+      const gr_complex *d_sampins;
 
      public:
       signal2_impl();

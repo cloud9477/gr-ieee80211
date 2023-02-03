@@ -43,7 +43,7 @@ namespace gr {
       d_fftin1 = d_ofdm_fft1.get_inbuf();
       d_fftin2 = d_ofdm_fft2.get_inbuf();
       d_fftins = d_ofdm_ffts.get_inbuf();
-      d_chan = std::vector<gr_complex>(64, gr_complex(0.0f, 0.0f));
+      d_h = std::vector<gr_complex>(64, gr_complex(0.0f, 0.0f));
       d_sampCount = 0;
       d_usUsed = 0;
 
@@ -127,7 +127,7 @@ namespace gr {
           d_ofdm_fft1.execute();
           d_ofdm_fft2.execute();
           d_ofdm_ffts.execute();
-          procLHSigDemodDeint(d_ofdm_fft1.get_outbuf(), d_ofdm_fft2.get_outbuf(), d_ofdm_ffts.get_outbuf(), d_H, d_sigLegacyCodedLlr);
+          procLHSigDemodDeint(d_ofdm_fft1.get_outbuf(), d_ofdm_fft2.get_outbuf(), d_ofdm_ffts.get_outbuf(), d_h, d_sigLegacyCodedLlr);
           d_decoder.decode(d_sigLegacyCodedLlr, d_sigLegacyBits, 24);
           if(signalCheckLegacy(d_sigLegacyBits, &d_nSigMcs, &d_nSigLen, &d_nSigDBPS))
           {
@@ -138,18 +138,14 @@ namespace gr {
             // add info into tag
             d_nSigPktSeq++;
             if(d_nSigPktSeq >= 1000000000){d_nSigPktSeq = 0;}
-            for(int i=0;i<64;i++)
-            {
-              d_chan[i] = d_H[i];
-            }
             pmt::pmt_t dict = pmt::make_dict();
-            // dict = pmt::dict_add(dict, pmt::mp("cfo"), pmt::from_float(d_cfoRad * 3183098.8618379068f));  // rad * 20e6 / 2pi
-            // dict = pmt::dict_add(dict, pmt::mp("snr"), pmt::from_float(d_snr));
+            dict = pmt::dict_add(dict, pmt::mp("cfo"), pmt::from_float(d_cfoRad * 3183098.8618379068f));  // rad * 20e6 / 2pi
+            dict = pmt::dict_add(dict, pmt::mp("snr"), pmt::from_float(d_snr));
             dict = pmt::dict_add(dict, pmt::mp("seq"), pmt::from_long(d_nSigPktSeq));
             dict = pmt::dict_add(dict, pmt::mp("mcs"), pmt::from_long(d_nSigMcs));
             dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_nSigLen));
             dict = pmt::dict_add(dict, pmt::mp("nsamp"), pmt::from_long(d_nSample));
-            dict = pmt::dict_add(dict, pmt::mp("chan"), pmt::init_c32vector(d_chan.size(), d_chan));
+            dict = pmt::dict_add(dict, pmt::mp("chan"), pmt::init_c32vector(d_h.size(), d_h));
             pmt::pmt_t pairs = pmt::dict_items(dict);
             for (size_t i = 0; i < pmt::length(pairs); i++) {
                 pmt::pmt_t pair = pmt::nth(i, pairs);

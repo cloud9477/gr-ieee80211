@@ -32,10 +32,6 @@
 #define S_COPY 2
 #define S_PAD 3
 
-#define F_LEGACY 0
-#define F_HT 1
-#define F_VHT 2
-
 namespace gr {
   namespace ieee80211 {
 
@@ -43,17 +39,16 @@ namespace gr {
     {
     private:
       // for block
+      int d_sSignal;
       int d_nProc;
       int d_nGen;
-      int d_sSignal;
       int d_nUsed;
       int d_nPassed;
       // signal soft viterbi ver
       svSigDecoder d_decoder;
       float d_cfoRad;
       float d_snr;
-      gr_complex d_H[64];
-      std::vector<gr_complex> d_chan;
+      std::vector<gr_complex> d_h;
       float d_sigLegacyCodedLlr[48];
       uint8_t d_sigLegacyBits[24];
       int d_nSigPktSeq;

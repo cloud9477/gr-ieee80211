@@ -40,7 +40,7 @@ namespace gr {
               d_ofdm_fft(64,1)
     {
       d_nProc = 0;
-      d_debug = true;
+      d_debug = false;
       d_sDemod = DEMOD_S_RDTAG;
       set_tag_propagation_policy(block::TPP_DONT);
     }
@@ -83,7 +83,7 @@ namespace gr {
             d_nSigLMcs = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("mcs"), pmt::from_long(-1)));
             d_nSigLLen = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len"), pmt::from_long(-1)));
             d_nSigLSamp = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("nsamp"), pmt::from_long(-1)));
-            std::vector<gr_complex> tmp_csi = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("csi"), pmt::PMT_NIL));
+            std::vector<gr_complex> tmp_csi = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("chan"), pmt::PMT_NIL));
             std::copy(tmp_csi.begin(), tmp_csi.end(), d_H);
             dout<<"ieee80211 demod, rd tag seq:"<<tmpPktSeq<<", mcs:"<<d_nSigLMcs<<", len:"<<d_nSigLLen<<", samp:"<<d_nSigLSamp<<std::endl;
             d_nSampConsumed = 0;
@@ -107,11 +107,11 @@ namespace gr {
           {
             fftDemod(&inSig1[8], d_fftLtfOut1);
             fftDemod(&inSig1[8+80], d_fftLtfOut2);
-            signalNlDemodDecode(d_fftLtfOut1, d_fftLtfOut2, d_H, d_sigHtIntedLlr, d_sigVhtAIntedLlr);
+            procNLSigDemodDeint(d_fftLtfOut1, d_fftLtfOut2, d_H, d_sigHtCodedLlr, d_sigVhtACodedLlr);
             //-------------- format check first check vht, then ht otherwise legacy
-            procDeintLegacyBpsk(d_sigVhtAIntedLlr, d_sigVhtACodedLlr);
-            procDeintLegacyBpsk(&d_sigVhtAIntedLlr[48], &d_sigVhtACodedLlr[48]);
-            SV_Decode_Sig(d_sigVhtACodedLlr, d_sigVhtABits, 48);
+            // procDeintLegacyBpsk(d_sigVhtAIntedLlr, d_sigVhtACodedLlr);
+            // procDeintLegacyBpsk(&d_sigVhtAIntedLlr[48], &d_sigVhtACodedLlr[48]);
+            d_decoder.decode(d_sigVhtACodedLlr, d_sigVhtABits, 48);
             if(signalCheckVhtA(d_sigVhtABits))
             {
               // go to vht
@@ -124,9 +124,9 @@ namespace gr {
             }
             else
             {
-              procDeintLegacyBpsk(d_sigHtIntedLlr, d_sigHtCodedLlr);
-              procDeintLegacyBpsk(&d_sigHtIntedLlr[48], &d_sigHtCodedLlr[48]);
-              SV_Decode_Sig(d_sigHtCodedLlr, d_sigHtBits, 48);
+              // procDeintLegacyBpsk(d_sigHtIntedLlr, d_sigHtCodedLlr);
+              // procDeintLegacyBpsk(&d_sigHtIntedLlr[48], &d_sigHtCodedLlr[48]);
+              d_decoder.decode(d_sigHtCodedLlr, d_sigHtBits, 48);
               if(signalCheckHt(d_sigHtBits))
               {
                 // go to ht
@@ -157,7 +157,7 @@ namespace gr {
             nonLegacyChanEstimate(&inSig1[80]);
             vhtSigBDemod(&inSig1[80 + d_m.nLTF*80]);
             signalParserVhtB(d_sigVhtB20Bits, &d_m);
-            dout<<"ieee80211 demodcu2, vht b len:"<<d_m.len<<", mcs:"<<d_m.mcs<<", nSS:"<<d_m.nSS<<", nSym:"<<d_m.nSym<<std::endl;
+            dout<<"ieee80211 demod, vht b len:"<<d_m.len<<", mcs:"<<d_m.mcs<<", nSS:"<<d_m.nSS<<", nSym:"<<d_m.nSym<<std::endl;
             int tmpNLegacySym = (d_nSigLLen*8 + 22 + 23)/24;
             if(d_m.len >= 0 && d_m.len <= 4095 && d_m.nSS <= 2 && (tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80))  // =0 for NDP
             {

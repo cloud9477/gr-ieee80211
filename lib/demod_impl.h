@@ -59,6 +59,7 @@ namespace gr {
       int d_nSigLSamp;
       int d_nSampConsumed;
       // check format
+      svSigDecoder d_decoder;
       gr_complex d_sig1[64];
       gr_complex d_sig2[64];
       float d_sigHtIntedLlr[96];

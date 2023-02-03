@@ -24,12 +24,15 @@
 /* training field */
 /***************************************************/
 
+const int FFT_L_SIG_DEMAP[64] = {-1, 8, 24, 40, 9, 25, 41, -1, 10, 26, 42, 11, 27, 43, 12, 28, 44, 13, 29, 45, 14, -1, 30, 46, 15, 31, 47, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 16, 32, 1, 17, -1, 33, 2, 18, 34, 3, 19, 35, 4, 20, 36, 5, 21, 37, -1, 6, 22, 38, 7, 23, 39};
+const int FFT_NL_SIG_DEMAP[128] = {-1, 8, 24, 40, 9, 25, 41, -1, 10, 26, 42, 11, 27, 43, 12, 28, 44, 13, 29, 45, 14, -1, 30, 46, 15, 31, 47, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 16, 32, 1, 17, -1, 33, 2, 18, 34, 3, 19, 35, 4, 20, 36, 5, 21, 37, -1, 6, 22, 38, 7, 23, 39, -1, 56, 72, 88, 57, 73, 89, -1, 58, 74, 90, 59, 75, 91, 60, 76, 92, 61, 77, 93, 62, -1, 78, 94, 63, 79, 95, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 48, 64, 80, 49, 65, -1, 81, 50, 66, 82, 51, 67, 83, 52, 68, 84, 53, 69, 85, -1, 54, 70, 86, 55, 71, 87};
+
 const int C8P_LEGACY_DP_SC[64] = {
 	0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
 };
 
 const int C8P_LEGACY_D_SC[64] = {
-	0, 24, 25, 26, 27, 28, 29, 0, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 0, 43, 44, 45, 46, 47, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 0, 18, 19, 20, 21, 22, 23
+	-1, 24, 25, 26, 27, 28, 29, -1, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, -1, 43, 44, 45, 46, 47, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 1, 2, 3, 4, -1, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, -1, 18, 19, 20, 21, 22, 23
 };
 
 const int FFT_26_DEMAP[64] = {
@@ -85,6 +88,24 @@ const float LTF_L_26_F_FLOAT[64] = {
     1.0f, -1.0f, -1.0f, 1.0f, 
     1.0f, -1.0f, 1.0f, -1.0f, 
     1.0f, 1.0f, 1.0f, 1.0f};
+
+const float LTF_L_26_F_FLOAT2[64] = {
+    0.0f, 2.0f, -2.0f, -2.0f, 
+    2.0f, 2.0f, -2.0f, 2.0f, 
+    -2.0f, 2.0f, -2.0f, -2.0f, 
+    -2.0f, -2.0f, -2.0f, 2.0f, 
+    2.0f, -2.0f, -2.0f, 2.0f, 
+    -2.0f, 2.0f, -2.0f, 2.0f, 
+    2.0f, 2.0f, 2.0f, 0.0f, 
+    0.0f, 0.0f, 0.0f, 0.0f, 
+    0.0f, 0.0f, 0.0f, 0.0f, 
+    0.0f, 0.0f, 2.0f, 2.0f, 
+    -2.0f, -2.0f, 2.0f, 2.0f, 
+    -2.0f, 2.0f, -2.0f, 2.0f, 
+    2.0f, 2.0f, 2.0f, 2.0f, 
+    2.0f, -2.0f, -2.0f, 2.0f, 
+    2.0f, -2.0f, 2.0f, -2.0f, 
+    2.0f, 2.0f, 2.0f, 2.0f};
 
 const float LTF_NL_28_F_FLOAT[64] = {
     0.0f, 1.0f, -1.0f, -1.0f, 
@@ -439,7 +460,27 @@ const gr_complex C8P_QAM_TAB_256QAM[256] = {
 /* signal field */
 /***************************************************/
 
-void signalNlDemodDecode(gr_complex *sym1, gr_complex *sym2, gr_complex *h, float *llrht, float *llrvht)
+void procLHSigDemodDeint(gr_complex *sym1, gr_complex *sym2, gr_complex *sig, gr_complex *h, float *llr)
+{
+	gr_complex tmpPilotSum;
+	float tmpPilotSumAbs;
+	h[7] = (sym1[7] + sym2[7]) / LTF_L_26_F_FLOAT2[7];
+	h[21] = (sym1[21] + sym2[21]) / LTF_L_26_F_FLOAT2[21];
+	h[43] = (sym1[43] + sym2[43]) / LTF_L_26_F_FLOAT2[43];
+	h[57] = (sym1[57] + sym2[57]) / LTF_L_26_F_FLOAT2[57];
+	tmpPilotSum = std::conj(sig[7] / h[7] - sig[21] / h[21] + sig[43] / h[43] + sig[57] / h[57]);
+	tmpPilotSumAbs = std::abs(tmpPilotSum);
+	for(int i=0;i<64;i++)
+	{
+		if(FFT_L_SIG_DEMAP[i] > -1)
+		{
+			h[i] = (sym1[i] + sym2[i]) / LTF_L_26_F_FLOAT2[i];
+			llr[FFT_L_SIG_DEMAP[i]] = (sig[i] / h[i] * tmpPilotSum / tmpPilotSumAbs).real();
+		}
+	}
+}
+
+void procNLSigDemodDeint(gr_complex *sym1, gr_complex *sym2, gr_complex *h, float *llrht, float *llrvht)
 {
 	gr_complex tmpM1, tmpM2;
 	gr_complex tmpPilotSum1 = std::conj(sym1[7] / h[7] - sym1[21] / h[21] + sym1[43] / h[43] + sym1[57] / h[57]);
@@ -448,14 +489,14 @@ void signalNlDemodDecode(gr_complex *sym1, gr_complex *sym2, gr_complex *h, floa
 	float tmpPilotSumAbs2 = std::abs(tmpPilotSum2);
 	for(int i=0;i<64;i++)
 	{
-		if(FFT_26_SHIFT_DEMAP[i] > -1)
+		if(FFT_NL_SIG_DEMAP[i] > -1)
 		{
 			tmpM1 = sym1[i] / h[i] * tmpPilotSum1 / tmpPilotSumAbs1;
 			tmpM2 = sym2[i] / h[i] * tmpPilotSum2 / tmpPilotSumAbs2;
-			llrht[FFT_26_SHIFT_DEMAP[i]] = tmpM1.imag();
-			llrht[FFT_26_SHIFT_DEMAP[i + 64]] = tmpM2.imag();
-			llrvht[FFT_26_SHIFT_DEMAP[i]] = tmpM1.real();
-			llrvht[FFT_26_SHIFT_DEMAP[i + 64]] = tmpM2.imag();
+			llrht[FFT_NL_SIG_DEMAP[i]] = tmpM1.imag();
+			llrht[FFT_NL_SIG_DEMAP[i + 64]] = tmpM2.imag();
+			llrvht[FFT_NL_SIG_DEMAP[i]] = tmpM1.real();
+			llrvht[FFT_NL_SIG_DEMAP[i + 64]] = tmpM2.imag();
 		}
 	}
 }
@@ -1809,6 +1850,95 @@ void SV_Decode_Sig(float* llrv, uint8_t* decoded_bits, int trellisLen)
 	}
 
 	free(state_sequence);
+}
+
+void svSigDecoder::decode(float* llrv, uint8_t* decoded_bits, int trellisLen)
+{
+	if(trellisLen < 0 || trellisLen > 48)
+	{
+		return;
+	}
+	/* initialize data structures */
+	for (i = 0; i < 64; i++)
+	{
+		for (j = 0; j <= trellisLen; j++)
+		{
+			state_history[i][j] = 0;
+		}
+		/* initial the accumulated error metrics */
+		accum_err_metric0[i] = -1000000000000000.0f;
+		accum_err_metric1[i] = -1000000000000000.0f;
+	}
+	accum_err_metric0[0] = 0;
+	cur_accum_err_metric = accum_err_metric1;
+	pre_accum_err_metric = accum_err_metric0;
+
+	/* start viterbi decoding */
+	for (t=0; t<trellisLen; t++)
+	{
+		t0 = *llrv++;
+		t1 = *llrv++;
+
+		tbl_t[0] = 0;
+		tbl_t[1] = t1;
+		tbl_t[2] = t0;
+		tbl_t[3] = t1+t0;
+
+		/* repeat for each possible state */
+		for (i = 0; i < 64; i++)
+		{
+			op0 = SV_STATE_OUTPUT[i][0];
+			op1 = SV_STATE_OUTPUT[i][1];
+
+			acc_tmp0 = pre_accum_err_metric[i] + tbl_t[op0];
+			acc_tmp1 = pre_accum_err_metric[i] + tbl_t[op1];
+
+			next0 = SV_STATE_NEXT[i][0];
+			next1 = SV_STATE_NEXT[i][1];
+
+			if (acc_tmp0 > cur_accum_err_metric[next0])
+			{
+				cur_accum_err_metric[next0] = acc_tmp0;
+				state_history[next0][t+1] = i;			//path
+			}
+
+			if (acc_tmp1 > cur_accum_err_metric[next1])
+			{
+				cur_accum_err_metric[next1] = acc_tmp1;
+				state_history[next1][t+1] = i;
+			}
+		}
+
+		/* update accum_err_metric array */
+		tmp = pre_accum_err_metric;
+		pre_accum_err_metric = cur_accum_err_metric;
+		cur_accum_err_metric = tmp;
+
+		for (i = 0; i < 64; i++)
+		{
+			cur_accum_err_metric[i] = -1000000000000000.0f;
+		}
+	} // end of t loop
+
+	// The final state should be 0
+	state_sequence[trellisLen] = 0;
+
+	for (j = trellisLen; j > 0; j--)
+	{
+		state_sequence[j-1] = state_history[state_sequence[j]][j];
+	}
+
+	for (j = 0; j < trellisLen; j++)
+	{
+		if (state_sequence[j+1] == SV_STATE_NEXT[state_sequence[j]][1])
+		{
+			decoded_bits[j] = 1;
+		}
+		else
+		{
+			decoded_bits[j] = 0;
+		}
+	}
 }
 
 void procSymQamToLlr(gr_complex* inQam, float* outLlr, c8p_mod* mod)

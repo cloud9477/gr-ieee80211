@@ -48,15 +48,12 @@ namespace gr {
       int d_sSignal;
       int d_nUsed;
       int d_nPassed;
-      // tag
-      float t_rad;
-      float t_snr;
       // signal soft viterbi ver
+      svSigDecoder d_decoder;
       float d_cfoRad;
-      gr_complex d_sigAfterCfoComp[240];
+      float d_snr;
       gr_complex d_H[64];
-      gr_complex d_sig[64];
-      float d_sigLegacyIntedLlr[48];
+      std::vector<gr_complex> d_chan;
       float d_sigLegacyCodedLlr[48];
       uint8_t d_sigLegacyBits[24];
       int d_nSigPktSeq;
@@ -67,11 +64,15 @@ namespace gr {
       int d_nSample;
       int d_nSampleCopied;
       // fft
-      fft::fft_complex_fwd d_ofdm_fft;
-      gr_complex d_fftLtfOut1[64];
-      gr_complex d_fftLtfOut2[64];
-      gr_complex d_fftSigOut[64];
-      size_t d_fftSize;
+      fft::fft_complex_fwd d_ofdm_fft1;
+      fft::fft_complex_fwd d_ofdm_fft2;
+      fft::fft_complex_fwd d_ofdm_ffts;
+      gr_complex *d_fftin1;
+      gr_complex *d_fftin2;
+      gr_complex *d_fftins;
+      const gr_complex *d_sampin1;
+      const gr_complex *d_sampin2;
+      const gr_complex *d_sampins;
       // performance
       std::chrono::_V2::system_clock::time_point d_ts;
       std::chrono::_V2::system_clock::time_point d_te;

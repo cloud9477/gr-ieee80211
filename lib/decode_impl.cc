@@ -162,7 +162,7 @@ namespace gr {
       // init and input 
       for (int i = 0; i < 64; i++)
       {
-        for (int j = 0; j <= DECODE_T_MAX; j++)
+        for (int j = 0; j <= v_trellis; j++)
         {
           v_state_his[i][j] = 0;
         }

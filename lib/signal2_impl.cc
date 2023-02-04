@@ -98,6 +98,7 @@ namespace gr {
             else
             {
               std::cout<<"ieee80211 signal2, error: input sync with no tag."<<std::endl;
+              i++;
             }
 
             break;

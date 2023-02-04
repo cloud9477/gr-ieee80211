@@ -69,7 +69,6 @@ namespace gr {
       const gr_complex* inSig = static_cast<const gr_complex*>(input_items[2]);
       uint8_t* sync = static_cast<uint8_t*>(output_items[0]);
       d_nProc = noutput_items;
-      d_nUsed = 0;
 
       if(d_sSync == SYNC_S_IDLE)
       {
@@ -87,57 +86,68 @@ namespace gr {
             d_conjMultiAvg = inConj[i];
           }
         }
-        d_nUsed += i;
+        consume_each(i);
+        return i;
       }
-
-      if(d_sSync == SYNC_S_SYNC && (d_nProc - d_nUsed) >= SYNC_MAX_BUF_LEN)
+      else
       {
-        ltf_autoCorrelation(&inSig[d_nUsed]);
-        d_maxAcP = std::max_element(d_tmpAc, d_tmpAc + SYNC_MAX_RES_LEN);
-        memset(sync, 0, SYNC_MAX_RES_LEN);
-        if(*d_maxAcP > 0.5)  // some miss trigger not higher than 0.5
+        if(d_nProc >= SYNC_MAX_BUF_LEN)
         {
-          d_maxAc = *d_maxAcP * 0.8;
-          d_maxIndex = std::distance(d_tmpAc, d_maxAcP);
-          d_lIndex = d_maxIndex;
-          d_rIndex = d_maxIndex;
-          for(int j=d_maxIndex; j>=0; j--)
+          ltf_autoCorrelation(inSig);
+          d_maxAcP = std::max_element(d_tmpAc, d_tmpAc + SYNC_MAX_RES_LEN);
+          memset(sync, 0, SYNC_MAX_RES_LEN);
+          if(*d_maxAcP > 0.5)  // some miss trigger not higher than 0.5
           {
-            if(d_tmpAc[j] < d_maxAc)
+            d_maxAc = *d_maxAcP * 0.8;
+            d_maxIndex = std::distance(d_tmpAc, d_maxAcP);
+            d_lIndex = d_maxIndex;
+            d_rIndex = d_maxIndex;
+            for(int j=d_maxIndex; j>=0; j--)
             {
-              d_lIndex = j;
-              break;
+              if(d_tmpAc[j] < d_maxAc)
+              {
+                d_lIndex = j;
+                break;
+              }
+            }
+            for(int j=d_maxIndex; j<SYNC_MAX_RES_LEN; j++)
+            {
+              if(d_tmpAc[j] < d_maxAc)
+              {
+                d_rIndex = j;
+                break;
+              }
+            }
+            d_mIndex = (d_lIndex+d_rIndex)/2;
+            sync[d_mIndex] = 0x01;  // sync index is LTF starting index + 16
+            pmt::pmt_t dict = pmt::make_dict();   // add tag to pass cfo and snr
+            dict = pmt::dict_add(dict, pmt::mp("rad"), pmt::from_float(ltf_cfo(&inSig[d_mIndex])));
+            dict = pmt::dict_add(dict, pmt::mp("snr"), pmt::from_float(5.0f * log10f((*d_maxAcP) / (1 - (*d_maxAcP)))));
+            pmt::pmt_t pairs = pmt::dict_items(dict);
+            for (size_t i = 0; i < pmt::length(pairs); i++) {
+                pmt::pmt_t pair = pmt::nth(i, pairs);
+                add_item_tag(0,                   // output port index
+                              nitems_written(0) + d_mIndex,  // output sample index
+                              pmt::car(pair),
+                              pmt::cdr(pair),
+                              alias_pmt());
             }
           }
-          for(int j=d_maxIndex; j<SYNC_MAX_RES_LEN; j++)
-          {
-            if(d_tmpAc[j] < d_maxAc)
-            {
-              d_rIndex = j;
-              break;
-            }
-          }
-          int tmpM = (d_lIndex+d_rIndex)/2;
-          sync[tmpM + d_nUsed] = 0x01;  // sync index is LTF starting index + 16
-          pmt::pmt_t dict = pmt::make_dict();   // add tag to pass cfo and snr
-          dict = pmt::dict_add(dict, pmt::mp("rad"), pmt::from_float(ltf_cfo(&inSig[tmpM+d_nUsed])));
-          dict = pmt::dict_add(dict, pmt::mp("snr"), pmt::from_float(5.0f * log10f((*d_maxAcP) / (1 - (*d_maxAcP)))));
-          pmt::pmt_t pairs = pmt::dict_items(dict);
-          for (size_t i = 0; i < pmt::length(pairs); i++) {
-              pmt::pmt_t pair = pmt::nth(i, pairs);
-              add_item_tag(0,                   // output port index
-                            nitems_written(0) + tmpM + d_nUsed,  // output sample index
-                            pmt::car(pair),
-                            pmt::cdr(pair),
-                            alias_pmt());
-          }
+          d_sSync = SYNC_S_IDLE;
+          consume_each(SYNC_MAX_RES_LEN);
+          return SYNC_MAX_RES_LEN;
         }
-        d_sSync = SYNC_S_IDLE;
-        d_nUsed += SYNC_MAX_RES_LEN;
+        else
+        {
+          consume_each(0);
+          return 0;
+        }
       }
 
-      consume_each(d_nUsed);
-      return d_nUsed;
+      std::cout<<"ieee80211 sync, state error."<<std::endl;
+      d_sSync = SYNC_S_IDLE;
+      consume_each(d_nProc);
+      return d_nProc;
     }
 
     void

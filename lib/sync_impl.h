@@ -30,8 +30,6 @@
 #define SYNC_MAX_BUF_LEN 240
 #define SYNC_MAX_RES_LEN SYNC_MAX_BUF_LEN - 128 - 1
 
-#define dout d_debug&&std::cout
-
 namespace gr {
   namespace ieee80211 {
 
@@ -39,20 +37,19 @@ namespace gr {
     {
      private:
       // for block
-      int d_nProc;
-      bool d_debug;
       int d_sSync;
+      int d_nProc;
+      int d_nUsed;
       // for processing
+      float *d_maxAcP;
+      float d_maxAc;
+      int d_maxIndex;
+      int d_lIndex;
+      int d_rIndex;
+      int d_mIndex;
       gr_complex d_conjMultiAvg;
-      float d_stfCfo;
       float d_tmpAc[SYNC_MAX_RES_LEN];
       gr_complex d_tmpConjSamp[128];
-      float d_snr;
-      // performance
-      std::chrono::_V2::system_clock::time_point d_ts;
-      std::chrono::_V2::system_clock::time_point d_te;
-      uint64_t d_usUsed;
-      uint64_t d_sampCount;
 
      public:
       sync_impl();

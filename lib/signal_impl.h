@@ -68,11 +68,6 @@ namespace gr {
       const gr_complex *d_sampin1;
       const gr_complex *d_sampin2;
       const gr_complex *d_sampins;
-      // performance
-      std::chrono::_V2::system_clock::time_point d_ts;
-      std::chrono::_V2::system_clock::time_point d_te;
-      uint64_t d_usUsed;
-      uint64_t d_sampCount;
 
      public:
       signal_impl();

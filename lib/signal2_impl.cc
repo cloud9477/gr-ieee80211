@@ -71,7 +71,6 @@ namespace gr {
       const gr_complex* inSig2 = static_cast<const gr_complex*>(input_items[2]);
       gr_complex* outSig1 = static_cast<gr_complex*>(output_items[0]);
       gr_complex* outSig2 = static_cast<gr_complex*>(output_items[1]);
-      // input and output not sync
       d_nProc = std::min(std::min(ninput_items[0], ninput_items[1]), ninput_items[2]);
       d_nUsed = 0;
       d_nPassed = 0;
@@ -91,14 +90,14 @@ namespace gr {
               for (auto tag : tags){
                 d_meta = pmt::dict_add(d_meta, tag.key, tag.value);
               }
-              d_cfoRad = (float)pmt::to_double(pmt::dict_ref(d_meta, pmt::mp("rad"), pmt::from_double(0.0)));
-              d_snr = (float)pmt::to_double(pmt::dict_ref(d_meta, pmt::mp("snr"), pmt::from_double(0.0)));
+              d_cfoRad = pmt::to_float(pmt::dict_ref(d_meta, pmt::mp("rad"), pmt::from_float(0.0f)));
+              d_snr = pmt::to_float(pmt::dict_ref(d_meta, pmt::mp("snr"), pmt::from_float(0.0f)));
               d_sSignal = S_DEMOD;
               // std::cout<<"ieee80211 signal, rd tag cfo:"<<(d_cfoRad) * 20000000.0f / 2.0f / M_PI<<", snr:"<<d_snr<<std::endl;
             }
             else
             {
-              std::cout<<"ieee80211 signal2, error: input sync with no tag !!!!!!!!!!!!!!"<<std::endl;
+              std::cout<<"ieee80211 signal2, error: input sync with no tag."<<std::endl;
             }
 
             break;

@@ -38,13 +38,9 @@ namespace gr {
     sync_impl::sync_impl()
       : gr::block("sync",
               gr::io_signature::makev(3, 3, std::vector<int>{sizeof(uint8_t), sizeof(gr_complex), sizeof(gr_complex)}),
-              gr::io_signature::make(1, 1, sizeof(uint8_t)))//gr::io_signature::makev(2, 2, std::vector<int>{sizeof(uint8_t), sizeof(float)}))
+              gr::io_signature::make(1, 1, sizeof(uint8_t)))
     {
-      d_nProc = 0;
-      d_debug = false;
       d_sSync = SYNC_S_IDLE;
-      d_sampCount = 0;
-      d_usUsed = 0;
     }
 
     /*
@@ -69,16 +65,11 @@ namespace gr {
                        gr_vector_void_star &output_items)
     {
       const uint8_t* trigger = static_cast<const uint8_t*>(input_items[0]);
-      const gr_complex* inSig = static_cast<const gr_complex*>(input_items[2]);
       const gr_complex* inConj = static_cast<const gr_complex*>(input_items[1]);
+      const gr_complex* inSig = static_cast<const gr_complex*>(input_items[2]);
       uint8_t* sync = static_cast<uint8_t*>(output_items[0]);
-
-      d_ts = std::chrono::high_resolution_clock::now();
       d_nProc = noutput_items;
-      if(d_sampCount > 57864000)
-      {
-        dout<<"sync procd samp: "<<d_sampCount<<", used time: "<<d_usUsed<<"us, avg "<<((double)d_sampCount / (double)d_usUsed)<<" samp/us"<<std::endl;
-      }
+      d_nUsed = 0;
 
       if(d_sSync == SYNC_S_IDLE)
       {
@@ -96,84 +87,57 @@ namespace gr {
             d_conjMultiAvg = inConj[i];
           }
         }
-        d_sampCount += i;
-        consume_each (i);
-        d_te = std::chrono::high_resolution_clock::now();
-        d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
-        return i;
+        d_nUsed += i;
       }
-      else
-      {
-        if(d_nProc >= SYNC_MAX_BUF_LEN)
-        {
-          ltf_autoCorrelation(inSig);
-          float* tmpMaxAcP = std::max_element(d_tmpAc, d_tmpAc + SYNC_MAX_RES_LEN);
-          memset(sync, 0, SYNC_MAX_RES_LEN);
-          if(*tmpMaxAcP > 0.5)  // some miss trigger not higher than 0.5
-          {
-            float tmpMaxAc = *tmpMaxAcP * 0.8;
-            int tmpMaxIndex = std::distance(d_tmpAc, tmpMaxAcP);
-            int tmpL=tmpMaxIndex;
-            int tmpR=tmpMaxIndex;
-            for(int j=tmpMaxIndex; j>=0; j--)
-            {
-              if(d_tmpAc[j] < tmpMaxAc)
-              {
-                tmpL = j;
-                break;
-              }
-            }
-            for(int j=tmpMaxIndex; j<SYNC_MAX_RES_LEN; j++)
-            {
-              if(d_tmpAc[j] < tmpMaxAc)
-              {
-                tmpR = j;
-                break;
-              }
-            }
-            int tmpM = (tmpL+tmpR)/2;
-            d_snr = 5.0f * log10f((*tmpMaxAcP) / (1 - (*tmpMaxAcP)));
-            // sync index is LTF starting index + 16
-            // dout<<"ieee80211 sync, ac max value: "<<*tmpMaxAcP<<", snr: "<<d_snr<<std::endl;
-            float tmpTotalRadStep = ltf_cfo(&inSig[tmpM]);
-            // dout<<"ieee80211 sync, total cfo:"<<(tmpTotalRadStep) * 20000000.0f / 2.0f / M_PI<<std::endl;
-            sync[tmpM] = 0x01;
 
-            // add tag to pass cfo and snr
-            pmt::pmt_t dict = pmt::make_dict();
-            dict = pmt::dict_add(dict, pmt::mp("rad"), pmt::from_double((double)tmpTotalRadStep));
-            dict = pmt::dict_add(dict, pmt::mp("snr"), pmt::from_double((double)d_snr));
-            pmt::pmt_t pairs = pmt::dict_items(dict);
-            for (size_t i = 0; i < pmt::length(pairs); i++) {
-                pmt::pmt_t pair = pmt::nth(i, pairs);
-                add_item_tag(0,                   // output port index
-                              nitems_written(0) + tmpM,  // output sample index
-                              pmt::car(pair),
-                              pmt::cdr(pair),
-                              alias_pmt());
+      if(d_sSync == SYNC_S_SYNC && (d_nProc - d_nUsed) >= SYNC_MAX_BUF_LEN)
+      {
+        ltf_autoCorrelation(&inSig[d_nUsed]);
+        d_maxAcP = std::max_element(d_tmpAc, d_tmpAc + SYNC_MAX_RES_LEN);
+        memset(sync, 0, SYNC_MAX_RES_LEN);
+        if(*d_maxAcP > 0.5)  // some miss trigger not higher than 0.5
+        {
+          d_maxAc = *d_maxAcP * 0.8;
+          d_maxIndex = std::distance(d_tmpAc, d_maxAcP);
+          d_lIndex = d_maxIndex;
+          d_rIndex = d_maxIndex;
+          for(int j=d_maxIndex; j>=0; j--)
+          {
+            if(d_tmpAc[j] < d_maxAc)
+            {
+              d_lIndex = j;
+              break;
             }
           }
-          d_sSync = SYNC_S_IDLE;
-          d_sampCount += SYNC_MAX_RES_LEN;
-          consume_each(SYNC_MAX_RES_LEN);
-          d_te = std::chrono::high_resolution_clock::now();
-          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
-          return SYNC_MAX_RES_LEN;
+          for(int j=d_maxIndex; j<SYNC_MAX_RES_LEN; j++)
+          {
+            if(d_tmpAc[j] < d_maxAc)
+            {
+              d_rIndex = j;
+              break;
+            }
+          }
+          int tmpM = (d_lIndex+d_rIndex)/2;
+          sync[tmpM + d_nUsed] = 0x01;  // sync index is LTF starting index + 16
+          pmt::pmt_t dict = pmt::make_dict();   // add tag to pass cfo and snr
+          dict = pmt::dict_add(dict, pmt::mp("rad"), pmt::from_float(ltf_cfo(&inSig[tmpM+d_nUsed])));
+          dict = pmt::dict_add(dict, pmt::mp("snr"), pmt::from_float(5.0f * log10f((*d_maxAcP) / (1 - (*d_maxAcP)))));
+          pmt::pmt_t pairs = pmt::dict_items(dict);
+          for (size_t i = 0; i < pmt::length(pairs); i++) {
+              pmt::pmt_t pair = pmt::nth(i, pairs);
+              add_item_tag(0,                   // output port index
+                            nitems_written(0) + tmpM + d_nUsed,  // output sample index
+                            pmt::car(pair),
+                            pmt::cdr(pair),
+                            alias_pmt());
+          }
         }
-        else
-        {
-          consume_each(0);
-          d_te = std::chrono::high_resolution_clock::now();
-          d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
-          return 0;
-        }
+        d_sSync = SYNC_S_IDLE;
+        d_nUsed += SYNC_MAX_RES_LEN;
       }
-      // error but return to IDLE
-      d_sSync = SYNC_S_IDLE;
-      consume_each (0);
-      d_te = std::chrono::high_resolution_clock::now();
-      d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
-      return 0;
+
+      consume_each(d_nUsed);
+      return d_nUsed;
     }
 
     void
@@ -205,7 +169,6 @@ namespace gr {
     sync_impl::ltf_cfo(const gr_complex* sig)
     {
       gr_complex tmpConjSum = gr_complex(0.0f, 0.0f);
-      // this rad step must be from pre sample * conj (next sample)
       float tmpRadStepStf = atan2f(d_conjMultiAvg.imag(), d_conjMultiAvg.real()) / 16.0f;
       for(int i=0;i<128;i++)
       {
@@ -216,7 +179,6 @@ namespace gr {
         tmpConjSum += d_tmpConjSamp[i] * std::conj(d_tmpConjSamp[i+64]);
       }
       float tmpRadStepLtf = atan2f((tmpConjSum/64.0f).imag(), (tmpConjSum/64.0f).real()) / 64.0f;
-      // dout<<"ieee80211 sync, stf cfo:"<<(tmpRadStepStf) * 20000000.0f / 2.0f / M_PI<<", ltf cfo:"<<(tmpRadStepLtf) * 20000000.0f / 2.0f / M_PI<<std::endl;
       return (tmpRadStepStf + tmpRadStepLtf);
     }
 

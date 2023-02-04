@@ -79,7 +79,6 @@ namespace gr {
       c8p_mod d_m;
       c8p_sigHt d_sigHt;
       c8p_sigVhtA d_sigVhtA;
-      
       gr_complex d_mu2x1Chan[128];
       std::vector<gr_complex> d_tagMu2x1Chan;
       int d_nSymProcd;

@@ -48,7 +48,6 @@ namespace gr {
 
     demod_impl::~demod_impl()
     {
-      
     }
 
     void

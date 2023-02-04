@@ -44,8 +44,6 @@ namespace gr {
       d_fftin2 = d_ofdm_fft2.get_inbuf();
       d_fftins = d_ofdm_ffts.get_inbuf();
       d_h = std::vector<gr_complex>(64, gr_complex(0.0f, 0.0f));
-      d_sampCount = 0;
-      d_usUsed = 0;
 
       set_tag_propagation_policy(block::TPP_DONT);
     }
@@ -70,12 +68,6 @@ namespace gr {
       const uint8_t* sync = static_cast<const uint8_t*>(input_items[0]);
       const gr_complex* inSig1 = static_cast<const gr_complex*>(input_items[1]);
       gr_complex* outSig1 = static_cast<gr_complex*>(output_items[0]);
-      d_ts = std::chrono::high_resolution_clock::now();
-      if(d_sampCount > 57862000)
-      {
-        std::cout<<"signal procd samp: "<<d_sampCount<<", used time: "<<d_usUsed<<"us, avg "<<((double)d_sampCount / (double)d_usUsed)<<" samp/us"<<std::endl;
-      }
-      // input and output not sync
       d_nProc = std::min(ninput_items[0], ninput_items[1]);
       d_nUsed = 0;
       d_nPassed = 0;
@@ -95,8 +87,8 @@ namespace gr {
               for (auto tag : tags){
                 d_meta = pmt::dict_add(d_meta, tag.key, tag.value);
               }
-              d_cfoRad = (float)pmt::to_double(pmt::dict_ref(d_meta, pmt::mp("rad"), pmt::from_double(0.0)));
-              d_snr = (float)pmt::to_double(pmt::dict_ref(d_meta, pmt::mp("snr"), pmt::from_double(0.0)));
+              d_cfoRad = pmt::to_float(pmt::dict_ref(d_meta, pmt::mp("rad"), pmt::from_float(0.0f)));
+              d_snr = pmt::to_float(pmt::dict_ref(d_meta, pmt::mp("snr"), pmt::from_float(0.0f)));
               d_sSignal = S_DEMOD;
               // std::cout<<"ieee80211 signal, rd tag cfo:"<<(d_cfoRad) * 20000000.0f / 2.0f / M_PI<<", snr:"<<d_snr<<std::endl;
             }
@@ -206,10 +198,7 @@ namespace gr {
         }
       }
 
-      d_sampCount += d_nUsed;
       consume_each(d_nUsed);
-      d_te = std::chrono::high_resolution_clock::now();
-      d_usUsed += std::chrono::duration_cast<std::chrono::microseconds>(d_te - d_ts).count();
       return d_nPassed;
     }
   } /* namespace ieee80211 */

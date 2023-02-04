@@ -31,10 +31,6 @@ namespace gr {
         );
     }
 
-
-    /*
-     * The private constructor
-     */
     demod2_impl::demod2_impl()
       : gr::block("demod2",
               gr::io_signature::make(2, 2, sizeof(gr_complex)),
@@ -48,10 +44,6 @@ namespace gr {
       set_tag_propagation_policy(block::TPP_DONT);
     }
 
-
-    /*
-     * Our virtual destructor.
-     */
     demod2_impl::~demod2_impl()
     {
     }
@@ -115,10 +107,7 @@ namespace gr {
             fftDemod(&inSig1[8], d_fftLtfOut1);
             fftDemod(&inSig1[8+80], d_fftLtfOut2);
             procNLSigDemodDeint(d_fftLtfOut1, d_fftLtfOut2, d_HL, d_sigHtCodedLlr, d_sigVhtACodedLlr);
-            //-------------- format check first check vht, then ht otherwise legacy
-            // procDeintLegacyBpsk(d_sigVhtAIntedLlr, d_sigVhtACodedLlr);
-            // procDeintLegacyBpsk(&d_sigVhtAIntedLlr[48], &d_sigVhtACodedLlr[48]);
-            SV_Decode_Sig(d_sigVhtACodedLlr, d_sigVhtABits, 48);
+            d_decoder.decode(d_sigVhtACodedLlr, d_sigVhtABits, 48);
             if(signalCheckVhtA(d_sigVhtABits))
             {
               // go to vht
@@ -131,9 +120,7 @@ namespace gr {
             }
             else
             {
-              // procDeintLegacyBpsk(d_sigHtIntedLlr, d_sigHtCodedLlr);
-              // procDeintLegacyBpsk(&d_sigHtIntedLlr[48], &d_sigHtCodedLlr[48]);
-              SV_Decode_Sig(d_sigHtCodedLlr, d_sigHtBits, 48);
+              d_decoder.decode(d_sigHtCodedLlr, d_sigHtBits, 48);
               if(signalCheckHt(d_sigHtBits))
               {
                 // go to ht

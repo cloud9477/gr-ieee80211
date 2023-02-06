@@ -2,23 +2,41 @@
 
 Introduction
 ------------
-- The setup includes one AP (2x2) and two stations (1x1)
-- The procedure is to 
-    - 1. AP sends NDP
-    - 2. Stations estimate the channel
-    - 3. Stations send the channel info matrix V to AP
-    - 4. AP generates beamforming steering matrix Q
-    - 5. AP apply Q to the spatial streams to send multi-user packets
-- However, we assume that the CPU is not powerful enough to support 2 TX and 2 RX processing at the same time. In that case, we only let the AP to do the 2x2 TX without RX. That makes the step 3 a little different.
-- The procedure changes to
-    - 1. AP sends NDP
-    - 2. Stations estimate the channel
-    - 3. AP gets the channel info matrix V from stations by Ethernet
-    - 4. AP generates beamforming steering matrix Q
-    - 5. AP apply Q to the spatial streams to send multi-user packets
-- Since in the whole procedure, the AP RX only receives general data packets so it doesn't affect anything related to MU-MIMO.
+- The setup includes one AP (USRP B210 2x2) and two stations (USRP B200 1x1)
+- The offical procedures in the IEEE 802.11 standard are:
+    - 1. AP announces the channel sounding to stations.
+    - 2. AP sends NDP.
+    - 3. Stations estimate the channel.
+    - 4. Stations compress the channel into feedback matrix V.
+    - 5. Station 0 sends V to AP.
+    - 6. AP polls station 1.
+    - 7. Station 1 sends V to AP.
+    - 8. AP generates beamforming steering matrix Q.
+    - 9. AP apply Q to the spatial streams to send multi-user packets.
 
-Instructions
-------------
-- At the two station sides, run the GNU Radio SISO RX and the cmu_sta.py, it will save the channel info into a bin file.
-- At the AP side, run the GNU Radio MIMO TX cmu_ap.py, it triggers the GNU Radio to send NDP first, and then fetches the channel info from the stations, next computes the Q and finally sends the MU-MIMO packet.
+
+Version 1
+-------------
+- At the beginning, we try to use the full estimated channel on the station side, and we also assume that the CPU is not powerful enough to support 2 TX and 2 RX processing at the same time due to many USRP overflows **O** on the receiver side. In that case, we only let the AP to do the 2x2 signal file TX and the stations only need to do SISO RX.
+- The procedures change to
+    - 1. AP announces the channel sounding to stations.
+    - 2. AP sends NDP.
+    - 3. Stations estimate the channel.
+    - 4. Stations save channel into files
+    - 5. AP gets channel files.
+    - 6. AP generates beamforming steering matrix Q.
+    - 7. AP apply Q to the spatial streams to send multi-user packets.
+- This demo is in the folder **tools/cmu_v1** and **examples/cmu_v1**. Here are the steps:
+    - 1. On the AP side, use **tools/pktGenExample.py** to generate 2x2 NDP signal file.
+    - 2. On the station sides, run **tools/cmu_sta0.py** and **tools/cmu_sta1.py**.
+    - 3. Find a clean channel.
+    - 4. On the station sides, run **examples/cmu_v1/rxSta0.grc** and **examples/cmu_v1/rxSta1.grc** in GNU Radio, so far the stations are running, let's go to the AP side.
+    - 5. AP side, use **examples/cmu_v1/txNdp.grc** in GNU Radio to send the NDP to stations.
+    - 3. AP side, use **tools/cmu_v1/cmu_ap.py** to get the channel files and generate MU-MIMO packet.
+    - 4. AP side, use **examples/cmu_v1/txMu.grc** in GNU Radio to send MU-MIMO packet.
+
+### Notifications
+- Choose a proper gain for USRP source and sink depending on the distance.
+- The transmissions of the NDP and MU-MIMO packets could fail due to interference or noise. Try to resend if so.
+
+

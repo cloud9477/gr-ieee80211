@@ -1,15 +1,13 @@
 import numpy as np
 import struct
-import socket
-import binascii
-import zlib
 from matplotlib import pyplot as plt
-import random
-import time
+import sys
+import os
+sys.path.append(os.path.join(sys.path[0], '../'))
 import mac80211
 import phy80211header as p8h
 import phy80211
-import os
+
 
 """
 Cloud Multi-User Mimo AP (CMU)
@@ -62,8 +60,8 @@ def genMac80211UdpAmpduVht(udpPayloads):
 
 if __name__ == "__main__":
     # fetch the channel info through ethernet, use the tool "pscp" with user name and passwd, you could replace it with other methods
-    os.system("pscp -pw 7777 -r cloud@192.168.10.107:/home/cloud/sdr/cmu_chan0.bin /home/cloud/sdr/")
-    os.system("pscp -pw 7777 -r cloud@192.168.10.202:/home/cloud/sdr/cmu_chan1.bin /home/cloud/sdr/")
+    os.system("pscp -pw 7777 -r cloud@192.168.10.68:/home/cloud/sdr/cmu_chan0.bin /home/cloud/sdr/")
+    os.system("pscp -pw 7777 -r cloud@192.168.10.50:/home/cloud/sdr/cmu_chan1.bin /home/cloud/sdr/")
 
     # physical instance
     phy80211Ins = phy80211.phy80211()

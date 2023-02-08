@@ -1,7 +1,7 @@
 import socket
 import sys
-
-sys.path.insert(0, '../')
+import os
+sys.path.append(os.path.join(sys.path[0], '../'))
 import mac80211
 
 # device info

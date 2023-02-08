@@ -19,13 +19,12 @@ Version 1
 -------------
 - At the beginning, we try to use the full estimated channel on the station side, and we also assume that the CPU is not powerful enough to support 2 TX and 2 RX processing at the same time due to many USRP overflows **O** on the receiver side. In that case, we only let the AP to do the 2x2 signal file TX and the stations only need to do SISO RX.
 - The procedures change to
-    - 1. AP announces the channel sounding to stations.
-    - 2. AP sends NDP.
-    - 3. Stations estimate the channel.
-    - 4. Stations save channel into files
-    - 5. AP gets channel files.
-    - 6. AP generates beamforming steering matrix Q.
-    - 7. AP apply Q to the spatial streams to send multi-user packets.
+    - 1. AP sends NDP.
+    - 2. Stations estimate the channel.
+    - 3. Stations save channel into files
+    - 4. AP gets channel files.
+    - 5. AP generates beamforming steering matrix Q.
+    - 6. AP apply Q to the spatial streams to send multi-user packets.
 - This demo is in the folder **tools/cmu_v1** and **examples/cmu_v1**. Here are the steps:
     - 1. On the AP side, use **tools/pktGenExample.py** to generate 2x2 NDP signal file.
     - 2. On the station sides, run **tools/cmu_sta0.py** and **tools/cmu_sta1.py**.
@@ -37,6 +36,7 @@ Version 1
 
 ### Notifications
 - Choose a proper gain for USRP source and sink depending on the distance.
+- For the **cmu_ap.py**, **cmu_sta0.py** and **cmu_sta1.py**, please change the information according to your own setting (like the IP, user name, password and path).
 - The transmissions of the NDP and MU-MIMO packets could fail due to interference or noise. Try to resend if so.
 
 

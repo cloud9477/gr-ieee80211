@@ -110,8 +110,8 @@ namespace gr {
               }
               dout<<"ieee80211 decode, vht NDP 2x1 channel report:"<<tmpLen<<std::endl;
               pmt::pmt_t tmpMeta = pmt::make_dict();
-              tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(tmpLen));
-              pmt::pmt_t tmpPayload = pmt::make_blob((uint8_t*)d_mu2x1ChanFloatBytes, tmpLen);
+              tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(tmpLen+3));
+              pmt::pmt_t tmpPayload = pmt::make_blob((uint8_t*)d_mu2x1ChanFloatBytes, tmpLen+3);
               message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
             }
             vstb_init();

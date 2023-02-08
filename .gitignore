@@ -6,3 +6,4 @@ build*/
 *.cubin
 examples/*.yml
 examples/*.py
+examples/*/*.py

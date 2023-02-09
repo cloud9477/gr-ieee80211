@@ -1,4 +1,5 @@
 import socket
+import time
 import sys
 import os
 sys.path.append(os.path.join(sys.path[0], '../'))
@@ -57,6 +58,6 @@ if __name__ == "__main__":
                 print("station NDP channel info recvd, gen channel packet")
                 tmpChanPkt = ("cloudchan"+str(staID)).encode('utf-8') + rxPkt[3:1024 + 3]
                 grPkt = phy80211.genPktGrData(tmpChanPkt, p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False))
+                time.sleep(staID)
                 staMacSocket.sendto(grPkt, (staPhyIp, staPhyPort))
                 print("station channel packet sent")
-                break

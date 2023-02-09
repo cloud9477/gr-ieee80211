@@ -192,7 +192,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1288, 204.0]
+    coordinate: [1296, 196.0]
     rotation: 0
     state: enabled
 - name: network_socket_pdu_0_0
@@ -684,8 +684,8 @@ blocks:
     dc_offs_enb9: default
     dev_addr: '""'
     dev_args: ''
-    gain0: '0.8'
-    gain1: '0.8'
+    gain0: '0.85'
+    gain1: '0.85'
     gain10: '0'
     gain11: '0'
     gain12: '0'

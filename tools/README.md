@@ -49,3 +49,17 @@ Version 2
     - 4. On the AP side, run **examples/cmu_v2/txAp.grc**.
     - 5. On the AP side, run **tools/cmu_v2/cmu_ap.py**.
 - The AP MAC first sends NDP packets, gets the channel files from the stations, updates the spatial mapping matrix to the GNU Radio transmitter and sends the MU-MIMO packet. This time, the AP only has MAC layer operations without PHY packet generations.
+
+Version 3
+-------------
+- In this version, we no longer use the file to exchange channel information but set the wireless transceiver at both AP and station sides.
+- This demo is in the folder **tools/cmu_v3** and **examples/cmu_v3** for the AP and stations. Here are the steps:
+    - 1. On the station sides, run **tools/cmu_v3/cmu_sta0.py** and **tools/cmu_v3/cmu_sta1.py**.
+    - 2. Find a clean channel.
+    - 3. On the station sides, run **examples/cmu_v3/trxSta0.grc** and **examples/cmu_v3/trxSta1.grc** in GNU Radio.
+    - 4. On the AP side, run **examples/cmu_v3/trxAp.grc**.
+    - 5. On the AP side, run **tools/cmu_v3/cmu_ap.py**.
+- For the stations side, everytime they receive the NDP to do the channel sounding, they put the channel info into a data packet and then send it to the AP. They just keep running for each NDP packet.
+- For the AP side, it first sends an NDP packet and then wait for the data packet containing the channel info.
+- The NDP will be retransmitted if the reception is timeout until it gets the channel info.
+- The AP generates the Q matrix and sends MU-MIMO packets for multiple times.

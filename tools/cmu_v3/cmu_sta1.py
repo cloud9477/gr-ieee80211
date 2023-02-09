@@ -7,10 +7,35 @@ import mac80211
 import phy80211
 import phy80211header as p8h
 
-def genMac80211QosDataAmpduVht(macPayloads):
-    if(isinstance(macPayloads, (bytes, bytearray))):
+def genMac80211UdpAmpduVht(udpPayloads):
+    if(isinstance(udpPayloads, list)):
         macPkts = []
-        for eachMacPayload in macPayloads:
+        for eachUdpPayload in udpPayloads:
+            udpIns = mac80211.udp("10.10.0.6",  # sour ip
+                                "10.10.0.1",  # dest ip
+                                39379,  # sour port
+                                8889)  # dest port
+            if(isinstance(eachUdpPayload, str)):
+                udpPacket = udpIns.genPacket(bytearray(eachUdpPayload, 'utf-8'))
+            elif(isinstance(eachUdpPayload, (bytes, bytearray))):
+                udpPacket = udpIns.genPacket(eachUdpPayload)
+            else:
+                print("not support, return")
+                return []
+            print("udp packet")
+            print(udpPacket.hex())
+            ipv4Ins = mac80211.ipv4(43778,  # identification
+                                    64,  # TTL
+                                    "10.10.0.6",
+                                    "10.10.0.1")
+            ipv4Packet = ipv4Ins.genPacket(udpPacket)
+            print("ipv4 packet")
+            print(ipv4Packet.hex())
+            llcIns = mac80211.llc()
+            llcPacket = llcIns.genPacket(ipv4Packet)
+            print("llc packet")
+            print(llcPacket.hex())
+            
             mac80211Ins = mac80211.mac80211(2,  # type
                                             8,  # sub type, 8 = QoS Data, 0 = Data
                                             1,  # to DS, station to AP
@@ -21,7 +46,7 @@ def genMac80211QosDataAmpduVht(macPayloads):
                                             '00:c0:ca:b1:5b:e1',  # sour add
                                             'f4:69:d5:80:0f:a0',  # recv add
                                             2704)  # sequence
-            mac80211Packet = mac80211Ins.genPacket(eachMacPayload)
+            mac80211Packet = mac80211Ins.genPacket(llcPacket)
             print("mac packet: ", len(mac80211Packet))
             print(mac80211Packet.hex())
             macPkts.append(mac80211Packet)
@@ -44,6 +69,7 @@ if __name__ == "__main__":
     staPhyPort = 9528
     staMacSocket = socket.socket(family = socket.AF_INET, type = socket.SOCK_DGRAM)
     staMacSocket.bind((staMacIp, staMacPort))
+    count = 0
 
     while(True):
         rxMsg = staMacSocket.recvfrom(1500)
@@ -55,9 +81,31 @@ if __name__ == "__main__":
         print(len(rxPkt), rxAddr, tmpPktType, tmpPktLen)
         if(tmpPktType == 20):
             if(tmpPktLen == 1024):
-                print("station NDP channel info recvd, gen channel packet")
+                count += 1
+                print("station NDP channel info recvd, gen channel packet %d" % (count))
                 tmpChanPkt = ("cloudchan"+str(staID)).encode('utf-8') + rxPkt[3:1024 + 3]
-                grPkt = phy80211.genPktGrData(tmpChanPkt, p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False))
+                print(tmpChanPkt)
+                pkts = genMac80211UdpAmpduVht([tmpChanPkt])
+                grPkt = phy80211.genPktGrData(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs = 1, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
                 time.sleep(staID)
                 staMacSocket.sendto(grPkt, (staPhyIp, staPhyPort))
                 print("station channel packet sent")
+        elif(tmpPktType == 2):
+            print("received VHT packet")
+            print(tmpPkt.hex())
+            if(mac80211.procCheckCrc32(tmpPkt)):
+                tmpType = int(tmpPkt[0])
+                if(tmpType == 136):
+                    # 0x88, QoS data
+                    tmpMacPaylaod = tmpPkt[26:-4]
+                    if(int(tmpMacPaylaod[0]) == 170 and int(tmpMacPaylaod[1]) == 170):
+                        print("udp data packet")
+                        print(tmpMacPaylaod.hex())
+                        print(tmpMacPaylaod)
+                    else:
+                        print("other packets")
+                else:
+                    print("data packet")
+                    tmpMacPaylaod = tmpPkt[24:-4]
+                    print(tmpMacPaylaod.hex())
+                

@@ -69,7 +69,7 @@ def genMac80211UdpAmpduVht(udpPayloads):
 """
 
 def macRxStationChannel(s, q):
-    if(isinstance(s, socket.socket) and isinstance(q, multiprocessing.Queue)):
+    if(isinstance(s, type(socket.socket)) and isinstance(q, type(multiprocessing.Queue))):
         rxCount = 0
         while(rxCount != 3):
             rxMsg = s.recvfrom(65535)
@@ -110,90 +110,107 @@ if __name__ == "__main__":
     grNdpPkt = phy80211.genPktGrNdp()
     grSocket.sendto(grNdpPkt, phyTxAddr)
 
-    qRx = multiprocessing.Queue()
-    pRx = multiprocessing.Process(target=macRxStationChannel, args=(grSocket, qRx))
-    pRx.start()
-    pRx.join(5)     # wait for 5 s
-    if pRx.is_alive():
-        pRx.terminate()
-    else:
-        chan0B = []
-        chan1B = []
-        tmpChan = qRx.get()
-        if(isinstance(tmpChan, (bytes, bytearray))):
-            pre5BStr = str(tmpChan[0:10], 'UTF-8')
-            if(pre5BStr == "cloudchan0"):
-                chan0B = tmpChan[10:]
-            else:
-                chan1B = tmpChan[10:]
-        tmpChan = qRx.get()
-        if(isinstance(tmpChan, (bytes, bytearray))):
-            pre5BStr = str(tmpChan[0:10], 'UTF-8')
-            if(pre5BStr == "cloudchan0"):
-                chan0B = tmpChan[10:]
-            else:
-                chan1B = tmpChan[10:]
-        if(len(chan0B) > 0 and len(chan1B) > 0):
-            chan0 = []
-            chan1 = []
-            for i in range(0, 128):
-                tmpR = struct.unpack('f', chan0B[i*8:i*8+4])[0]
-                tmpI = struct.unpack('f', chan0B[i*8+4:i*8+8])[0]
-                chan0.append(tmpR + tmpI * 1j)
-                tmpR = struct.unpack('f', chan1B[i*8:i*8+4])[0]
-                tmpI = struct.unpack('f', chan1B[i*8+4:i*8+8])[0]
-                chan1.append(tmpR + tmpI * 1j)
+    chan0B = []
+    chan1B = []
+    rxCount = 0
+    grSocket.settimeout(5.0)
+    while(rxCount != 3):
+        print("go to receiving")
+        try:
+            rxMsg = grSocket.recvfrom(65535)
+            rxPkt = rxMsg[0]
+            rxAddr = rxMsg[1]
+            tmpPktType = int(rxPkt[0])
+            tmpPktLen = int(rxPkt[1]) + int(rxPkt[2]) * 256
+            tmpPkt = rxPkt[3:]
+            print(len(rxPkt), rxAddr, tmpPktType, tmpPktLen)
+            if(tmpPktType == 2):
+                #if(mac80211.procCheckCrc32(tmpPkt)):
+                tmpType = int(tmpPkt[0])
+                if(tmpType == 136):
+                    # 0x88, QoS data
+                    tmpMacPaylaod = tmpPkt[26:-4]       # llc
+                    tmpMacPaylaod = tmpMacPaylaod[8:]   # ip
+                    tmpMacPaylaod = tmpMacPaylaod[20:]  # udp
+                    tmpMacPaylaod = tmpMacPaylaod[8:]   # udp payload
+                    if(len(tmpMacPaylaod) > 10):
+                        pre5BStr = str(tmpMacPaylaod[0:10], 'UTF-8')
+                        if(pre5BStr == "cloudchan0" and (rxCount & 1)==0):
+                            print(pre5BStr)
+                            chan0B = tmpMacPaylaod[10:]
+                            rxCount = rxCount | 1
+                        if(pre5BStr == "cloudchan1" and (rxCount & 2)==0):
+                            print(pre5BStr)
+                            chan1B = tmpMacPaylaod[10:]
+                            rxCount = rxCount | 2
+        except:
+            print("send ndp again")
+            grSocket.sendto(grNdpPkt, phyTxAddr)
 
-                nSts = 2
-                nRx = 1
-                # compute feedback
-                ltfSym = []
-                ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan0[0:64]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nSts)))
-                ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan0[64:128]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nSts)))
-                vFb1 = p8h.procVhtChannelFeedback(ltfSym, p8h.BW.BW20, nSts, nRx)
-                print("feedback v 1")
-                for each in vFb1:
-                    print(each)
-                ltfSym = []
-                ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan1[0:64]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nSts)))
-                ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan1[64:128]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nSts)))
-                # compute feedback
-                vFb2 = p8h.procVhtChannelFeedback(ltfSym, p8h.BW.BW20, nSts, nRx)
-                print("feedback v 2")
-                for each in vFb2:
-                    print(each)
-                # combine the channel together
-                bfH = []
-                for k in range(0, len(vFb1)):
-                    print("bfH", k)
-                    bfH.append(np.concatenate((vFb1[k], vFb2[k]), axis=1))
-                    print(bfH[k])
-                # compute spatial matrix Q, ZF
-                bfQ = []
-                for k in range(0, len(vFb1)):
-                    print("bfQ", k)
-                    bfQ.append(np.matmul(bfH[k], np.linalg.inv(np.matmul(bfH[k].conjugate().T, bfH[k]))))
-                    print(bfQ[k])
-                # normalize Q
-                bfQNormd = []
-                for k in range(0, len(vFb1)):
-                    bfQNormd.append(bfQ[k] / np.linalg.norm(bfQ[k]) * np.sqrt(nSts))
-                    print("bfQNormd", k)
-                    print(bfQNormd[k])
-                # map Q to FFT non-zero sub carriers
-                bfQForFft = [np.ones_like(bfQNormd[0])] * 3 + bfQNormd[0:28] + [
-                    np.ones_like(bfQNormd[0])] + bfQNormd[28:56] + [np.ones_like(bfQNormd[0])] * 4
+    if(len(chan0B) == 1024 and len(chan1B) == 1024):
+        chan0 = []
+        chan1 = []
+        for i in range(0, 128):
+            tmpR = struct.unpack('f', chan0B[i*8:i*8+4])[0]
+            tmpI = struct.unpack('f', chan0B[i*8+4:i*8+8])[0]
+            chan0.append(tmpR + tmpI * 1j)
+            tmpR = struct.unpack('f', chan1B[i*8:i*8+4])[0]
+            tmpI = struct.unpack('f', chan1B[i*8+4:i*8+8])[0]
+            chan1.append(tmpR + tmpI * 1j)
+        print(len(chan0))
+        print(chan0)
+        print(len(chan1))
+        print(chan1)
+        nSts = 2
+        nRx = 1
+        # compute feedback
+        ltfSym = []
+        ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan0[0:64]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nSts)))
+        ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan0[64:128]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nSts)))
+        vFb1 = p8h.procVhtChannelFeedback(ltfSym, p8h.BW.BW20, nSts, nRx)
+        print("feedback v 1")
+        for each in vFb1:
+            print(each)
+        ltfSym = []
+        ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan1[0:64]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nSts)))
+        ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan1[64:128]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nSts)))
+        # compute feedback
+        vFb2 = p8h.procVhtChannelFeedback(ltfSym, p8h.BW.BW20, nSts, nRx)
+        print("feedback v 2")
+        for each in vFb2:
+            print(each)
+        # combine the channel together
+        bfH = []
+        for k in range(0, len(vFb1)):
+            print("bfH", k)
+            bfH.append(np.concatenate((vFb1[k], vFb2[k]), axis=1))
+            print(bfH[k])
+        # compute spatial matrix Q, ZF
+        bfQ = []
+        for k in range(0, len(vFb1)):
+            print("bfQ", k)
+            bfQ.append(np.matmul(bfH[k], np.linalg.inv(np.matmul(bfH[k].conjugate().T, bfH[k]))))
+            print(bfQ[k])
+        # normalize Q
+        bfQNormd = []
+        for k in range(0, len(vFb1)):
+            bfQNormd.append(bfQ[k] / np.linalg.norm(bfQ[k]) * np.sqrt(nSts))
+            print("bfQNormd", k)
+            print(bfQNormd[k])
+        # map Q to FFT non-zero sub carriers
+        bfQForFft = [np.ones_like(bfQNormd[0])] * 3 + bfQNormd[0:28] + [
+            np.ones_like(bfQNormd[0])] + bfQNormd[28:56] + [np.ones_like(bfQNormd[0])] * 4
 
-                bfQPktForGr0, bfQPktForGr1 = phy80211.genPktGrBfQ(bfQForFft)
-                grSocket.sendto(bfQPktForGr0, phyTxAddr)
-                time.sleep(0.5)
-                grSocket.sendto(bfQPktForGr1, phyTxAddr)
-                time.sleep(0.5)
-                pkt0 = genMac80211UdpAmpduVht(["1234567 packet for station 000"])
-                pkt1 = genMac80211UdpAmpduVht(["7654321 packet for station 111"])
-                grMuPkt = phy80211.genPktGrDataMu(pkt0, p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False), pkt1, p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False), 2)
-                print("gr pkt len %d" % len(grMuPkt))
-                for i in range(0, 5):
-                    grSocket.sendto(grMuPkt, phyTxAddr)
-                    time.sleep(1)
+        bfQPktForGr0, bfQPktForGr1 = phy80211.genPktGrBfQ(bfQForFft)
+        grSocket.sendto(bfQPktForGr0, phyTxAddr)
+        time.sleep(0.5)
+        grSocket.sendto(bfQPktForGr1, phyTxAddr)
+        time.sleep(0.5)
+        pkt0 = genMac80211UdpAmpduVht(["1234567 packet for station 000"])
+        pkt1 = genMac80211UdpAmpduVht(["7654321 packet for station 111"])
+        grMuPkt = phy80211.genPktGrDataMu(pkt0, p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False), pkt1, p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False), 2)
+        print("gr pkt len %d" % len(grMuPkt))
+        for i in range(0, 10):
+            grSocket.sendto(grMuPkt, phyTxAddr)
+            time.sleep(1)
 

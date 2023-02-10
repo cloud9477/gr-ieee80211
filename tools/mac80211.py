@@ -232,8 +232,43 @@ class mac80211():
             print("cloud mac80211, gen pkt input type error")
             return b""
     
-    def genVhtNdpAnnouncement(rxAddr, txAddr ):
-        pass
+    def genCtrlVhtNdpAnnouncement(self, rxAddr, txAddr, token, staAids, staFbType, staNc):
+        if(isinstance(rxAddr, str) and isinstance(txAddr, str) and isinstance(token, int) and isinstance(staAids, list) and isinstance(staFbType, list) and isinstance(staNc, list)):
+            if(token >= 0 and token <= 63):
+                tmpFc = 0 + (1 << 2) + (5 << 4) + (0 << 15)     # fc flag part all zero, type control, subtype vht ndp announcement
+                tmpDialogToken = (token << 2) + 0               # 2 bits reserved
+                tmpPacket = struct.pack('<H', tmpFc) + struct.pack('<H', 340)
+                tmpPacket += binascii.unhexlify("".join(rxAddr.split(":")))
+                tmpPacket += binascii.unhexlify("".join(txAddr.split(":")))
+                tmpPacket += struct.pack('<B', tmpDialogToken)
+                nSta = min([len(staAids), len(staFbType), len(staNc)])
+                for i in range(0, nSta):
+                    tmpStaInfo = staAids[i] + (staFbType[i] << 12)
+                    if(staFbType[i]):
+                        tmpStaInfo + (staNc[i] << 13)
+                    else:
+                        tmpStaInfo + (0 << 13)      # for SU this is reserved
+                    tmpPacket += struct.pack('<H', tmpStaInfo)
+                tmpPacket += struct.pack('<L',zlib.crc32(tmpPacket))
+                return tmpPacket
+        print("cloud mac80211, vht ndp announcement input params error")
+        return b""
+    
+    # ieee80211-2020 section 9.4.1.11
+    def genMgmtActNoAck(self, dsAddr, txAddr, bssid, seq, category, details):
+        if(isinstance(dsAddr, str) and isinstance(txAddr, str) and isinstance(bssid, str) and isinstance(details, (bytes, bytearray))):
+            tmpFc = 0 + (0 << 2) + (14 << 4) + (0 << 15)     # fc flag part all zero, type control, subtype vht ndp announcement
+            tmpPacket = struct.pack('<H', tmpFc) + struct.pack('<H', 32)
+            tmpPacket += binascii.unhexlify("".join(dsAddr.split(":")))
+            tmpPacket += binascii.unhexlify("".join(txAddr.split(":")))
+            tmpPacket += binascii.unhexlify("".join(bssid.split(":")))
+            tmpPacket += struct.pack('<H', seq)
+            tmpPacket += struct.pack('<B', category)
+            tmpPacket += details
+            tmpPacket += struct.pack('<L',zlib.crc32(tmpPacket))
+            return tmpPacket
+        print("cloud mac80211, management action no ack input params error")
+        return b""
 
 def genAmpduHT(payloads):
     if(isinstance(payloads, list)):
@@ -300,26 +335,6 @@ def genAmpduVHT(payloads):
         return b""
 
 if __name__ == "__main__":
-    udpPayload  = "123456789012345678901234567890"
-    udpIns = udp("10.10.0.6",  # sour ip
-                          "10.10.0.1",  # dest ip
-                          39379,  # sour port
-                          8889)  # dest port
-    udpPacket = udpIns.genPacket(bytearray(udpPayload, 'utf-8'))
-    print("udp packet")
-    print(udpPacket.hex())
-    ipv4Ins = ipv4(43778,  # identification
-                            64,  # TTL
-                            "10.10.0.6",
-                            "10.10.0.1")
-    ipv4Packet = ipv4Ins.genPacket(udpPacket)
-    print("ipv4 packet")
-    print(ipv4Packet.hex())
-    llcIns = llc()
-    llcPacket = llcIns.genPacket(ipv4Packet)
-    print("llc packet")
-    print(llcPacket.hex())
-    
     mac80211Ins = mac80211(2,  # type
                                      8,  # sub type, 8 = QoS Data
                                      1,  # to DS, station to AP
@@ -330,15 +345,5 @@ if __name__ == "__main__":
                                      '00:c0:ca:b1:5b:e1',  # sour add
                                      'f4:69:d5:80:0f:a0',  # recv add
                                      2704)  # sequence
-    mac80211Packet = mac80211Ins.genPacket(llcPacket)
-    print("mac packet: ", len(mac80211Packet))
-    print(mac80211Packet.hex())
-    if(procCheckCrc32(mac80211Packet)):
-        print("crc correct")
-    else:
-        print("crc wrong")
-
-    mac80211Ampdu = genAmpduVHT([mac80211Packet, mac80211Packet])
-    print("vht ampdu packet")
-    print(mac80211Ampdu.hex())
+    print(mac80211Ins.genCtrlVhtNdpAnnouncement("6e:1b:72:2a:1c:b8", "00:27:e3:9d:e8:9c", 23, [100], [0], [0]).hex())
     

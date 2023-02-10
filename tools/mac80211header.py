@@ -187,6 +187,36 @@ class frameControl:
     def printInfo(self):
         print("cloud mac80211header, value %s, FC Info protocol:%d, type:%s, sub type:%s, to DS:%d, from DS:%d, more frag:%d, retry:%d" % (hex(self.fcValue), self.protocalVer, self.type, self.subType, self.toDs, self.fromDs, self.moreFrag, self.retry))
 
+# vDP: input channel fb V of data and pilot subcarriers sorted by channel index from -Ns to Ns
+# snrDP: input snr of data and pilot subcarriers sorted by channel index from -Ns to Ns
+def genVhtCompressedBfReport(vDP, snrDP):
+    if(isinstance(vDP, list) and isinstance(snrDP, list)):
+        if(len(vDP) == 56):
+            for i in range(0, 56):
+                pass
+
+# ieee80211-2020 section 9.6.22
+def genMgmtActVhtCompressBf(v, group, codebook, fbType, token, maxFbReportLen):
+    if(isinstance(v, list) and all(isinstance(each, np.ndarray) for each in v)):
+        if(len(v) == 64):
+            tmpChanBw = 0
+        elif(len(v) == 128):
+            tmpChanBw = 1
+        elif(len(v) == 256):
+            tmpChanBw = 2
+        else:
+            tmpChanBw = 3
+        tmpVhtMimoCtrl = 0
+        [nr, nc] = v[0].shape
+        tmpVhtMimoCtrl = nc
+        tmpVhtMimoCtrl += (nr << 3)
+        tmpVhtMimoCtrl += (tmpChanBw << 6)
+        tmpVhtMimoCtrl += (group << 8)
+        tmpVhtMimoCtrl += (codebook << 10)
+        tmpVhtMimoCtrl += (fbType << 11)
+        # add compressed bf report field
+        # add MU Exclusive bf report field
+
 def procVhtPhiQuanti(phi, bphi):
     tmpK = list(range(0, 2**bphi))
     tmpShift = np.pi / (2**(bphi))

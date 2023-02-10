@@ -231,6 +231,9 @@ class mac80211():
         else:
             print("cloud mac80211, gen pkt input type error")
             return b""
+    
+    def genVhtNdpAnnouncement(rxAddr, txAddr ):
+        pass
 
 def genAmpduHT(payloads):
     if(isinstance(payloads, list)):

@@ -26,6 +26,14 @@ import time
 import struct
 from enum import Enum
 
+# number of bit for each angle to quantize for V of 2 rows, 3 rows and 4 rows
+C_VHT_CB0_R2_ANGLE_BIT_N = [7, 5]
+C_VHT_CB0_R3_ANGLE_BIT_N = [7, 7, 5, 5, 7, 5]
+C_VHT_CB0_R4_ANGLE_BIT_N = [7, 7, 7, 5, 5, 5, 7, 7, 5, 5, 7, 5]
+C_VHT_CB1_R2_ANGLE_BIT_N = [9, 7]
+C_VHT_CB1_R3_ANGLE_BIT_N = [9, 9, 7, 7, 9, 7]
+C_VHT_CB1_R4_ANGLE_BIT_N = [9, 9, 9, 7, 7, 7, 9, 9, 7, 7, 9, 7]
+
 class FC_TPYE(Enum):
     MGMT = 0
     CTRL = 1
@@ -178,6 +186,155 @@ class frameControl:
     
     def printInfo(self):
         print("cloud mac80211header, value %s, FC Info protocol:%d, type:%s, sub type:%s, to DS:%d, from DS:%d, more frag:%d, retry:%d" % (hex(self.fcValue), self.protocalVer, self.type, self.subType, self.toDs, self.fromDs, self.moreFrag, self.retry))
+
+def procVhtPhiQuanti(phi, bphi):
+    tmpK = list(range(0, 2**bphi))
+    tmpShift = np.pi / (2**(bphi))
+    tmpPhi = [each * np.pi / (2**(bphi-1)) + tmpShift for each in tmpK]
+    # print(tmpPhi)
+    return min(range(len(tmpPhi)), key=lambda i: abs(tmpPhi[i]-phi))
+
+def procVhtPsiQuanti(psi, bpsi):
+    tmpK = list(range(0, 2**bpsi))
+    tmpShift = np.pi / (2**(bpsi+2))
+    tmpPsi = [each * np.pi / (2**(bpsi+1)) + tmpShift for each in tmpK]
+    # print(tmpPsi)
+    return min(range(len(tmpPsi)), key=lambda i: abs(tmpPsi[i]-psi))
+
+def procVhtVCompress(v, codeBookInfo = 0, ifDebug = False):
+    resValue = []       # value and type
+    resType = []
+    # Phi for Di, Psi for Gli, feedback type is MU-MIMO for VHT PPDU
+    if(isinstance(v, np.ndarray) and isinstance(ifDebug, bool) and isinstance(codeBookInfo, int)):
+        [m, n] = v.shape    # m is row, n is col
+        if(ifDebug):
+            print("V, get V %d row %d col" % (m, n))
+            print(v)
+        if(m > 0 and n > 0 and m >= n):
+            if(codeBookInfo):
+                nBitPhi = 9
+                nBitPsi = 7
+            else:
+                nBitPhi = 7
+                nBitPsi = 5
+            if(ifDebug):
+                print("quantization codebook %d, Phi %d bits, Psi %d bits" % (codeBookInfo, nBitPhi, nBitPsi))
+            dt = np.zeros((n, n), dtype=complex)
+            for j in range(0, n):
+                tmpTheta = np.arctan2(np.imag(v[m-1][j]), np.real(v[m-1][j]))
+                tmpValue = np.exp(tmpTheta * 1.0j)
+                dt[j][j] = tmpValue
+            if(ifDebug):
+                print("Dt, get D tilde")
+                print(dt)
+            dtH = dt.conjugate().T
+            if(ifDebug):
+                print("DtH, get D tilde hermitian")
+                print(dtH)
+            vdtH = np.matmul(v, dtH)
+            if(ifDebug):
+                vdtHRes = np.matmul(v, dtH)
+            if(ifDebug):
+                print("VDtH, get V dot D tilde hermitian, which is also the matrix with all real number on the last row, to be decomposed with givens rotation")
+                print(vdtH)
+            for j in range(0, n):
+                vdtH[m-1][j] = np.real(vdtH[m-1][j])
+            if(ifDebug):
+                print("VDtH, get V dot D tilde hermitian, remove residual imag for last row")
+                print(vdtH)
+            
+            glidiHvdtH_name = "VDtH"
+            if(ifDebug):
+                vtRes = np.identity(m)
+            # each loop we compute Di and following Gli(s), and keep updating the vdtH to be GliDiHVDtH
+            for grIter in range(0, min(m-1, n)):      # gr for givens rotation
+                i = grIter + 1
+                if(ifDebug):
+                    print("givens rotation loop round %d" % (i))
+                di = np.zeros((m, m), dtype=complex)
+                for j in range(0, i-1):
+                    di[j][j] = 1
+                diPhi = []
+                for j in range(i, m):
+                    tmpTheta = np.arctan2(np.imag(vdtH[j-1][i-1]), np.real(vdtH[j-1][i-1]))
+                    diPhi.append(tmpTheta)
+                    if(ifDebug):
+                        print("D%d Phi:%f" % (i, tmpTheta))
+                    tmpValue = np.exp(tmpTheta * 1.0j)
+                    di[j-1][j-1] = tmpValue
+                if(len(diPhi)):
+                    diPhi = np.unwrap(diPhi)
+                    if(diPhi[0] < 0):
+                        diPhi += np.pi * 2
+                    for each in diPhi:
+                        resValue.append(procVhtPhiQuanti(each, nBitPhi))
+                        resType.append(0)
+                    if(ifDebug):
+                        print("D%d Unwrapped Phi:" % (i), diPhi)
+                        print("D%d Unwrapped Phi Quantized:" % (i), [procVhtPhiQuanti(each, nBitPhi) for each in diPhi])
+                di[m-1][m-1] = 1
+                if(ifDebug):
+                    print("D%d, get Di here" % (i))
+                    print(di)
+                if(ifDebug):                
+                    vtRes = np.matmul(vtRes, di) # compute the final Vt to compare
+                vdtH = np.matmul(di.conjugate().T, vdtH)    # now vdtH is from VDtH to DiHVDtH
+                if(ifDebug):
+                    glidiHvdtH_name = "D%dH" % (i) + glidiHvdtH_name
+                    print(glidiHvdtH_name + ", get D%d hermitian dot V dot D tilde hermitian" % (i))
+                    print(vdtH)
+                # remove residual imag of the column
+                for l in range(i, m):
+                    vdtH[l-1][i-1] = np.real(vdtH[l-1][i-1])
+                if(ifDebug):
+                    print(glidiHvdtH_name + ", the %dth column should be all real" % (i))
+                    print(vdtH)
+                for l in range(i+1, m+1):
+                    if(ifDebug):
+                        print("compute givens rotation G%d%d" % (l, i))
+                    gli = np.zeros((m, m), dtype=complex)
+                    x1 = np.real(vdtH[i-1][i-1])
+                    x2 = np.real(vdtH[l-1][i-1])
+                    y = np.sqrt(x1*x1 + x2*x2)
+                    gliPsi = np.arccos(x1 / y)
+                    resValue.append(procVhtPsiQuanti(gliPsi, nBitPsi))
+                    resType.append(1)
+                    if(ifDebug):
+                        print("x1:%f, x2:%f, y:%f, GliPsi:%f, Quantized GliPsi:%d" % (x1, x2, y, gliPsi, procVhtPsiQuanti(gliPsi, nBitPsi)))
+                    if(gliPsi < 0 or gliPsi > np.pi/2):
+                        print("Gli psi value error!!!!!!!!!!!!!!!!!!!!")
+                    for j in range(0, m):
+                        gli[j][j] = 1
+                    gli[i-1][i-1] = np.cos(gliPsi)
+                    gli[l-1][i-1] = -np.sin(gliPsi)
+                    gli[i-1][l-1] = np.sin(gliPsi)
+                    gli[l-1][l-1] = np.cos(gliPsi)
+                    if(ifDebug):
+                        print("G%d%d" % (l, i))
+                        print(gli)
+                    vdtH = np.matmul(gli, vdtH)
+                    gliT = gli.T
+                    if(ifDebug):
+                        vtRes = np.matmul(vtRes, gliT) # compute the final Vt to compare
+                    if(ifDebug):
+                        glidiHvdtH_name = "G%d%d" % (l, i) + glidiHvdtH_name
+                        print(glidiHvdtH_name + ", now the %d%d location shoule be zero" % (l, i))
+                        print(vdtH)
+                    vdtH[l-1][i-1] = 0
+                    if(ifDebug):
+                        print(glidiHvdtH_name + ", remove %d%d residual error" % (l, i))
+                        print(vdtH)
+            if(ifDebug):
+                vIt = np.zeros((m, n), dtype=complex) # I tilde for V tilde
+                for j in range(0, min(m, n)):
+                    vIt[j][j] = 1
+                vtRes = np.matmul(vtRes, vIt)
+                print("compare the VDtH and decompsed results")
+                print(vdtHRes)
+                print(vtRes)
+                print(resValue)
+                print(resType)
+    return resValue, resType
 
 def mgmtElementParser(inbytes):
     if(isinstance(inbytes, (bytes, bytearray)) and len(inbytes) > 0):

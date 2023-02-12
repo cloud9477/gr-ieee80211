@@ -245,7 +245,7 @@ class mac80211():
                 for i in range(0, nSta):
                     tmpStaInfo = staAids[i] + (staFbType[i] << 12)
                     if(staFbType[i]):
-                        tmpStaInfo + (staNc[i] << 13)
+                        tmpStaInfo + ((staNc[i] - 1) << 13)
                     else:
                         tmpStaInfo + (0 << 13)      # for SU this is reserved
                     tmpPacket += struct.pack('<H', tmpStaInfo)
@@ -254,10 +254,26 @@ class mac80211():
         print("cloud mac80211, vht ndp announcement input params error")
         return b""
     
+    def genCtrlBfReportPoll(self, rxAddr, txAddr, fbSegList):
+        if(isinstance(rxAddr, str) and isinstance(txAddr, str) and isinstance(fbSegList, list)):
+            if(len(fbSegList) < 9 and min(fbSegList) >= 0 and max(fbSegList) <= 7):
+                tmpFc = 0 + (1 << 2) + (4 << 4) + (0 << 15)     # fc flag part all zero, type 1 control, subtype 4 bf report poll
+                tmpPacket = struct.pack('<H', tmpFc) + struct.pack('<H', 110)
+                tmpPacket += binascii.unhexlify("".join(rxAddr.split(":")))
+                tmpPacket += binascii.unhexlify("".join(txAddr.split(":")))
+                tmpFbSegBitmap = 0
+                for each in fbSegList:
+                    tmpFbSegBitmap |= (1 << each)
+                tmpPacket += struct.pack('<B', tmpFbSegBitmap)
+                tmpPacket += struct.pack('<L',zlib.crc32(tmpPacket))
+                return tmpPacket
+        print("cloud mac80211, beamforming report poll input params error")
+        return b""
+
     # ieee80211-2020 section 9.4.1.11
     def genMgmtActNoAck(self, dsAddr, txAddr, bssid, seq, category, details):
         if(isinstance(dsAddr, str) and isinstance(txAddr, str) and isinstance(bssid, str) and isinstance(details, (bytes, bytearray))):
-            tmpFc = 0 + (0 << 2) + (14 << 4) + (0 << 15)     # fc flag part all zero, type control, subtype vht ndp announcement
+            tmpFc = 0 + (0 << 2) + (14 << 4) + (0 << 15)     # fc flag part all zero, type 1 control, subtype 5 vht ndp announcement
             tmpPacket = struct.pack('<H', tmpFc) + struct.pack('<H', 32)
             tmpPacket += binascii.unhexlify("".join(dsAddr.split(":")))
             tmpPacket += binascii.unhexlify("".join(txAddr.split(":")))

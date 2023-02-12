@@ -162,33 +162,33 @@ phyTxAddr = (phyTxIp, phyTxPort)
 grSocket = socket.socket(family = socket.AF_INET, type = socket.SOCK_DGRAM)
 grSocket.bind(phyRxAddr)
 
-udpPayload  = "123456789012345678901234567890"
-pkt = genMac80211UdpMPDU(udpPayload)
-pkts = genMac80211UdpAmpduVht([udpPayload])
+# udpPayload  = "123456789012345678901234567890"
+# pkt = genMac80211UdpMPDU(udpPayload)
+# pkts = genMac80211UdpAmpduVht([udpPayload])
 
 """packets of different formats or MCS SISO """
-for mcsIter in range(0, 8):
-    grPkt = phy80211.genPktGrData(pkt, p8h.modulation(phyFormat=p8h.F.L, mcs = mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
-    grSocket.sendto(grPkt, phyTxAddr)
-    time.sleep(0.5)
-for mcsIter in range(0, 8):
-    grPkt = phy80211.genPktGrData(pkt, p8h.modulation(phyFormat=p8h.F.HT, mcs = mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
-    grSocket.sendto(grPkt, phyTxAddr)
-    time.sleep(0.5)
-for mcsIter in range(0, 9):
-    grPkt = phy80211.genPktGrData(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs = mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
-    grSocket.sendto(grPkt, phyTxAddr)
-    time.sleep(0.5)
+# for mcsIter in range(0, 8):
+#     grPkt = phy80211.genPktGrData(pkt, p8h.modulation(phyFormat=p8h.F.L, mcs = mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
+#     grSocket.sendto(grPkt, phyTxAddr)
+#     time.sleep(0.5)
+# for mcsIter in range(0, 8):
+#     grPkt = phy80211.genPktGrData(pkt, p8h.modulation(phyFormat=p8h.F.HT, mcs = mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
+#     grSocket.sendto(grPkt, phyTxAddr)
+#     time.sleep(0.5)
+# for mcsIter in range(0, 9):
+#     grPkt = phy80211.genPktGrData(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs = mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
+#     grSocket.sendto(grPkt, phyTxAddr)
+#     time.sleep(0.5)
 
 """packets of different formats or MCS MIMO """
-for mcsIter in range(0, 8):
-    grPkt = phy80211.genPktGrData(pkt, p8h.modulation(phyFormat=p8h.F.HT, mcs = mcsIter+8, bw=p8h.BW.BW20, nSTS=2, shortGi=False))
-    grSocket.sendto(grPkt, phyTxAddr)
-    time.sleep(0.5)
-for mcsIter in range(0, 9):
-    grPkt = phy80211.genPktGrData(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs = mcsIter, bw=p8h.BW.BW20, nSTS=2, shortGi=False))
-    grSocket.sendto(grPkt, phyTxAddr)
-    time.sleep(0.5)
+# for mcsIter in range(0, 8):
+#     grPkt = phy80211.genPktGrData(pkt, p8h.modulation(phyFormat=p8h.F.HT, mcs = mcsIter+8, bw=p8h.BW.BW20, nSTS=2, shortGi=False))
+#     grSocket.sendto(grPkt, phyTxAddr)
+#     time.sleep(0.5)
+# for mcsIter in range(0, 9):
+#     grPkt = phy80211.genPktGrData(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs = mcsIter, bw=p8h.BW.BW20, nSTS=2, shortGi=False))
+#     grSocket.sendto(grPkt, phyTxAddr)
+#     time.sleep(0.5)
 
 """packet of NDP 2x2 """
 # grSocket.sendto(phy80211.genPktGrNdp(), phyTxAddr)
@@ -261,17 +261,45 @@ for mcsIter in range(0, 9):
 # print("gr pkt len %d" % len(grMuPkt))
 # grSocket.sendto(grMuPkt, phyTxAddr)
 
+"""VHT compressed beamforming frame without SNR"""
+# for test still read channel bin file
+# they are the vht long training field received at each station
+chan0 = []
+fWaveComp = open("/home/cloud/sdr/gr-ieee80211/tools/cmu_chan0.bin", 'rb')
+for i in range(0,128):
+    tmpR = struct.unpack('f', fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1))[0]
+    tmpI = struct.unpack('f', fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1))[0]
+    chan0.append(tmpR + tmpI * 1j)
+fWaveComp.close()
+nTx = 2
+nRx = 1
+# compute feedback
+ltfSym = []
+ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan0[0:64]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nTx)))
+ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan0[64:128]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nTx)))
+vFb1 = p8h.procVhtChannelFeedback(ltfSym, p8h.BW.BW20, nTx, nRx)
+vhtCompressBf = m8h.genMgmtActVhtCompressBf(vDP = vFb1, group = 1, codebook = 1, fbType = 1, token = 23)
+print(vhtCompressBf.hex())
+mac80211Ins = mac80211.mac80211(2,  # type
+                                0,  # sub type, 8 = QoS Data, 0 = Data
+                                1,  # to DS, station to AP
+                                0,  # from DS
+                                0,  # retry
+                                0,  # protected
+                                'f4:69:d5:80:0f:a0',  # dest add
+                                '00:c0:ca:b1:5b:e1',  # sour add
+                                'f4:69:d5:80:0f:a0',  # recv add
+                                2704)  # sequence
 
+vhtNdpAnnouncePkt = mac80211Ins.genCtrlVhtNdpAnnouncement('f4:69:d5:80:0f:a0', '00:c0:ca:b1:5b:e1', 23, [1,2], [1,1], [1,1])
+print(vhtNdpAnnouncePkt.hex())
+grPkt = phy80211.genPktGrData(vhtNdpAnnouncePkt, p8h.modulation(phyFormat=p8h.F.L, mcs = 0, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
+grSocket.sendto(grPkt, phyTxAddr)
 
-        
-
-
-
-
-
-
-    
-
+# mgmtActNoAckPkt = mac80211Ins.genMgmtActNoAck('f4:69:d5:80:0f:a0', '00:c0:ca:b1:5b:e1', 'f4:69:d5:80:0f:a0', 10, m8h.MGMT_ACT_CAT.VHT.value, vhtCompressBf)
+# print(mgmtActNoAckPkt.hex())
+# grPkt = phy80211.genPktGrData(mgmtActNoAckPkt, p8h.modulation(phyFormat=p8h.F.L, mcs = 0, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
+# grSocket.sendto(grPkt, phyTxAddr)
 
 
 

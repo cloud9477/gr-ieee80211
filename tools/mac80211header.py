@@ -34,6 +34,29 @@ C_VHT_CB1_R2_ANGLE_BIT_N = [9, 7]
 C_VHT_CB1_R3_ANGLE_BIT_N = [9, 9, 7, 7, 9, 7]
 C_VHT_CB1_R4_ANGLE_BIT_N = [9, 9, 9, 7, 7, 7, 9, 9, 7, 7, 9, 7]
 
+# IEEE80211-2020 Table 9-76—Subcarrier indices for which a compressed beamforming feedback matrix is sent back
+C_VHT_BFFB_SCIDX_20 = [
+    [], [-28, -27, -26, -25, -24, -23, -22, -20, -19, -18, -17, -16, -15, -14, -13, -12, -11, -10, -9, -8, -6, -5, -4, -3, -2, -1, 
+    1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 23, 24, 25, 26, 27, 28],
+    [-28, -26, -24, -22, -20, -18, -16, -14, -12, -10, -8, -6, -4, -2, -1, 1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28],
+    [], [-28, -24, -20, -16, -12, -8, -4, -1, 1, 4, 8, 12, 16, 20, 24, 28]
+]
+
+# IEEE80211-2020 Table 9-79—Number of subcarriers and subcarrier mapping
+C_MU_EXBF_SCIDX_20 = [
+    [], [-28, -26, -24, -22, -20, -18, -16, -14, -12, -10, -8, -6, -4, -2, -1, 1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28],
+    [-28, -24, -20, -16, -12, -8, -4, -1, 1, 4, 8, 12, 16, 20, 24, 28], [], [-28, -20, -12, -4, -1, 1, 4, 12, 20, 28]
+]
+
+# compressed feedback V angle type
+class CVA_TPYE(Enum):
+    PHI = 0
+    PSI = 1
+
+    @classmethod
+    def has_value(cls, value):
+        return value in cls._value2member_map_
+
 class FC_TPYE(Enum):
     MGMT = 0
     CTRL = 1
@@ -187,36 +210,6 @@ class frameControl:
     def printInfo(self):
         print("cloud mac80211header, value %s, FC Info protocol:%d, type:%s, sub type:%s, to DS:%d, from DS:%d, more frag:%d, retry:%d" % (hex(self.fcValue), self.protocalVer, self.type, self.subType, self.toDs, self.fromDs, self.moreFrag, self.retry))
 
-# vDP: input channel fb V of data and pilot subcarriers sorted by channel index from -Ns to Ns
-# snrDP: input snr of data and pilot subcarriers sorted by channel index from -Ns to Ns
-def genVhtCompressedBfReport(vDP, snrDP):
-    if(isinstance(vDP, list) and isinstance(snrDP, list)):
-        if(len(vDP) == 56):
-            for i in range(0, 56):
-                pass
-
-# ieee80211-2020 section 9.6.22
-def genMgmtActVhtCompressBf(v, group, codebook, fbType, token, maxFbReportLen):
-    if(isinstance(v, list) and all(isinstance(each, np.ndarray) for each in v)):
-        if(len(v) == 64):
-            tmpChanBw = 0
-        elif(len(v) == 128):
-            tmpChanBw = 1
-        elif(len(v) == 256):
-            tmpChanBw = 2
-        else:
-            tmpChanBw = 3
-        tmpVhtMimoCtrl = 0
-        [nr, nc] = v[0].shape
-        tmpVhtMimoCtrl = nc
-        tmpVhtMimoCtrl += (nr << 3)
-        tmpVhtMimoCtrl += (tmpChanBw << 6)
-        tmpVhtMimoCtrl += (group << 8)
-        tmpVhtMimoCtrl += (codebook << 10)
-        tmpVhtMimoCtrl += (fbType << 11)
-        # add compressed bf report field
-        # add MU Exclusive bf report field
-
 def procVhtPhiQuanti(phi, bphi):
     tmpK = list(range(0, 2**bphi))
     tmpShift = np.pi / (2**(bphi))
@@ -298,7 +291,7 @@ def procVhtVCompress(v, codeBookInfo = 0, ifDebug = False):
                         diPhi += np.pi * 2
                     for each in diPhi:
                         resValue.append(procVhtPhiQuanti(each, nBitPhi))
-                        resType.append(0)
+                        resType.append(CVA_TPYE.PHI)
                     if(ifDebug):
                         print("D%d Unwrapped Phi:" % (i), diPhi)
                         print("D%d Unwrapped Phi Quantized:" % (i), [procVhtPhiQuanti(each, nBitPhi) for each in diPhi])
@@ -328,7 +321,7 @@ def procVhtVCompress(v, codeBookInfo = 0, ifDebug = False):
                     y = np.sqrt(x1*x1 + x2*x2)
                     gliPsi = np.arccos(x1 / y)
                     resValue.append(procVhtPsiQuanti(gliPsi, nBitPsi))
-                    resType.append(1)
+                    resType.append(CVA_TPYE.PSI)
                     if(ifDebug):
                         print("x1:%f, x2:%f, y:%f, GliPsi:%f, Quantized GliPsi:%d" % (x1, x2, y, gliPsi, procVhtPsiQuanti(gliPsi, nBitPsi)))
                     if(gliPsi < 0 or gliPsi > np.pi/2):
@@ -365,6 +358,99 @@ def procVhtVCompress(v, codeBookInfo = 0, ifDebug = False):
                 print(resValue)
                 print(resType)
     return resValue, resType
+
+# vDP: input channel fb V of data and pilot subcarriers sorted by channel index from -Ns to Ns
+# snrNc: input snr of received streams of RX number, should be the column of V
+def genVhtCompressedBfReport(vDP, snrNC, group, codebook):
+    if(isinstance(vDP, list) and isinstance(snrNC, list) and group in [1, 2, 4] and codebook in [0, 1]):
+        tmpReportBits = []
+        if(codebook):
+            nBitPhi = 9
+            nBitPsi = 7
+        else:
+            nBitPhi = 7
+            nBitPsi = 5
+        if(len(vDP) == 56):
+            for i in range(0, len(snrNC)):
+                tmpSnrTab = [0.25 * each for each in range(-40, 216)]
+                tmpSnrDPQuantized = struct.pack('<b', min(range(256), key=lambda k: abs(tmpSnrTab[k]-snrNC[i])) - 128)
+                for j in range(0, 8):
+                    tmpReportBits.append((tmpSnrDPQuantized >> j) & 1)
+            for i in range(-28, 0):
+                if(i in C_VHT_BFFB_SCIDX_20[group]):
+                    tmpAngle, tmpType = procVhtVCompress(vDP[i+28], codebook, False)
+                    for j in range(0, len(tmpAngle)):
+                        if(tmpType[j] == CVA_TPYE.PHI):
+                            for k in range(0, nBitPhi):
+                                tmpReportBits.append((tmpAngle[j] >> k) & 1)
+                        else:
+                            for k in range(0, nBitPsi):
+                                tmpReportBits.append((tmpAngle[j] >> k) & 1)
+            for i in range(1, 29):
+                if(i in C_VHT_BFFB_SCIDX_20[group]):
+                    tmpAngle, tmpType = procVhtVCompress(vDP[i+27], codebook, False)
+                    for j in range(0, len(tmpAngle)):
+                        if(tmpType[j] == CVA_TPYE.PHI):
+                            for k in range(0, nBitPhi):
+                                tmpReportBits.append((tmpAngle[j] >> k) & 1)
+                        else:
+                            for k in range(0, nBitPsi):
+                                tmpReportBits.append((tmpAngle[j] >> k) & 1)
+        elif(len(vDP) == 114):
+            pass
+        elif(len(vDP) == 242):
+            pass
+        else:
+            return []
+        tmpNPadBits = int(np.ceil(len(tmpReportBits) / 8)) - len(tmpReportBits)
+        tmpReportBits += [0] * tmpNPadBits
+        tmpReportBytes = b""
+        for i in range(int(len(tmpReportBits)/8)):
+            tmpByte = 0
+            for j in range(0, 8):
+                tmpByte |= (tmpReportBits[i*8+j] << j)
+            tmpReportBytes += struct.pack('<B', tmpByte)
+        return tmpReportBytes
+
+# IEEE80211-2020 section 9.6.22
+# vDP: input channel fb V of data and pilot subcarriers sorted by channel index from -Ns to Ns
+# snrNc: input snr of received streams of RX number, should be the column of V
+def genMgmtActVhtCompressBf(vDP, group, codebook, fbType, token):
+    if(isinstance(vDP, list) and all(isinstance(each, np.ndarray) for each in vDP)):
+        tmpVhtCompressBfPkt = b""
+        if(len(vDP) == 56):
+            tmpChanBw = 0
+        elif(len(vDP) == 114):
+            tmpChanBw = 1
+        elif(len(vDP) == 242):
+            tmpChanBw = 2
+        else:
+            tmpChanBw = 3
+        tmpVhtMimoCtrl = 0
+        [nr, nc] = vDP[0].shape
+        tmpVhtMimoCtrl = nc
+        tmpVhtMimoCtrl += (nr << 3)
+        tmpVhtMimoCtrl += (tmpChanBw << 6)
+        tmpVhtMimoCtrl += (group << 8)
+        tmpVhtMimoCtrl += (codebook << 10)
+        tmpVhtMimoCtrl += (fbType << 11)
+        tmpVhtMimoCtrl += (0 << 12)         # only one feedback packet
+        tmpVhtMimoCtrl += (1 << 15)         # only one feedback packet
+        tmpVhtMimoCtrl += (token << 18)
+        tmpVhtCompressBfPkt += struct.pack('<L', tmpVhtMimoCtrl)[0:3]
+        # add compressed bf report field
+        tmpVhtCompressBfPkt += genVhtCompressedBfReport(vDP, [0] * nc, group, codebook)
+        # add MU Exclusive bf report field
+        if(len(vDP) == 56):
+            if(group == 1):
+                tmpMuExItem = 30 * nc
+            elif(group == 1):
+                tmpMuExItem = 16 * nc
+            else:
+                tmpMuExItem = 10 * nc
+        else:
+            tmpMuExItem = 0
+        tmpVhtCompressBfPkt += b"\x00" * int(tmpMuExItem/2)     # MU exclusive part not implemented yet
 
 def mgmtElementParser(inbytes):
     if(isinstance(inbytes, (bytes, bytearray)) and len(inbytes) > 0):

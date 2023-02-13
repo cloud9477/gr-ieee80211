@@ -292,16 +292,31 @@ mac80211Ins = mac80211.mac80211(2,  # type
                                 2704)  # sequence
 
 vhtNdpAnnouncePkt = mac80211Ins.genCtrlVhtNdpAnnouncement('f4:69:d5:80:0f:a0', '00:c0:ca:b1:5b:e1', 23, [1,2], [1,1], [1,1])
+print("")
+print("VHT NDP announcement packet")
 print(vhtNdpAnnouncePkt.hex())
 grPkt = phy80211.genPktGrData(vhtNdpAnnouncePkt, p8h.modulation(phyFormat=p8h.F.L, mcs = 0, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
 grSocket.sendto(grPkt, phyTxAddr)
 
-# mgmtActNoAckPkt = mac80211Ins.genMgmtActNoAck('f4:69:d5:80:0f:a0', '00:c0:ca:b1:5b:e1', 'f4:69:d5:80:0f:a0', 10, m8h.MGMT_ACT_CAT.VHT.value, vhtCompressBf)
-# print(mgmtActNoAckPkt.hex())
-# grPkt = phy80211.genPktGrData(mgmtActNoAckPkt, p8h.modulation(phyFormat=p8h.F.L, mcs = 0, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
-# grSocket.sendto(grPkt, phyTxAddr)
+print("")
+print("VHT NDP")
+grSocket.sendto(phy80211.genPktGrNdp(), phyTxAddr)
 
+mgmtActNoAckPkt = mac80211Ins.genMgmtActNoAck('f4:69:d5:80:0f:a0', '00:c0:ca:b1:5b:e1', 'f4:69:d5:80:0f:a0', 10, m8h.MGMT_ACT_CAT.VHT.value, vhtCompressBf)
+print("")
+print("VHT Compressed BF")
+print(mgmtActNoAckPkt.hex())
+grPkt = phy80211.genPktGrData(mgmtActNoAckPkt, p8h.modulation(phyFormat=p8h.F.L, mcs = 0, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
+grSocket.sendto(grPkt, phyTxAddr)
 
+if(m8h.rxPacketTypeCheck(mgmtActNoAckPkt, m8h.FC_TPYE.MGMT, m8h.FC_SUBTPYE_MGMT.ACTNOACK)):
+    mgmtActCat, mgmtActFrame = mac80211Ins.mgmtActNoAckParser(mgmtActNoAckPkt)
+    print(mgmtActCat)
+    print(mgmtActFrame.hex())
+    if(mgmtActCat == m8h.MGMT_ACT_CAT.VHT):
+        # vht compressed bf
+        if(int(mgmtActFrame[0]) == 0):
+            m8h.mgmtVhtActCompressBfParser(mgmtActFrame[1:])
 
 
 

@@ -17,6 +17,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import mac80211header as m8h
 import numpy as np
 import struct
 import socket
@@ -285,6 +286,18 @@ class mac80211():
             return tmpPacket
         print("cloud mac80211, management action no ack input params error")
         return b""
+    
+    def mgmtActNoAckParser(self, pkt):
+        if(isinstance(pkt, (bytes, bytearray))):
+            if(len(pkt) > 25):
+                hdr_fc = m8h.frameControl(struct.unpack('<H', pkt[0:2])[0])
+                hdr_dsAddr = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[4:10])
+                hdr_txAddr = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[10:16])
+                hdr_bssid = "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",pkt[16:22])
+                mgmtActCategory = m8h.MGMT_ACT_CAT(int(pkt[24]))
+                return mgmtActCategory, pkt[25:]
+        return 0, b""
+            
 
 def genAmpduHT(payloads):
     if(isinstance(payloads, list)):

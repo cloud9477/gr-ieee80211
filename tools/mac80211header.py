@@ -26,6 +26,15 @@ import time
 import struct
 from enum import Enum
 
+# compressed feedback V angle type
+class CVA_TPYE(Enum):
+    PHI = 0
+    PSI = 1
+
+    @classmethod
+    def has_value(cls, value):
+        return value in cls._value2member_map_
+
 # number of bit for each angle to quantize for V of 2 rows, 3 rows and 4 rows
 C_VHT_CB0_R2_ANGLE_BIT_N = [7, 5]
 C_VHT_CB0_R3_ANGLE_BIT_N = [7, 7, 5, 5, 7, 5]
@@ -33,6 +42,21 @@ C_VHT_CB0_R4_ANGLE_BIT_N = [7, 7, 7, 5, 5, 5, 7, 7, 5, 5, 7, 5]
 C_VHT_CB1_R2_ANGLE_BIT_N = [9, 7]
 C_VHT_CB1_R3_ANGLE_BIT_N = [9, 9, 7, 7, 9, 7]
 C_VHT_CB1_R4_ANGLE_BIT_N = [9, 9, 9, 7, 7, 7, 9, 9, 7, 7, 9, 7]
+
+C_VHT_BFFB_ANGLE_TYPE = [
+    [], [],
+    [CVA_TPYE.PHI, CVA_TPYE.PSI],
+    [CVA_TPYE.PHI, CVA_TPYE.PHI, CVA_TPYE.PSI, CVA_TPYE.PSI, CVA_TPYE.PHI, CVA_TPYE.PSI],
+    [CVA_TPYE.PHI, CVA_TPYE.PHI, CVA_TPYE.PHI, CVA_TPYE.PSI, CVA_TPYE.PSI, CVA_TPYE.PSI, CVA_TPYE.PHI, CVA_TPYE.PHI, CVA_TPYE.PSI, CVA_TPYE.PSI, CVA_TPYE.PHI, CVA_TPYE.PSI]
+]
+
+C_VHT_BFFB_ANGLE_NUM = [
+    [],     # Nr = 0
+    [],     # Nr = 1
+    [0, 2, 2],      # Nr = 2, Nc = 0, 1, 2
+    [0, 4, 6, 6],   # Nr = 3, Nc = 0, 1, 2, 3
+    [0, 6, 10, 12, 12]  # Nr = 4, Nc = 0, 1, ,2 ,3 ,4
+]
 
 # IEEE80211-2020 Table 9-76—Subcarrier indices for which a compressed beamforming feedback matrix is sent back
 C_VHT_BFFB_SCIDX_20 = [
@@ -47,15 +71,6 @@ C_MU_EXBF_SCIDX_20 = [
     [], [-28, -26, -24, -22, -20, -18, -16, -14, -12, -10, -8, -6, -4, -2, -1, 1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28],
     [-28, -24, -20, -16, -12, -8, -4, -1, 1, 4, 8, 12, 16, 20, 24, 28], [], [-28, -20, -12, -4, -1, 1, 4, 12, 20, 28]
 ]
-
-# compressed feedback V angle type
-class CVA_TPYE(Enum):
-    PHI = 0
-    PSI = 1
-
-    @classmethod
-    def has_value(cls, value):
-        return value in cls._value2member_map_
 
 class FC_TPYE(Enum):
     MGMT = 0
@@ -458,7 +473,6 @@ def procVhtVCompress(v, codeBookInfo = 0):
                     gli[i-1][l-1] = np.sin(gliPsi)
                     gli[l-1][l-1] = np.cos(gliPsi)
                     vdtH = np.matmul(gli, vdtH)
-                    gliT = gli.T
                     vdtH[l-1][i-1] = 0
     print(resValue)
     print(resType)
@@ -587,6 +601,39 @@ def rxPacketTypeCheck(pkt, type, subType):
 def mgmtVhtActCompressBfParser(pkt):
     if(isinstance(pkt, (bytes, bytearray))):
         vhtMimoCtrl = struct.unpack('<L', pkt[0:3]+b"\x00")
+        nc = vhtMimoCtrl & 7 + 1
+        nr = (vhtMimoCtrl >> 3) & 7 + 1
+        bw = (vhtMimoCtrl >> 6) & 3
+        group = 2 ** ((vhtMimoCtrl >> 8) & 3)
+        codebook = (vhtMimoCtrl >> 9) & 1
+        fbType = (vhtMimoCtrl >> 10) & 1
+        token = (vhtMimoCtrl >> 18)
+        print("cloud mac80211header, vht compressed bf parser, nc %d, nr %d, bw, group: %d, codebook %d, fbType %d, token %d" % (nc, nr, bw, group, codebook, fbType, token))
+        if(codebook):
+            nBitPhi = 9
+            nBitPsi = 7
+        else:
+            nBitPhi = 7
+            nBitPsi = 5
+        tmpAngleByteNum = int(np.ceil(len(C_VHT_BFFB_SCIDX_20[group]) * C_VHT_BFFB_ANGLE_NUM[nr][nc] * (nBitPhi + nBitPsi))/8)
+        tmpAngleBits = []
+        for i in range(0, tmpAngleByteNum):
+            for j in range(0, 8):
+                tmpAngleBits.append((int(pkt[i]) >> j) & 1)
+        tmpV = []
+        tmpIter = 0
+        for i in range(0, len(C_VHT_BFFB_SCIDX_20[group])):
+            tmpQuanAngle = []
+            for j in range(0, C_VHT_BFFB_ANGLE_NUM[nr][nc]):
+                tmpQuanAngle.append(0)
+                if(C_VHT_BFFB_ANGLE_TYPE[nr][j] == CVA_TPYE.PHI):
+                    for k in range(0, nBitPhi):
+                        tmpQuanAngle[j] |= (tmpAngleBits[tmpIter] << k)
+                        tmpIter += 1
+            print(tmpQuanAngle)
+            # genrate v for k
+
+
 
 def mgmtElementParser(inbytes):
     if(isinstance(inbytes, (bytes, bytearray)) and len(inbytes) > 0):

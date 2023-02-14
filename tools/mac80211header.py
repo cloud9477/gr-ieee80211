@@ -427,6 +427,20 @@ def procVhtVCompressDebug(v, codebook = 0, ifDebug = True):
                 print(resType)
     return resValue, resType
 
+def procVhtVCompressDebugVt(v):
+    # Phi for Di, Psi for Gli, feedback type is MU-MIMO for VHT PPDU
+    if(isinstance(v, np.ndarray)):
+        [m, n] = v.shape    # m is row, n is col
+        if(m > 0 and n > 0 and m >= n):
+            dt = np.zeros((n, n), dtype=complex)
+            for j in range(0, n):
+                tmpTheta = np.arctan2(np.imag(v[m-1][j]), np.real(v[m-1][j]))
+                tmpValue = np.exp(tmpTheta * 1.0j)
+                dt[j][j] = tmpValue
+            dtH = dt.conjugate().T
+            vdtHRes = np.matmul(v, dtH)
+            return vdtHRes
+
 def procVhtVCompress(v, codebook = 0):
     resValue = []       # value and type
     resType = []
@@ -537,12 +551,15 @@ def procVhtVRecover(nr, nc, quanAngle, codebook):
             for j in range(0, min(nr, nc)):
                 vIt[j][j] = 1
             vtRes = np.matmul(vtRes, vIt)
-            print(vtRes)
+            # print(vtRes)
             return vtRes
 
-def procVhtVInterpolation(vD, group):
+# interpolation of grouped channel feedback
+def procVhtVIntpoV1(vD, group):
     if(isinstance(vD, list) and group in [1, 2, 4]):
-        pass
+        if(group == 1):
+            # only interpolate pilots
+            return vD[0:7] + [(vD[6] + vD[7])/2] + vD[7:20] + [(vD[19] + vD[20])/2] + vD[20:32] + [(vD[31] + vD[32])/2] + vD[32:45] + [(vD[44] + vD[45])/2] + vD[45:52]
 
 """tx gen functions ------------------------------------------------------------------------------------------"""
 # vDP: input channel fb V of data and pilot subcarriers sorted by channel index from -Ns to Ns
@@ -707,6 +724,8 @@ def mgmtVhtActCompressBfParser(pkt):
                         tmpIter += 1
                     tmpAngle[j] = tmpQuanAngle
             tmpV.append(procVhtVRecover(nr, nc, tmpAngle, codebook))
+        return procVhtVIntpoV1(tmpV, group)
+    return []
 
 
 def mgmtElementParser(inbytes):
@@ -936,6 +955,7 @@ if __name__ == "__main__":
     # vFb1 = p8h.procVhtChannelFeedback(ltfSym, p8h.BW.BW20, nTx, nRx)
     # for i in range(0, len(vFb1)):
     #     tmpAngle, tmpType = procVhtVCompressDebug(vFb1[i], 1, True)
-    #     procVhtVRecover(2, 1, tmpAngle, 1)
+    #     print(procVhtVRecover(2, 1, tmpAngle, 1))
+    #     print(procVhtVCompressDebugVt(vFb1[i]))
     #     print("------------------------------------------")
     #     print("")

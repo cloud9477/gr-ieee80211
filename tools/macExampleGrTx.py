@@ -22,9 +22,11 @@ import mac80211
 import phy80211
 import phy80211header as p8h
 import mac80211header as m8h
+from matplotlib import pyplot as plt
 import time
 import numpy as np
 import struct
+import os
 
 def genMac80211UdpMPDU(udpPayload):
     udpIns = mac80211.udp("10.10.0.6",  # sour ip
@@ -262,6 +264,14 @@ grSocket.bind(phyRxAddr)
 # grSocket.sendto(grMuPkt, phyTxAddr)
 
 """VHT compressed beamforming frame without SNR"""
+
+# fetch the channel info through ethernet, use the tool "pscp" with user name and passwd, you could replace it with other methods
+os.system("pscp -pw 7777 -r cloud@192.168.10.68:/home/cloud/sdr/cmu_chan0.bin /home/cloud/sdr/")
+os.system("pscp -pw 7777 -r cloud@192.168.10.50:/home/cloud/sdr/cmu_chan1.bin /home/cloud/sdr/")
+
+# physical instance
+phy80211Ins = phy80211.phy80211()
+
 # for test still read channel bin file
 # they are the vht long training field received at each station
 chan0 = []
@@ -277,9 +287,27 @@ nRx = 1
 ltfSym = []
 ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan0[0:64]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nTx)))
 ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan0[64:128]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nTx)))
+vFb0 = p8h.procVhtChannelFeedback(ltfSym, p8h.BW.BW20, nTx, nRx)
+vhtCompressBf0 = m8h.genMgmtActVhtCompressBf(vDP = vFb0, group = 1, codebook = 1, fbType = 1, token = 23)
+print(vhtCompressBf0.hex())
+
+chan1 = []
+fWaveComp = open("/home/cloud/sdr/gr-ieee80211/tools/cmu_chan1.bin", 'rb')
+for i in range(0,128):
+    tmpR = struct.unpack('f', fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1))[0]
+    tmpI = struct.unpack('f', fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1))[0]
+    chan1.append(tmpR + tmpI * 1j)
+fWaveComp.close()
+nTx = 2
+nRx = 1
+# compute feedback
+ltfSym = []
+ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan1[0:64]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nTx)))
+ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan1[64:128]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nTx)))
 vFb1 = p8h.procVhtChannelFeedback(ltfSym, p8h.BW.BW20, nTx, nRx)
-vhtCompressBf = m8h.genMgmtActVhtCompressBf(vDP = vFb1, group = 1, codebook = 1, fbType = 1, token = 23)
-print(vhtCompressBf.hex())
+vhtCompressBf1 = m8h.genMgmtActVhtCompressBf(vDP = vFb1, group = 1, codebook = 1, fbType = 1, token = 23)
+print(vhtCompressBf1.hex())
+
 mac80211Ins = mac80211.mac80211(2,  # type
                                 0,  # sub type, 8 = QoS Data, 0 = Data
                                 1,  # to DS, station to AP
@@ -302,22 +330,78 @@ print("")
 print("VHT NDP")
 grSocket.sendto(phy80211.genPktGrNdp(), phyTxAddr)
 
-mgmtActNoAckPkt = mac80211Ins.genMgmtActNoAck('f4:69:d5:80:0f:a0', '00:c0:ca:b1:5b:e1', 'f4:69:d5:80:0f:a0', 10, m8h.MGMT_ACT_CAT.VHT.value, vhtCompressBf)
+mgmtActNoAckPkt0 = mac80211Ins.genMgmtActNoAck('f4:69:d5:80:0f:a0', '00:c0:ca:b1:5b:e1', 'f4:69:d5:80:0f:a0', 10, m8h.MGMT_ACT_CAT.VHT.value, vhtCompressBf0)
 print("")
-print("VHT Compressed BF")
-print(mgmtActNoAckPkt.hex())
-grPkt = phy80211.genPktGrData(mgmtActNoAckPkt, p8h.modulation(phyFormat=p8h.F.L, mcs = 0, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
+print("VHT Compressed BF 0")
+print(mgmtActNoAckPkt0.hex())
+grPkt = phy80211.genPktGrData(mgmtActNoAckPkt0, p8h.modulation(phyFormat=p8h.F.L, mcs = 0, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
 grSocket.sendto(grPkt, phyTxAddr)
 
-if(m8h.rxPacketTypeCheck(mgmtActNoAckPkt, m8h.FC_TPYE.MGMT, m8h.FC_SUBTPYE_MGMT.ACTNOACK)):
-    mgmtActCat, mgmtActFrame = mac80211Ins.mgmtActNoAckParser(mgmtActNoAckPkt)
+mgmtActNoAckPkt1 = mac80211Ins.genMgmtActNoAck('f4:69:d5:80:0f:a0', '00:c0:ca:b1:5b:e1', 'f4:69:d5:80:0f:a0', 10, m8h.MGMT_ACT_CAT.VHT.value, vhtCompressBf1)
+print("")
+print("VHT Compressed BF 1")
+print(mgmtActNoAckPkt1.hex())
+grPkt = phy80211.genPktGrData(mgmtActNoAckPkt1, p8h.modulation(phyFormat=p8h.F.L, mcs = 0, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
+grSocket.sendto(grPkt, phyTxAddr)
+
+fbv0 = []
+if(m8h.rxPacketTypeCheck(mgmtActNoAckPkt0, m8h.FC_TPYE.MGMT, m8h.FC_SUBTPYE_MGMT.ACTNOACK)):
+    mgmtActCat, mgmtActFrame = mac80211Ins.mgmtActNoAckParser(mgmtActNoAckPkt0)
     print(mgmtActCat)
     print(mgmtActFrame.hex())
     if(mgmtActCat == m8h.MGMT_ACT_CAT.VHT):
         # vht compressed bf
         if(int(mgmtActFrame[0]) == 0):
-            m8h.mgmtVhtActCompressBfParser(mgmtActFrame[1:])
+            fbv0 = m8h.mgmtVhtActCompressBfParser(mgmtActFrame[1:])
+fbv1 = []
+if(m8h.rxPacketTypeCheck(mgmtActNoAckPkt1, m8h.FC_TPYE.MGMT, m8h.FC_SUBTPYE_MGMT.ACTNOACK)):
+    mgmtActCat, mgmtActFrame = mac80211Ins.mgmtActNoAckParser(mgmtActNoAckPkt1)
+    print(mgmtActCat)
+    print(mgmtActFrame.hex())
+    if(mgmtActCat == m8h.MGMT_ACT_CAT.VHT):
+        # vht compressed bf
+        if(int(mgmtActFrame[0]) == 0):
+            fbv1 = m8h.mgmtVhtActCompressBfParser(mgmtActFrame[1:])
 
+bfH = []
+for k in range(0, len(fbv0)):
+    print("bfH", k)
+    bfH.append(np.concatenate((fbv0[k], fbv1[k]), axis=1))
+    print(bfH[k])
+# compute spatial matrix Q, ZF
+bfQ = []
+for k in range(0, len(fbv0)):
+    print("bfQ", k)
+    bfQ.append(np.matmul(bfH[k], np.linalg.inv(np.matmul(bfH[k].conjugate().T, bfH[k]))))
+    print(bfQ[k])
+# normalize Q
+bfQNormd = []
+for k in range(0, len(fbv0)):
+    bfQNormd.append(bfQ[k] / np.linalg.norm(bfQ[k]) * np.sqrt(nTx))
+    print("bfQNormd", k)
+    print(bfQNormd[k])
+# map Q to FFT non-zero sub carriers
+bfQForFft = [np.ones_like(bfQNormd[0])] * 3 + bfQNormd[0:28] + [
+    np.ones_like(bfQNormd[0])] + bfQNormd[28:56] + [np.ones_like(bfQNormd[0])] * 4
 
+pkt0 = genMac80211UdpAmpduVht(["1234567 packet for station 000"])
+pkt1 = genMac80211UdpAmpduVht(["7654321 packet for station 111"])
 
+# """ plot the Q """
+# plt.figure(11)
+# plt.plot(np.real([each[0][0] for each in bfQForFft]))
+# plt.plot(np.imag([each[0][0] for each in bfQForFft]))
+# plt.figure(12)
+# plt.plot(np.real([each[0][1] for each in bfQForFft]))
+# plt.plot(np.imag([each[0][1] for each in bfQForFft]))
+# plt.figure(13)
+# plt.plot(np.real([each[1][0] for each in bfQForFft]))
+# plt.plot(np.imag([each[1][0] for each in bfQForFft]))
+# plt.figure(14)
+# plt.plot(np.real([each[1][1] for each in bfQForFft]))
+# plt.plot(np.imag([each[1][1] for each in bfQForFft]))
 
+""" genrate the mu-mimo pakcet by python by not gr """
+phy80211Ins.genAmpduMu(nUser = 2, bfQ = bfQForFft, groupId = 2, ampdu0=pkt0, mod0=p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False), ampdu1=pkt1, mod1=p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False))
+ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0, cfoHz = 0.0, num = 1, gap = False, gapLen = 10000)
+phy80211Ins.genSigBinFile(ssFinal, "/home/cloud/sdr/cmu_mu", False)

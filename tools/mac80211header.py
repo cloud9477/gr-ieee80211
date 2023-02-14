@@ -291,24 +291,25 @@ def procVhtPsiDequanti(psiquan, bpsi):
         return tmpPsi[psiquan]
     return 0.0
 
-def procVhtVCompressDebug(v, codeBookInfo = 0, ifDebug = True):
+# IEEE802.11-2020 section 19.3.12.3.6 Compressed beamforming feedback matrix
+def procVhtVCompressDebug(v, codebook = 0, ifDebug = True):
     resValue = []       # value and type
     resType = []
     # Phi for Di, Psi for Gli, feedback type is MU-MIMO for VHT PPDU
-    if(isinstance(v, np.ndarray) and isinstance(ifDebug, bool) and isinstance(codeBookInfo, int)):
+    if(isinstance(v, np.ndarray) and isinstance(ifDebug, bool) and isinstance(codebook, int)):
         [m, n] = v.shape    # m is row, n is col
         if(ifDebug):
             print("V, get V %d row %d col" % (m, n))
             print(v)
         if(m > 0 and n > 0 and m >= n):
-            if(codeBookInfo):
+            if(codebook):
                 nBitPhi = 9
                 nBitPsi = 7
             else:
                 nBitPhi = 7
                 nBitPsi = 5
             if(ifDebug):
-                print("quantization codebook %d, Phi %d bits, Psi %d bits" % (codeBookInfo, nBitPhi, nBitPsi))
+                print("quantization codebook %d, Phi %d bits, Psi %d bits" % (codebook, nBitPhi, nBitPsi))
             dt = np.zeros((n, n), dtype=complex)
             for j in range(0, n):
                 tmpTheta = np.arctan2(np.imag(v[m-1][j]), np.real(v[m-1][j]))
@@ -419,22 +420,22 @@ def procVhtVCompressDebug(v, codeBookInfo = 0, ifDebug = True):
                 for j in range(0, min(m, n)):
                     vIt[j][j] = 1
                 vtRes = np.matmul(vtRes, vIt)
-                print("compare the VDtH and decompsed results")
+                print("compare the VDtH and decompsed Vt results")
                 print(vdtHRes)
                 print(vtRes)
                 print(resValue)
                 print(resType)
     return resValue, resType
 
-def procVhtVCompress(v, codeBookInfo = 0):
+def procVhtVCompress(v, codebook = 0):
     resValue = []       # value and type
     resType = []
     resOri = []
     # Phi for Di, Psi for Gli, feedback type is MU-MIMO for VHT PPDU
-    if(isinstance(v, np.ndarray) and isinstance(codeBookInfo, int)):
+    if(isinstance(v, np.ndarray) and isinstance(codebook, int)):
         [m, n] = v.shape    # m is row, n is col
         if(m > 0 and n > 0 and m >= n):
-            if(codeBookInfo):
+            if(codebook):
                 nBitPhi = 9
                 nBitPsi = 7
             else:
@@ -498,9 +499,15 @@ def procVhtVCompress(v, codeBookInfo = 0):
     # print(resOri, ",")
     return resValue, resType
 
-def procVhtVRecover(nr, nc, angle):
-    if(isinstance(angle, list)):
-        if(len(angle) == C_VHT_BFFB_ANGLE_NUM[nr][nc]):
+def procVhtVRecover(nr, nc, quanAngle, codebook):
+    if(isinstance(quanAngle, list)):
+        if(len(quanAngle) == C_VHT_BFFB_ANGLE_NUM[nr][nc]):
+            if(codebook):
+                nBitPhi = 9
+                nBitPsi = 7
+            else:
+                nBitPhi = 7
+                nBitPsi = 5
             angleIter = 0
             vtRes = np.identity(nr)
             for grIter in range(0, min(nr-1, nc)):      # gr for givens rotation
@@ -508,11 +515,10 @@ def procVhtVRecover(nr, nc, angle):
                 di = np.zeros((nr, nr), dtype=complex)
                 for j in range(0, i-1):
                     di[j][j] = 1
-                diPhi = []
                 for j in range(i, nr):
-                    tmpTheta = angle[angleIter] - np.pi
+                    tmpPhi = procVhtPhiDequanti(quanAngle[angleIter], nBitPhi)
                     angleIter += 1
-                    tmpValue = np.exp(tmpTheta * 1.0j)
+                    tmpValue = np.exp(tmpPhi * 1.0j)
                     di[j-1][j-1] = tmpValue
                 di[nr-1][nr-1] = 1
                 vtRes = np.matmul(vtRes, di)
@@ -520,11 +526,12 @@ def procVhtVRecover(nr, nc, angle):
                     gli = np.zeros((nr, nr), dtype=complex)
                     for j in range(0, nr):
                         gli[j][j] = 1
-                    gli[i-1][i-1] = np.cos(angle[angleIter])
-                    gli[l-1][i-1] = -np.sin(angle[angleIter])
-                    gli[i-1][l-1] = np.sin(angle[angleIter])
-                    gli[l-1][l-1] = np.cos(angle[angleIter])
+                    tmpPsi = procVhtPsiDequanti(quanAngle[angleIter], nBitPsi)
                     angleIter += 1
+                    gli[i-1][i-1] = np.cos(tmpPsi)
+                    gli[l-1][i-1] = -np.sin(tmpPsi)
+                    gli[i-1][l-1] = np.sin(tmpPsi)
+                    gli[l-1][l-1] = np.cos(tmpPsi)
                     vtRes = np.matmul(vtRes, gli.T) # compute the final Vt to compare
             vIt = np.zeros((nr, nc), dtype=complex) # I tilde for V tilde
             for j in range(0, min(nr, nc)):
@@ -532,6 +539,10 @@ def procVhtVRecover(nr, nc, angle):
             vtRes = np.matmul(vtRes, vIt)
             print(vtRes)
             return vtRes
+
+def procVhtVInterpolation(vD, group):
+    if(isinstance(vD, list) and group in [1, 2, 4]):
+        pass
 
 """tx gen functions ------------------------------------------------------------------------------------------"""
 # vDP: input channel fb V of data and pilot subcarriers sorted by channel index from -Ns to Ns
@@ -689,14 +700,13 @@ def mgmtVhtActCompressBfParser(pkt):
                     for k in range(0, nBitPhi):
                         tmpQuanAngle |= (tmpAngleBits[tmpIter] << k)
                         tmpIter += 1
-                    tmpAngle[j] = procVhtPhiDequanti(tmpQuanAngle, nBitPhi)
+                    tmpAngle[j] = tmpQuanAngle
                 else:
                     for k in range(0, nBitPsi):
                         tmpQuanAngle |= (tmpAngleBits[tmpIter] << k)
                         tmpIter += 1
-                    tmpAngle[j] = procVhtPhiDequanti(tmpQuanAngle, nBitPhi)
-            tmpV.append(procVhtVRecover(nr, nc, tmpAngle))
-
+                    tmpAngle[j] = tmpQuanAngle
+            tmpV.append(procVhtVRecover(nr, nc, tmpAngle, codebook))
 
 
 def mgmtElementParser(inbytes):
@@ -908,5 +918,24 @@ def pktParser(pkt):
             print("cloud mac80211header, type not supported yet")
 
 
-
-            
+if __name__ == "__main__":
+    pass
+    # chan0 = []
+    # fWaveComp = open("/home/cloud/sdr/gr-ieee80211/tools/cmu_chan0.bin", 'rb')
+    # for i in range(0,128):
+    #     tmpR = struct.unpack('f', fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1))[0]
+    #     tmpI = struct.unpack('f', fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1))[0]
+    #     chan0.append(tmpR + tmpI * 1j)
+    # fWaveComp.close()
+    # nTx = 2
+    # nRx = 1
+    # # compute feedback
+    # ltfSym = []
+    # ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan0[0:64]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nTx)))
+    # ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan0[64:128]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nTx)))
+    # vFb1 = p8h.procVhtChannelFeedback(ltfSym, p8h.BW.BW20, nTx, nRx)
+    # for i in range(0, len(vFb1)):
+    #     tmpAngle, tmpType = procVhtVCompressDebug(vFb1[i], 1, True)
+    #     procVhtVRecover(2, 1, tmpAngle, 1)
+    #     print("------------------------------------------")
+    #     print("")

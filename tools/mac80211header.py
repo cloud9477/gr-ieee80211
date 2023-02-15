@@ -556,10 +556,11 @@ def procVhtVRecover(nr, nc, quanAngle, codebook):
 
 # interpolation of grouped channel feedback
 def procVhtVIntpoV1(vD, group):
-    if(isinstance(vD, list) and group in [1, 2, 4]):
-        if(group == 1):
-            # only interpolate pilots
-            return vD[0:7] + [(vD[6] + vD[7])/2] + vD[7:20] + [(vD[19] + vD[20])/2] + vD[20:32] + [(vD[31] + vD[32])/2] + vD[32:45] + [(vD[44] + vD[45])/2] + vD[45:52]
+    if(isinstance(vD, list) and group in [1, 2, 4] and len(vD)):
+        if(len(vD) == 52):
+            if(group == 1):
+                # only interpolate pilots
+                return vD[0:7] + [vD[6]] + vD[7:20] + [vD[19]] + vD[20:32] + [vD[32]] + vD[32:45] + [vD[45]] + vD[45:52]
 
 """tx gen functions ------------------------------------------------------------------------------------------"""
 # vDP: input channel fb V of data and pilot subcarriers sorted by channel index from -Ns to Ns

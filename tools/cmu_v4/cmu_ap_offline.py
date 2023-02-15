@@ -60,6 +60,17 @@ def genMac80211UdpAmpduVht(udpPayloads):
         return b""
 
 if __name__ == "__main__":
+    mac80211Ins = mac80211.mac80211(2,  # type
+                                0,  # sub type, 8 = QoS Data, 0 = Data
+                                1,  # to DS, station to AP
+                                0,  # from DS
+                                0,  # retry
+                                0,  # protected
+                                'f4:69:d5:80:0f:a0',  # dest add
+                                '00:c0:ca:b1:5b:e1',  # sour add
+                                'f4:69:d5:80:0f:a0',  # recv add
+                                2704)  # sequence
+
     # fetch the channel info through ethernet, use the tool "pscp" with user name and passwd, you could replace it with other methods
     os.system("pscp -pw 7777 -r cloud@192.168.10.68:/home/cloud/sdr/cmu_chan0.bin /home/cloud/sdr/")
     os.system("pscp -pw 7777 -r cloud@192.168.10.50:/home/cloud/sdr/cmu_chan1.bin /home/cloud/sdr/")
@@ -83,36 +94,64 @@ if __name__ == "__main__":
         chan1.append(tmpR + tmpI * 1j)
     fWaveComp.close()
 
-    nSts = 2
+    nTx = 2
     nRx = 1
     # compute feedback
     ltfSym = []
-    ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan0[0:64]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nSts)))
-    ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan0[64:128]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nSts)))
-    vFb1 = p8h.procVhtChannelFeedback(ltfSym, p8h.BW.BW20, nSts, nRx)
+    ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan0[0:64]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nTx)))
+    ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan0[64:128]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nTx)))
+    vFb1 = p8h.procVhtChannelFeedback(ltfSym, p8h.BW.BW20, nTx, nRx)
+    vFb1Comp = []
     for i in range(0, len(vFb1)):
         # compress quantize and then recover
         tmpAngle1, tmpType1 = m8h.procVhtVCompress(vFb1[i], 1)
-        vFb1[i] = m8h.procVhtVRecover(2, 1, tmpAngle1, 1)
+        vFb1Comp.append(m8h.procVhtVRecover(2, 1, tmpAngle1, 1))
         # get the v tilde but not compess or quantize
         # vFb1[i] = m8h.procVhtVCompressDebugVt(vFb1[i])
-    print("feedback v 1")
-    for each in vFb1:
-        print(each)
+    print("feedback v1 compressed len: %d" % len(vFb1Comp))
+    vFb1Comp[7] = vFb1Comp[6]
+    vFb1Comp[21] = vFb1Comp[20]
+    vFb1Comp[34] = vFb1Comp[35]
+    vFb1Comp[48] = vFb1Comp[49]
+    
+    vhtCompressBf1 = m8h.genMgmtActVhtCompressBf(vDP = vFb1, group = 1, codebook = 1, fbType = 1, token = 23)
+    mgmtActNoAckPkt1 = mac80211Ins.genMgmtActNoAck('f4:69:d5:80:0f:a0', '00:c0:ca:b1:5b:e1', 'f4:69:d5:80:0f:a0', 10, m8h.MGMT_ACT_CAT.VHT.value, vhtCompressBf1)
+    vFb1CompPkt = []
+    if(m8h.rxPacketTypeCheck(mgmtActNoAckPkt1, m8h.FC_TPYE.MGMT, m8h.FC_SUBTPYE_MGMT.ACTNOACK)):
+        mgmtActCat, mgmtActFrame = mac80211Ins.mgmtActNoAckParser(mgmtActNoAckPkt1)
+        if(mgmtActCat == m8h.MGMT_ACT_CAT.VHT):
+            # vht compressed bf
+            if(int(mgmtActFrame[0]) == 0):
+                vFb1CompPkt = m8h.mgmtVhtActCompressBfParser(mgmtActFrame[1:])
+
     ltfSym = []
-    ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan1[0:64]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nSts)))
-    ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan1[64:128]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nSts)))
+    ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan1[0:64]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nTx)))
+    ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan1[64:128]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nTx)))
     # compute feedback
-    vFb2 = p8h.procVhtChannelFeedback(ltfSym, p8h.BW.BW20, nSts, nRx)
+    vFb2 = p8h.procVhtChannelFeedback(ltfSym, p8h.BW.BW20, nTx, nRx)
+    vFb2Comp = []
     for i in range(0, len(vFb2)):
         # compress quantize and then recover
         tmpAngle2, tmpType2 = m8h.procVhtVCompress(vFb2[i], 1)
-        vFb2[i] = m8h.procVhtVRecover(2, 1, tmpAngle2, 1)
+        vFb2Comp.append(m8h.procVhtVRecover(2, 1, tmpAngle2, 1))
         # get the v tilde but not compess or quantize
         # vFb2[i] = m8h.procVhtVCompressDebugVt(vFb2[i])
-    print("feedback v 2")
-    for each in vFb2:
-        print(each)
+    print("feedback v2 compressed len: %d" % len(vFb2Comp))
+    vFb2Comp[7] = vFb2Comp[6]
+    vFb2Comp[21] = vFb2Comp[20]
+    vFb2Comp[34] = vFb2Comp[35]
+    vFb2Comp[48] = vFb2Comp[49]
+
+    vhtCompressBf2 = m8h.genMgmtActVhtCompressBf(vDP = vFb2, group = 1, codebook = 1, fbType = 1, token = 23)
+    mgmtActNoAckPkt2 = mac80211Ins.genMgmtActNoAck('f4:69:d5:80:0f:a0', '00:c0:ca:b1:5b:e1', 'f4:69:d5:80:0f:a0', 10, m8h.MGMT_ACT_CAT.VHT.value, vhtCompressBf2)
+    vFb1CompPkt = []
+    if(m8h.rxPacketTypeCheck(mgmtActNoAckPkt2, m8h.FC_TPYE.MGMT, m8h.FC_SUBTPYE_MGMT.ACTNOACK)):
+        mgmtActCat, mgmtActFrame = mac80211Ins.mgmtActNoAckParser(mgmtActNoAckPkt2)
+        if(mgmtActCat == m8h.MGMT_ACT_CAT.VHT):
+            # vht compressed bf
+            if(int(mgmtActFrame[0]) == 0):
+                vFb2CompPkt = m8h.mgmtVhtActCompressBfParser(mgmtActFrame[1:])
+
     # combine the channel together
     bfH = []
     for k in range(0, len(vFb1)):
@@ -128,7 +167,7 @@ if __name__ == "__main__":
     # normalize Q
     bfQNormd = []
     for k in range(0, len(vFb1)):
-        bfQNormd.append(bfQ[k] / np.linalg.norm(bfQ[k]) * np.sqrt(nSts))
+        bfQNormd.append(bfQ[k] / np.linalg.norm(bfQ[k]) * np.sqrt(nTx))
         print("bfQNormd", k)
         print(bfQNormd[k])
     # map Q to FFT non-zero sub carriers

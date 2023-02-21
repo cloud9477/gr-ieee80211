@@ -162,36 +162,38 @@ if __name__ == "__main__":
 
     phy80211Ins = phy80211.phy80211()
     """multiple packets of different formats concatenate SISO """
-    # ssMultiList = []
-    # pkt = genMac80211UdpMPDU(udpPayload)
-    # for mcsIter in range(0, 8):
-    #     phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.L, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
-    #     ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0, cfoHz = 0.0, num = 10, gap = True, gapLen = 10000)
-    #     ssMultiList.append(ssFinal)
-    # for mcsIter in range(0, 8):
-    #     phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.HT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
-    #     ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0, cfoHz = 0.0, num = 10, gap = True, gapLen = 10000)
-    #     ssMultiList.append(ssFinal)
-    # pkts = genMac80211UdpAmpduVht([udpPayload])
-    # for mcsIter in range(0, 9):
-    #     phy80211Ins.genFromAmpdu(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False), vhtPartialAid=0, vhtGroupId=0)
-    #     ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0, cfoHz = 0.0, num = 10, gap = True, gapLen = 10000)
-    #     ssMultiList.append(ssFinal)
-    # phy80211Ins.genMultiSigBinFile(ssMultiList, "/home/cloud/sdr/sig80211GenMultipleSiso", True)
+    ssMultiList = []
+    pkt = genMac80211UdpMPDU(udpPayload500)
+    for mcsIter in range(0, 8):
+        phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.L, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
+        ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0, cfoHz = 234567.0, num = 10, gap = True, gapLen = 10000)
+        ssMultiList.append(ssFinal)
+    for mcsIter in range(0, 8):
+        phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.HT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
+        ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0, cfoHz = 234567.0, num = 10, gap = True, gapLen = 10000)
+        ssMultiList.append(ssFinal)
+    pkts = genMac80211UdpAmpduVht([udpPayload500])
+    for mcsIter in range(0, 9):
+        phy80211Ins.genFromAmpdu(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False), vhtPartialAid=0, vhtGroupId=0)
+        ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0, cfoHz = 234567.0, num = 10, gap = True, gapLen = 10000)
+        ssMultiList.append(ssFinal)
+    phy80211Ins.genMultiSigBinFile(ssMultiList, "/home/cloud/sdr/sig80211GenMultipleSiso", True)
+    # amp of LTF is 0.268432
 
     """multiple packets of different formats concatenate MIMO """
     ssMultiList = []
-    pkt = genMac80211UdpMPDU(udpPayload)
+    pkt = genMac80211UdpMPDU(udpPayload500)
     for mcsIter in range(8, 16):
         phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.HT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=2, shortGi=False))
-        ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0, cfoHz = 0.0, num = 10, gap = True, gapLen = 10000)
+        ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0 * np.sqrt(2), cfoHz = 234567.0, num = 10, gap = True, gapLen = 10000)
         ssMultiList.append(ssFinal)
-    pkts = genMac80211UdpAmpduVht([udpPayload])
+    pkts = genMac80211UdpAmpduVht([udpPayload500])
     for mcsIter in range(0, 9):
         phy80211Ins.genFromAmpdu(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=2, shortGi=False))
-        ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0, cfoHz = 0.0, num = 10, gap = True, gapLen = 10000)
+        ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0 * np.sqrt(2), cfoHz = 234567.0, num = 10, gap = True, gapLen = 10000)
         ssMultiList.append(ssFinal)
     phy80211Ins.genMultiSigBinFile(ssMultiList, "/home/cloud/sdr/sig80211GenMultipleMimo", True)
+    # amp of LTF is 0.268432 after timing sqrt(2)
 
     """multiple packets of different formats concatenate SISO AMPDU"""
     # ssMultiList = []

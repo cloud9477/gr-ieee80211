@@ -22,8 +22,9 @@
 #define INCLUDED_IEEE80211_DECODE_IMPL_H
 
 #include <gnuradio/ieee80211/decode.h>
-#include "cloud80211phy.h"
 #include <boost/crc.hpp>
+#include "cloud80211phy.h"
+
 
 #define dout d_debug&&std::cout
 
@@ -56,6 +57,9 @@ namespace gr {
       int t_nTotal;
       int t_nProcd;
       int t_mcs;
+      float t_cfo;
+      float t_snr;
+      float t_rssi;
       // NDP channel
       gr_complex d_mu2x1Chan[128];
       uint8_t d_mu2x1ChanFloatBytes[1027];

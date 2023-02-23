@@ -49,6 +49,7 @@ namespace gr {
       int d_mIndex;
       gr_complex d_conjMultiAvg;
       float d_tmpAc[SYNC_MAX_RES_LEN];
+      float d_tmpPwr[SYNC_MAX_RES_LEN];
       gr_complex d_tmpConjSamp[128];
 
      public:

@@ -1118,7 +1118,12 @@ def procSpatialMapping(inSigSs, inQ):
                 outSigSs[j].append(tmpQX[j][0])
         return outSigSs
 
+def genNoiseAmpWithSnrDb(sigAmp, snrDbList):
+    if(isinstance(sigAmp, (int, float)) and isinstance(snrDbList, list)):
+        return [sigAmp/(10**(each/20)) for each in snrDbList]
+
 if __name__ == "__main__":
+    print(genNoiseAmpWithSnrDb(0.26125001, [20, 22, 24, 26, 28, 30]))
     pass
 
 

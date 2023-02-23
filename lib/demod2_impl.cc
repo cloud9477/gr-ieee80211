@@ -79,6 +79,9 @@ namespace gr {
             for (auto tag : tags){
               d_meta = pmt::dict_add(d_meta, tag.key, tag.value);
             }
+            d_cfo = pmt::to_float(pmt::dict_ref(d_meta, pmt::mp("cfo"), pmt::from_float(0.0f)));
+            d_snr = pmt::to_float(pmt::dict_ref(d_meta, pmt::mp("snr"), pmt::from_float(0.0f)));
+            d_rssi = pmt::to_float(pmt::dict_ref(d_meta, pmt::mp("rssi"), pmt::from_float(0.0f)));
             int tmpPktSeq = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("seq"), pmt::from_long(-1)));
             d_nSigLMcs = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("mcs"), pmt::from_long(-1)));
             d_nSigLLen = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len"), pmt::from_long(-1)));
@@ -218,6 +221,9 @@ namespace gr {
         {
           dout<<"ieee80211 demod2, wr tag f:"<<d_m.format<<", ampdu:"<<d_m.ampdu<<", len:"<<d_m.len<<", mcs:"<<d_m.mcs<<", total:"<<d_m.nSym * d_m.nCBPS<<", tr:"<<d_nTrellis<<", nsym:"<<d_m.nSym<<", nSS:"<<d_m.nSS<<std::endl;
           pmt::pmt_t dict = pmt::make_dict();
+          dict = pmt::dict_add(dict, pmt::mp("cfo"), pmt::from_float(d_cfo));
+          dict = pmt::dict_add(dict, pmt::mp("snr"), pmt::from_float(d_snr));
+          dict = pmt::dict_add(dict, pmt::mp("rssi"), pmt::from_float(d_rssi));
           dict = pmt::dict_add(dict, pmt::mp("format"), pmt::from_long(d_m.format));
           dict = pmt::dict_add(dict, pmt::mp("mcs"), pmt::from_long(d_m.mcs));
           dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_m.len));

@@ -56,6 +56,9 @@ namespace gr {
       std::vector<gr_complex> d_HL;
       int d_nSigLSamp;
       int d_nSampConsumed;
+      float d_cfo;
+      float d_snr;
+      float d_rssi;
       // check format
       svSigDecoder d_decoder;
       gr_complex d_sig1[64];

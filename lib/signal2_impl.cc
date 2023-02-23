@@ -92,6 +92,7 @@ namespace gr {
               }
               d_cfoRad = pmt::to_float(pmt::dict_ref(d_meta, pmt::mp("rad"), pmt::from_float(0.0f)));
               d_snr = pmt::to_float(pmt::dict_ref(d_meta, pmt::mp("snr"), pmt::from_float(0.0f)));
+              d_rssi = pmt::to_float(pmt::dict_ref(d_meta, pmt::mp("rssi"), pmt::from_float(0.0f)));
               d_sSignal = S_DEMOD;
               // std::cout<<"ieee80211 signal, rd tag cfo:"<<(d_cfoRad) * 20000000.0f / 2.0f / M_PI<<", snr:"<<d_snr<<std::endl;
             }
@@ -137,6 +138,7 @@ namespace gr {
             pmt::pmt_t dict = pmt::make_dict();
             dict = pmt::dict_add(dict, pmt::mp("cfo"), pmt::from_float(d_cfoRad * 3183098.8618379068f));  // rad * 20e6 / 2pi
             dict = pmt::dict_add(dict, pmt::mp("snr"), pmt::from_float(d_snr));
+            dict = pmt::dict_add(dict, pmt::mp("rssi"), pmt::from_float(d_rssi));
             dict = pmt::dict_add(dict, pmt::mp("seq"), pmt::from_long(d_nSigPktSeq));
             dict = pmt::dict_add(dict, pmt::mp("mcs"), pmt::from_long(d_nSigMcs));
             dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_nSigLen));

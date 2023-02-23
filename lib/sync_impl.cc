@@ -122,7 +122,8 @@ namespace gr {
             sync[d_mIndex] = 0x01;  // sync index is LTF starting index + 16
             pmt::pmt_t dict = pmt::make_dict();   // add tag to pass cfo and snr
             dict = pmt::dict_add(dict, pmt::mp("rad"), pmt::from_float(ltf_cfo(&inSig[d_mIndex])));
-            dict = pmt::dict_add(dict, pmt::mp("snr"), pmt::from_float(5.0f * log10f((*d_maxAcP) / (1 - (*d_maxAcP)))));
+            dict = pmt::dict_add(dict, pmt::mp("snr"), pmt::from_float(10.0f * log10f((*d_maxAcP) / (1 - (*d_maxAcP)))));
+            dict = pmt::dict_add(dict, pmt::mp("rssi"), pmt::from_float(d_tmpPwr[d_maxIndex] / 64.0f));
             pmt::pmt_t pairs = pmt::dict_items(dict);
             for (size_t i = 0; i < pmt::length(pairs); i++) {
                 pmt::pmt_t pair = pmt::nth(i, pairs);
@@ -166,6 +167,7 @@ namespace gr {
       for(int i=0;i<SYNC_MAX_RES_LEN;i++)   // sliding window to compute auto correlation
       {
         d_tmpAc[i] = std::abs(tmpMultiSum)/std::sqrt(tmpSig1Sum)/std::sqrt(tmpSig2Sum);
+        d_tmpPwr[i] = tmpSig1Sum;
         tmpMultiSum -= sig[i] * std::conj(sig[i+64]);
         tmpSig1Sum -= std::abs(sig[i])*std::abs(sig[i]);
         tmpSig2Sum -= std::abs(sig[i+64])*std::abs(sig[i+64]);

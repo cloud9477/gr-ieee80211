@@ -48,6 +48,7 @@ namespace gr {
       svSigDecoder d_decoder;
       float d_cfoRad;
       float d_snr;
+      float d_rssi;
       std::vector<gr_complex> d_h;
       float d_sigLegacyCodedLlr[48];
       uint8_t d_sigLegacyBits[24];

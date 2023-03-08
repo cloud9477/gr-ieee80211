@@ -161,6 +161,7 @@ if __name__ == "__main__":
     udpPayload500  = "123456789012345678901234567890abcdefghijklmnopqrst" * 10
 
     phy80211Ins = phy80211.phy80211()
+
     """multiple packets of different formats concatenate SISO """
     ssMultiList = []
     pkt = genMac80211UdpMPDU(udpPayload)
@@ -200,6 +201,15 @@ if __name__ == "__main__":
     """
     amp avg of LTF is 0.26843211 after timing sqrt(2)
     """
+
+    """SISO Legacy beacon example, channel 100, 5.5 GHz, 6M bitrate, SSID: cloud_ac86u_5G"""
+    # beaconPayloadHexStr = "80000000ffffffffffff244bfe6125ac244bfe6125acc0293e00f6ed6a01000064001111000e636c6f75645f61633836755f354701088c129824b048606c050402030000074255532024011e28011e2c011e30011e34011e38011e3c011e40011e64011e68011e6c011e70011e74011e84011e88011e8c011e95011e99011e9d011ea1011ea5011e2001002302110030140100000fac040100000fac040100000fac020c000b0500000c000042020000460530000000002d1aef0117ffffffff000000000000000000000000000000000000003d16640500000000000000000000000000000000000000007f080400080000000040bf0cb269830faaff0000aaff0000c005016a000000c30402020202dd31f832e4010101020100031444867f67c0f5fefe59231d42f65a24b75aed3b8807045aed3b881204a8ac0000130101150100dd0500904c0417dd090010180200009c0000dd180050f2020101840003a4000027a4000042435e0062322f00d13fd44d"
+    # pkt = bytearray.fromhex(beaconPayloadHexStr)
+    # ssMultiList = []
+    # phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.L, mcs=0, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
+    # ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0, cfoHz = 234567.0, num = 1, gap = True, gapLen = 1000000)
+    # ssMultiList.append(ssFinal)
+    # phy80211Ins.genMultiSigBinFile(ssMultiList, "/home/cloud/sdr/sig80211GenBeacon", True)
 
     """multiple packets of different formats concatenate SISO AMPDU"""
     # ssMultiList = []

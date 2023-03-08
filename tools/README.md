@@ -63,3 +63,18 @@ Version 3
 - For the AP side, it first sends an NDP packet and then wait for the data packet containing the channel info.
 - The NDP will be retransmitted if the reception is timeout until it gets the channel info.
 - The AP generates the Q matrix and sends MU-MIMO packets for multiple times.
+
+
+
+
+# Beacon Transmission
+
+Introduction
+------------
+- Generate a beacon packet which could be received by phones.
+
+Steps
+------------
+- 1. Use the pktGenExample.py, the **SISO Legacy beacon example** part, generate a beacon packet signal bin file.
+- 2. Use the txBeaconBin.grc in the **example/beacon** folder to transmit the bin file.
+- 3. Pay attention on the file path of signal generation and file sink block in the grc.

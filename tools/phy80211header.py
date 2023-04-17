@@ -822,7 +822,8 @@ def procInterleaveNonLegacy(inSsBits, mod):
 def procConcat2Symbol(sa, sb):
     if(isinstance(sa, list) and isinstance(sb, list)):
         if(len(sa) > 0 and len(sb) > 0):
-            sb[0] = sb[0] * 0.5 + sa[len(sa) - 1] * 0.5
+            sb[0] = sb[0] * 0.5
+            sa[len(sa) - 1] = sa[len(sa) - 1] * 0.5
             return sa + sb
         print("cloud phy80211 header, procConcat2Symbol: input len error, sa %d, sb %d" % (len(sa), len(sb)))
     print("cloud phy80211 header, procConcat2Symbol: input type error")

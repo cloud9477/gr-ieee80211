@@ -421,7 +421,7 @@ class modulation:
             self.legacyLen = int((self.txTime - 20)/4) * 3 - 3
         else:  # VHT
             print("cloud phy80211 header, mod gen pkt len non aggre only l and ht")
-        print("mpdu len: %d, psdu len: %d, nSym: %d, txTime: %d" % (self.mpduLen, self.psduLen, self.nSym, self.txTime))
+        # print("mpdu len: %d, psdu len: %d, nSym: %d, txTime: %d" % (self.mpduLen, self.psduLen, self.nSym, self.txTime))
 
     def procPktLenAggre(self, ampduLen):
         nService = 16
@@ -469,7 +469,7 @@ class modulation:
                 self.legacyLen = int((self.txTime - 20)/4) * 3 - 3
         else:
             print("cloud phy80211 header, mod gen pkt len aggre only ht and vht")
-        print("mpdu len: %d, ampdu len:%d, psdu len: %d, nSym: %d, txTime: %d" % (self.mpduLen, self.ampduLen, self.psduLen, self.nSym, self.txTime))
+        # print("mpdu len: %d, ampdu len:%d, psdu len: %d, nSym: %d, txTime: %d" % (self.mpduLen, self.ampduLen, self.psduLen, self.nSym, self.txTime))
     
     def procPktLenAggreMu(self, ampduLen, nSymMu):
         nService = 16

@@ -356,7 +356,6 @@ def genAmpduVHT(payloads):
             # each packet is padded
             nBytePadding = int(np.ceil(len(tmpPacket) / 4) * 4 - len(tmpPacket))
             tmpPacket += b'\x00' * nBytePadding
-            print(tmpPacket)
             tmpAmpduPkt += tmpPacket
         return tmpAmpduPkt
     else:

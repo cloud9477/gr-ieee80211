@@ -98,7 +98,7 @@ def genMac80211UdpAmpduVht(udpPayloads):
                                             'f4:69:d5:80:0f:a0',  # recv add
                                             2704)  # sequence
             mac80211Packet = mac80211Ins.genPacket(llcPacket)
-            print("mac packet: ", len(mac80211Packet))
+            print("mac packet", len(mac80211Packet))
             print(mac80211Packet.hex())
             macPkts.append(mac80211Packet)
         macAmpduVht = mac80211.genAmpduVHT(macPkts)

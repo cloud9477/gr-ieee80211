@@ -387,7 +387,7 @@ class modulation:
         else:
             self.initRes = False
             print("cloud phy80211 header, mod init format error")
-        print("SPR %d, SS %d, LTF %d, mcs %d, mod %s, CR %s, BPSCS %d, SD %d, SP %d, CBPS %d, DBPS %d, ES %d, DR %d, DRS %d" % (self.spr, self.nSS, self.nLtf, self.mcs, self.mod, self.cr, self.nBPSCS, self.nSD, self.nSP, self.nCBPS, self.nDBPS, self.nES, self.dr, self.drs))
+        # print("SPR %d, SS %d, LTF %d, mcs %d, mod %s, CR %s, BPSCS %d, SD %d, SP %d, CBPS %d, DBPS %d, ES %d, DR %d, DRS %d" % (self.spr, self.nSS, self.nLtf, self.mcs, self.mod, self.cr, self.nBPSCS, self.nSD, self.nSP, self.nCBPS, self.nDBPS, self.nES, self.dr, self.drs))
 
     def procPktLenNonAggre(self, mpduLen):
         nService = 16

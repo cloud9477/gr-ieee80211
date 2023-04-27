@@ -29,7 +29,7 @@ import random
 import time
 
 class phy80211():
-    def __init__(self):
+    def __init__(self, ifDebug = True):
         self.m = p8h.modulation()
         self.mpdu = b""
         self.ampdu = b""
@@ -64,6 +64,8 @@ class phy80211():
         self.nSTSMu = 0
         self.vhtSigBCrcBitsMu = [[], [], [], []]
         self.bfQ = []
+        # debug
+        self.ifdb = ifDebug
 
     def genFromMpdu(self, mpdu, mod):
         if(isinstance(mpdu, (bytes, bytearray)) and isinstance(mod, p8h.modulation) and len(mpdu) > 0 and mod.initRes):
@@ -124,7 +126,7 @@ class phy80211():
                     # single user packet either goes to AP or to station
                     # 0: sta to AP, 63: AP to sta
                     if(len(ampdu) > 0):
-                        print("cloud phy80211, genVht type general packet")
+                        if self.ifdb: print("cloud phy80211, genVht type general packet")
                         self.ampdu = ampdu
                         self.m = mod
                         self.m.ampdu = True
@@ -145,7 +147,7 @@ class phy80211():
                         self.__genOfdmSignal()
                     else:
                         # NDP
-                        print("cloud phy80211, genVht type NDP packet")
+                        if self.ifdb: print("cloud phy80211, genVht type NDP packet")
                         self.ampdu = b""
                         self.m = mod
                         self.m.ampdu = True
@@ -171,19 +173,19 @@ class phy80211():
         self.ampduMu = [ampdu0, ampdu1, ampdu2, ampdu3]
         self.mMu = [mod0, mod1, mod2, mod3]
         self.nUserMu = nUser
-        print("VHT MU number of users:", self.nUserMu)
+        if self.ifdb: print("VHT MU number of users:", self.nUserMu)
         # prepare each mod
         self.nSymMu = 0
         self.nSTSMu = 0
         for u in range(0, nUser):
             self.mMu[u].procPktLenAggre(len(self.ampduMu[u]))
-            print("user %d symbol number %d" % (u, self.mMu[u].nSym))
+            if self.ifdb: print("user %d symbol number %d" % (u, self.mMu[u].nSym))
             self.nSymMu = max(self.nSymMu, self.mMu[u].nSym)
             self.nSTSMu += self.mMu[u].nSTS
         self.m = p8h.modulation(phyFormat=p8h.F.VHT, mcs=0, bw=mod0.bw, nSTS=self.nSTSMu, shortGi=mod0.sgi)
         self.m.procPktLenAggreMu(0, self.nSymMu)
         self.m.mu = True
-        print("VHT MU mod nSTS %d, nSS %d, nLTF %d" % (self.m.nSTS, self.m.nSS, self.m.nLtf))
+        if self.ifdb: print("VHT MU mod nSTS %d, nSS %d, nLTF %d" % (self.m.nSTS, self.m.nSS, self.m.nLtf))
         self.bfQ = bfQ
         self.vhtGroupId = groupId       # multiple user, 1 to 62
         self.__genLegacyTraining()
@@ -221,7 +223,7 @@ class phy80211():
             tmpStf = tmpStf[int(len(tmpStf)/2):] + tmpStf + tmpStf
             tmpLtf = tmpLtf[int(len(tmpLtf)/2):] + tmpLtf + tmpLtf
             self.ssLegacyTraining.append(p8h.procConcat2Symbol(tmpStf, tmpLtf))
-        print("cloud phy80211, legacy training sample len %d" % (len(self.ssLegacyTraining[0])))
+        if self.ifdb: print("cloud phy80211, legacy training sample len %d" % (len(self.ssLegacyTraining[0])))
 
     def __genLegacySignal(self):
         # ieee 80211 2016 ofdm phy, sec 17.3.4
@@ -241,18 +243,18 @@ class phy80211():
         tmpHeaderBits.append(sum(tmpHeaderBits)%2)
         # add 6 tail bits
         tmpHeaderBits += [0] * 6
-        print("legacy len:", self.m.legacyLen)
-        print("legacy sig bit length:", len(tmpHeaderBits))
-        print(tmpHeaderBits)
+        if self.ifdb: print("legacy len:", self.m.legacyLen)
+        if self.ifdb: print("legacy sig bit length:", len(tmpHeaderBits))
+        if self.ifdb: print(tmpHeaderBits)
         # convolution of sig bits, no scrambling for header
         tmpHeaderCodedBits = p8h.procBcc(tmpHeaderBits, p8h.CR.CR12)
         # interleave of header bits
-        print("legacy sig coded bits: %d" % (len(tmpHeaderCodedBits)))
-        print(tmpHeaderCodedBits)
+        if self.ifdb: print("legacy sig coded bits: %d" % (len(tmpHeaderCodedBits)))
+        if self.ifdb: print(tmpHeaderCodedBits)
         # interleave of header using standard method
         tmpHeaderInterleaveBits = p8h.procInterleaveSigL(tmpHeaderCodedBits)
-        print("legacy sig interleaved bits %s" % (len(tmpHeaderInterleaveBits)))
-        print(tmpHeaderInterleaveBits)
+        if self.ifdb: print("legacy sig interleaved bits %s" % (len(tmpHeaderInterleaveBits)))
+        if self.ifdb: print(tmpHeaderInterleaveBits)
         tmpHeaderQam = []
         for each in tmpHeaderInterleaveBits:
             tmpHeaderQam.append(p8h.C_QAM_MODU_TAB[p8h.M.BPSK.value][int(each)])
@@ -268,7 +270,7 @@ class phy80211():
             tmpHeaderQam = tmpHeaderQam * 4
         for ssItr in range(0, self.m.nSS):
             self.ssLegacySig.append(p8h.procGi(p8h.procToneScaling(p8h.procFftMod(p8h.procLegacyCSD(tmpHeaderQam, self.m.nSS, ssItr, self.m.spr)), p8h.C_SCALENTF_SIG_L[self.m.bw.value], self.m.nSS)))
-        print("legacy sig sample len %d" % (len(self.ssLegacySig[0])))
+        if self.ifdb: print("legacy sig sample len %d" % (len(self.ssLegacySig[0])))
 
     def __genHtSignal(self):
         self.ssHtSig = []
@@ -312,16 +314,16 @@ class phy80211():
         tmpHtSigBits += p8h.genBitBitCrc8(tmpHtSigBits)
         # tail
         tmpHtSigBits += [0] * 6
-        print("HT signal bits: %d" % (len(tmpHtSigBits)))
-        print(tmpHtSigBits)
+        if self.ifdb: print("HT signal bits: %d" % (len(tmpHtSigBits)))
+        if self.ifdb: print(tmpHtSigBits)
         # coding
         tmpHtSigCodedBits = p8h.procBcc(tmpHtSigBits, p8h.CR.CR12)
-        print("HT coded bits: %d" % (len(tmpHtSigCodedBits)))
-        print(tmpHtSigCodedBits)
+        if self.ifdb: print("HT coded bits: %d" % (len(tmpHtSigCodedBits)))
+        if self.ifdb: print(tmpHtSigCodedBits)
         # interleave
         tmpHtSigIntedBits = p8h.procInterleaveSigL(tmpHtSigCodedBits[0:48]) + p8h.procInterleaveSigL(tmpHtSigCodedBits[48:96])
-        print("HT interleaved bits: %d" % (len(tmpHtSigIntedBits)))
-        print(tmpHtSigIntedBits)
+        if self.ifdb: print("HT interleaved bits: %d" % (len(tmpHtSigIntedBits)))
+        if self.ifdb: print(tmpHtSigIntedBits)
         # bpsk modulation
         tmpSig1Qam = [p8h.C_QAM_MODU_TAB[p8h.M.QBPSK.value][each] for each in tmpHtSigIntedBits[0:48]]
         tmpSig2Qam = [p8h.C_QAM_MODU_TAB[p8h.M.QBPSK.value][each] for each in tmpHtSigIntedBits[48:96]]
@@ -416,14 +418,14 @@ class phy80211():
         tmpVhtSigABits += p8h.genBitBitCrc8(tmpVhtSigABits)
         # b 18 23 tail
         tmpVhtSigABits += [0] * 6
-        print("VHT sig A bits: %d" % (len(tmpVhtSigABits)))
-        print(tmpVhtSigABits)
+        if self.ifdb: print("VHT sig A bits: %d" % (len(tmpVhtSigABits)))
+        if self.ifdb: print(tmpVhtSigABits)
         tmpCodedBits = p8h.procBcc(tmpVhtSigABits, p8h.CR.CR12)
-        print("VHT sig A coded bits: %d" % len(tmpCodedBits))
-        print(tmpCodedBits)
+        if self.ifdb: print("VHT sig A coded bits: %d" % len(tmpCodedBits))
+        if self.ifdb: print(tmpCodedBits)
         tmpIntedBits = p8h.procInterleaveSigL(tmpCodedBits[0:48]) + p8h.procInterleaveSigL(tmpCodedBits[48:96])
-        print("VHT sig A interleaved bits: %d" % len(tmpIntedBits))
-        print(tmpIntedBits)
+        if self.ifdb: print("VHT sig A interleaved bits: %d" % len(tmpIntedBits))
+        if self.ifdb: print(tmpIntedBits)
         # bpsk modulation
         tmpSig1Qam = [p8h.C_QAM_MODU_TAB[p8h.M.BPSK.value][each] for each in tmpIntedBits[0:48]]
         tmpSig2Qam = [p8h.C_QAM_MODU_TAB[p8h.M.QBPSK.value][each] for each in tmpIntedBits[48:96]]
@@ -476,7 +478,7 @@ class phy80211():
                             tmpVhtLtf.append(p8h.C_LTF_VHT[self.m.bw.value][j] * p8h.C_R_LTF_VHT_4[ltfIter])
                         else:   # ht or vht non pilot sub carriers
                             tmpVhtLtf.append(p8h.C_LTF_VHT[self.m.bw.value][j] * p8h.C_P_LTF_VHT_4[ssItr][ltfIter])
-                    print("ltf n ", ltfIter, ", ss ", ssItr, p8h.procNonDataSC(tmpVhtLtf))
+                    if self.ifdb: print("ltf n ", ltfIter, ", ss ", ssItr, p8h.procNonDataSC(tmpVhtLtf))
                     tmpLtfSs.append(p8h.procCSD(p8h.procNonDataSC(tmpVhtLtf), self.m.nSS, ssItr, self.m.spr))
                 else:
                     tmpVhtLtf = []
@@ -495,8 +497,8 @@ class phy80211():
         else:
             self.ssHtTraining = tmpSsNonLegacyTraining
         for ssIter in range(0, self.m.nSS):
-            print("non legacy training ss %d, sample len %d" % (ssIter, len(tmpSsNonLegacyTraining[ssIter])))
-            print(tmpSsNonLegacyTraining[ssIter])
+            if self.ifdb: print("non legacy training ss %d, sample len %d" % (ssIter, len(tmpSsNonLegacyTraining[ssIter])))
+            if self.ifdb: print(tmpSsNonLegacyTraining[ssIter])
 
     def __genVhtSignalB(self):
         self.ssVhtSigB = []
@@ -504,7 +506,7 @@ class phy80211():
         # bits for length
         # compute APEP Len first, single user, use mpdu byte number as APEP len
         tmpSigBLen = int(np.ceil(self.m.ampduLen/4))
-        print("sig b len: %d" % tmpSigBLen)
+        if self.ifdb: print("sig b len: %d" % tmpSigBLen)
         if(self.m.bw == p8h.BW.BW20):
             tmpLenBitN = 17
             tmpReservedBitN = 3
@@ -533,16 +535,16 @@ class phy80211():
             tmpVhtSigBBits = tmpVhtSigBBits * 2
         elif(self.m.bw == p8h.BW.BW80):
             tmpVhtSigBBits = tmpVhtSigBBits * 2 + [0]
-        print("vht sig b bits: %d" % len(tmpVhtSigBBits))
-        print(tmpVhtSigBBits)
+        if self.ifdb: print("vht sig b bits: %d" % len(tmpVhtSigBBits))
+        if self.ifdb: print(tmpVhtSigBBits)
         # convolution
         tmpVhtSigBCodedBits = p8h.procBcc(tmpVhtSigBBits, p8h.CR.CR12)
-        print("vht sig b convolved bits: %d" % (len(tmpVhtSigBCodedBits)))
-        print(tmpVhtSigBCodedBits)
+        if self.ifdb: print("vht sig b convolved bits: %d" % (len(tmpVhtSigBCodedBits)))
+        if self.ifdb: print(tmpVhtSigBCodedBits)
         # no segment parse, interleave
         tmpIntedBits = p8h.procInterleaveNonLegacy([tmpVhtSigBCodedBits], tmpSigBMod)[0]
-        print("VHT sig b interleaved bits: %d" % len(tmpIntedBits))
-        print(tmpIntedBits)
+        if self.ifdb: print("VHT sig b interleaved bits: %d" % len(tmpIntedBits))
+        if self.ifdb: print(tmpIntedBits)
         # modulation
         for ssItr in range(0, self.m.nSS):
             tmpSigQam = [p8h.C_QAM_MODU_TAB[p8h.M.BPSK.value][each] for each in tmpIntedBits]
@@ -554,8 +556,8 @@ class phy80211():
                 p8h.procFftMod(p8h.procCSD(tmpSigQam, self.m.nSS, ssItr, self.m.spr)),
                 p8h.C_SCALENTF_SIG_VHT_B[self.m.bw.value], self.m.nSS)))
         for ssIter in range(0, self.m.nSS):
-            print("ss %d VHT signal B: %d" % (ssIter, len(self.ssVhtSigB[ssIter])))
-            print(self.ssVhtSigB[ssIter])
+            if self.ifdb: print("ss %d VHT signal B: %d" % (ssIter, len(self.ssVhtSigB[ssIter])))
+            if self.ifdb: print(self.ssVhtSigB[ssIter])
 
     def __genVhtSignalBMu(self):
         self.ssVhtSigB = []
@@ -565,7 +567,7 @@ class phy80211():
             tmpVhtSigBBits = []
             # compute APEP Len first, single user, use mpdu byte number as APEP len
             tmpSigBLen = int(len(self.ampduMu[u])/4)
-            print("user %d sig b len: %d" % (u, tmpSigBLen))
+            if self.ifdb: print("user %d sig b len: %d" % (u, tmpSigBLen))
             if(self.m.bw == p8h.BW.BW20):
                 tmpLenBitN = 16
                 tmpSigBMod = p8h.modulation(phyFormat=p8h.F.VHT, mcs=0, bw=p8h.BW.BW20, nSTS=1, shortGi=False)
@@ -585,23 +587,23 @@ class phy80211():
                 tmpVhtSigBBits.append((self.mMu[u].mcs >> i) & (1))
             # crc 8 for sig b used in data
             self.vhtSigBCrcBitsMu.append(p8h.genBitBitCrc8(tmpVhtSigBBits))
-            print("vht sig b crc bits:", self.vhtSigBCrcBitsMu[u])
+            if self.ifdb: print("vht sig b crc bits:", self.vhtSigBCrcBitsMu[u])
             # bits for tail
             tmpVhtSigBBits = tmpVhtSigBBits + [0] * 6
             if(self.m.bw == p8h.BW.BW40):
                 tmpVhtSigBBits = tmpVhtSigBBits * 2
             elif(self.m.bw == p8h.BW.BW80):
                 tmpVhtSigBBits = tmpVhtSigBBits * 2 + [0]
-            print("vht sig b bits: %d" % len(tmpVhtSigBBits))
-            print(tmpVhtSigBBits)
+            if self.ifdb: print("vht sig b bits: %d" % len(tmpVhtSigBBits))
+            if self.ifdb: print(tmpVhtSigBBits)
             # convolution
             tmpVhtSigBCodedBits = p8h.procBcc(tmpVhtSigBBits, p8h.CR.CR12)
-            print("vht sig b convolved bits: %d" % (len(tmpVhtSigBCodedBits)))
-            print(tmpVhtSigBCodedBits)
+            if self.ifdb: print("vht sig b convolved bits: %d" % (len(tmpVhtSigBCodedBits)))
+            if self.ifdb: print(tmpVhtSigBCodedBits)
             # no segment parse, interleave
             tmpIntedBits = p8h.procInterleaveNonLegacy([tmpVhtSigBCodedBits], tmpSigBMod)[0]
-            print("VHT sig b interleaved bits: %d" % len(tmpIntedBits))
-            print(tmpIntedBits)
+            if self.ifdb: print("VHT sig b interleaved bits: %d" % len(tmpIntedBits))
+            if self.ifdb: print(tmpIntedBits)
             # modulation
             for ssItr in range(0, self.mMu[u].nSS):
                 tmpSigQam = [p8h.C_QAM_MODU_TAB[p8h.M.BPSK.value][each] for each in tmpIntedBits]
@@ -622,8 +624,8 @@ class phy80211():
                     p8h.procFftMod(tmpSsSigQamQ[ssItr]),
                     p8h.C_SCALENTF_SIG_VHT_B[self.m.bw.value], self.m.nSS)))
         for each in self.ssVhtSigB:
-            print("VHT signal B: %d" % len(each))
-            print(each)
+            if self.ifdb: print("VHT signal B: %d" % len(each))
+            if self.ifdb: print(each)
 
     def __genDataBits(self):
         self.dataBits = []
@@ -633,7 +635,7 @@ class phy80211():
             - input of bcc includes service, psdu and pad bits, after coding the tails are added
             - vht is scrambled first then add tail bits and then coded
             """
-            print("vht data apep len: %d, psdu len: %d, pad eof: %d, pad octets: %d, pad bits: %d, totoal bits: %d" % (self.m.ampduLen, self.m.psduLen, self.m.nPadEof, self.m.nPadOctet, self.m.nPadBits, (self.m.nSym * self.m.nDBPS)))
+            if self.ifdb: print("vht data apep len: %d, psdu len: %d, pad eof: %d, pad octets: %d, pad bits: %d, totoal bits: %d" % (self.m.ampduLen, self.m.psduLen, self.m.nPadEof, self.m.nPadOctet, self.m.nPadBits, (self.m.nSym * self.m.nDBPS)))
             # convert MAC data
             tmpAmpduBits = []
             for each in self.ampdu:
@@ -641,7 +643,7 @@ class phy80211():
                     tmpAmpduBits.append((each>>i) & (1))
             # service bits, 7 scrambler init, 1 reserved, sig b crc
             tmpServiceBits = [0] * 8 + self.vhtSigBCrcBits
-            print("vht service bits: ", tmpServiceBits)
+            if self.ifdb: print("vht service bits: ", tmpServiceBits)
             # to do the eof padding
             # tmpPsduBits = tmpAmpduBits + p8h.C_VHT_EOF * self.m.nPadEof + [0] * 8 * self.m.nPadOctet
             tmpPsduBits = tmpAmpduBits + tmpAmpduBits[0:int(self.m.psduLen * 8 - self.m.ampduLen * 8)]
@@ -668,14 +670,14 @@ class phy80211():
             # service bits
             tmpServiceBits = [0] * 16
             self.dataBits = tmpServiceBits + tmpPsduBits + [0] * 6 * self.m.nES + [0] * self.m.nPadBits
-        print("data bits: %d" % len(self.dataBits))
-        print(self.dataBits)
+        if self.ifdb: print("data bits: %d" % len(self.dataBits))
+        if self.ifdb: print(self.dataBits)
 
     def __genCodedBits(self):
         self.esCodedBits = []
         tmpScrambledBits = p8h.procScramble(self.dataBits, self.dataScrambler)
-        print("scrambled bits: %d" % len(tmpScrambledBits))
-        print(tmpScrambledBits)
+        if self.ifdb: print("scrambled bits: %d" % len(tmpScrambledBits))
+        if self.ifdb: print(tmpScrambledBits)
         if(self.m.phyFormat == p8h.F.VHT):
             for i in range(0, self.m.nES):
                 # divide scrambled bits for bcc coders, since tail is not added yet, minus 6
@@ -688,16 +690,16 @@ class phy80211():
             # legacy and ht, reset the tail bits
             for i in range(0, self.m.nES * 6):
                 tmpScrambledBits[16 + self.m.psduLen*8 + i] = 0
-            print("scrambled bits after reset tail: %d" % len(tmpScrambledBits))
-            print(tmpScrambledBits)
+            if self.ifdb: print("scrambled bits after reset tail: %d" % len(tmpScrambledBits))
+            if self.ifdb: print(tmpScrambledBits)
             for i in range(0, self.m.nES):
                 # divide scrambled bits for bcc coders, for HT bits are divided alternatively
                 tmpDividedBits = [tmpScrambledBits[each] for each in range((0+i), int(self.m.nDBPS * self.m.nSym / self.m.nES), self.m.nES)]
                 # coding and puncturing
                 self.esCodedBits.append(p8h.procBcc(tmpDividedBits, self.m.cr))
         for each in self.esCodedBits:
-            print("coded bits: %d" % len(each))
-            print(each)
+            if self.ifdb: print("coded bits: %d" % len(each))
+            if self.ifdb: print(each)
 
     def __genStreamParserDataBits(self):
         """
@@ -720,8 +722,8 @@ class phy80211():
                         i = (iss) * s + cs * int(np.floor(k/(self.m.nES * s))) + int(k % s)
                         self.ssStreamBits[iss][k + int(isym * self.m.nCBPSS)] = self.esCodedBits[j][i + int(isym * self.m.nCBPS)]
         for each in self.ssStreamBits:
-            print("stream parser bits:", len(each))
-            print(each)
+            if self.ifdb: print("stream parser bits:", len(each))
+            if self.ifdb: print(each)
 
     def __genInterleaveDataBits(self):
         self.ssIntedBits = []
@@ -732,8 +734,8 @@ class phy80211():
         else:
             self.ssIntedBits = p8h.procInterleaveNonLegacy(self.ssStreamBits, self.m)
         for each in self.ssIntedBits:
-            print("interleaved stream bits:", len(each))
-            print(each)
+            if self.ifdb: print("interleaved stream bits:", len(each))
+            if self.ifdb: print(each)
 
     def __genConstellation(self):
         self.ssSymbols = []
@@ -746,11 +748,9 @@ class phy80211():
                 for j in range(0, self.m.nBPSCS):
                     tmpCarrierChip += self.ssIntedBits[ssItr][i * self.m.nBPSCS + j] * (2 ** j)
                 self.ssSymbols[ssItr].append(p8h.C_QAM_MODU_TAB[self.m.mod.value][tmpCarrierChip])
-            print(ssItr, ssItr, ssItr)
-            # print(self.ssSymbols)
+            if self.ifdb: print(ssItr, ssItr, ssItr)
         for each in self.ssSymbols:
-            print("constellation data", len(each))
-            # print(each)
+            if self.ifdb: print("constellation data", len(each))
 
     def __genOfdmSignalMu(self):
         self.ssPhySig = []

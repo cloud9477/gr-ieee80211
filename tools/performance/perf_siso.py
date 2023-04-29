@@ -73,19 +73,30 @@ def genMac80211UdpAmpduVht(udpPayloads):
 if __name__ == "__main__":
     udpPayload200  = "123456789012345678901234567890abcdefghijklmnopqrst" * 4
     perfPktNum = 10
-    perfSnrList = list(np.arange(30, 31, 1))
+    perfSnrList = list(np.arange(0, 31, 1))
     perfSigAmp = 0.18750000
     perfSampNum = 0
+    perfRes = []
     phy80211Ins = phy80211.phy80211(ifDebug=False)
 
     ssMultiList = []
     pkt = genMac80211UdpMPDU(udpPayload200)
     for mcsIter in range(0, 8):
         phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.L, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
-        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0, cfoHz = 0.0, num = 1000, gap = True, gapLen = 1600)
+        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0, cfoHz = 0.0, num = perfPktNum, gap = True, gapLen = 1600)
         ssMultiList.append(ssFinal)
+    # for mcsIter in range(0, 8):
+    #     phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.HT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
+    #     ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0, cfoHz = 0.0, num = perfPktNum, gap = True, gapLen = 1600)
+    #     ssMultiList.append(ssFinal)
+    # pkts = genMac80211UdpAmpduVht([udpPayload200])
+    # for mcsIter in range(0, 9):
+    #     phy80211Ins.genFromAmpdu(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False), vhtPartialAid=0, vhtGroupId=0)
+    #     ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0, cfoHz = 0.0, num = perfPktNum, gap = True, gapLen = 1600)
+    #     ssMultiList.append(ssFinal)
     phy80211Ins.genMultiSigBinFile(ssMultiList, "/home/cloud/sdr/sig80211GenMultipleSiso", False)
 
+    
     for snrIter in range(0, len(perfSnrList)):
         tmpNoiseAmp = np.sqrt((perfSigAmp**2)/(10.0**(perfSnrList[snrIter]/10.0)))
         os.system("python3 /home/cloud/sdr/gr-ieee80211/tools/performance/gr_siso.py " + str(tmpNoiseAmp) + " > /home/cloud/sdr/tmpSiso.txt &")
@@ -103,13 +114,14 @@ if __name__ == "__main__":
                 print("continue")
         os.system('pkill -f gr_siso.py')
 
-    # for mcsIter in range(0, 8):
-    #     phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.HT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
-    #     ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0, cfoHz = 0.0, num = 10, gap = True, gapLen = 10000)
-    #     ssMultiList.append(ssFinal)
-    # pkts = genMac80211UdpAmpduVht([udpPayload200])
-    # for mcsIter in range(0, 9):
-    #     phy80211Ins.genFromAmpdu(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False), vhtPartialAid=0, vhtGroupId=0)
-    #     ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0, cfoHz = 0.0, num = 10, gap = True, gapLen = 10000)
-    #     ssMultiList.append(ssFinal)
+        resLine = open("/home/cloud/sdr/tmpSiso.txt").readlines()[-1]
+        resItems = resLine.split(",")
+        tmpRes = []
+        for i in range(3, 3+len(resItems)-6):
+            tmpRes.append(int(resItems[i].split(":")[1]))
+        perfRes.append(tmpRes)
+    
+    print(perfRes)
+
+
     

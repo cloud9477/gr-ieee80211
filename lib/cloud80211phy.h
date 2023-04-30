@@ -175,6 +175,7 @@ extern const int SV_STATE_OUTPUT[64][2];
 
 extern const float PILOT_P[127];
 extern const float PILOT_L[4];
+extern const float PILOT_HT_1[4];
 extern const float PILOT_HT_2_1[4];
 extern const float PILOT_HT_2_2[4];
 extern const float PILOT_VHT[4];

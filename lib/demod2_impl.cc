@@ -186,7 +186,14 @@ namespace gr {
             {
               d_unCoded = d_m.len * 8 + 22;
               d_nTrellis = d_m.len * 8 + 22;
-              memcpy(d_pilot, PILOT_HT_2_1, sizeof(float)*4);
+              if(d_m.nSS == 1)
+              {
+                memcpy(d_pilot, PILOT_HT_1, sizeof(float)*4);
+              }
+              else
+              {
+                memcpy(d_pilot, PILOT_HT_2_1, sizeof(float)*4);
+              }
               memcpy(d_pilot2, PILOT_HT_2_2, sizeof(float)*4);
               d_pilotP = 3;
               d_sDemod = DEMOD_S_WRTAG;

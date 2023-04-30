@@ -154,6 +154,7 @@ const float PILOT_P[127] = {
 	-1.0f,  1.0f, -1.0f, -1.0f, -1.0f,  1.0f,  1.0f,  1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f};
 
 const float PILOT_L[4] = {1.0f, 1.0f, 1.0f, -1.0f};
+const float PILOT_HT_1[4] = {1.0f, 1.0f, 1.0f, -1.0f};
 const float PILOT_HT_2_1[4] = {1.0f, 1.0f, -1.0f, -1.0f};
 const float PILOT_HT_2_2[4] = {1.0f, -1.0f, -1.0f, 1.0f};
 const float PILOT_VHT[4] = {1.0f, 1.0f, 1.0f, -1.0f};

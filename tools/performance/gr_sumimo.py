@@ -28,10 +28,6 @@ from presiso import presiso  # grc-generated hier_block
 import time
 
 
-terminalNoiseAmp = 0
-if(len(sys.argv) > 1):
-    terminalNoiseAmp = float(sys.argv[1])
-
 
 
 class wifirx2(gr.top_block):
@@ -43,7 +39,7 @@ class wifirx2(gr.top_block):
         # Variables
         ##################################################
         self.samp_rate = samp_rate = 20e6
-        self.noise_amp = noise_amp = 0.000
+        self.noise_amp = noise_amp = 0.17
         self.freq_132 = freq_132 = 5660e6
         self.freq_100 = freq_100 = 5500e6
 
@@ -57,13 +53,14 @@ class wifirx2(gr.top_block):
         self.ieee80211_signal2_0 = ieee80211.signal2()
         self.ieee80211_demod2_0 = ieee80211.demod2()
         self.ieee80211_decode_0 = ieee80211.decode()
-        self.blocks_file_source_0_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211GenMultipleMimo_2x2_0.bin', False, 0, 0)
+        self.blocks_file_source_0_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211GenMultipleMimo_2x2_1.bin', False, 0, 0)
         self.blocks_file_source_0_0.set_begin_tag(pmt.PMT_NIL)
-        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211GenMultipleMimo_2x2_1.bin', False, 0, 0)
+        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/cloud/sdr/sig80211GenMultipleMimo_2x2_0.bin', False, 0, 0)
         self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
         self.blocks_add_xx_0_0 = blocks.add_vcc(1)
         self.blocks_add_xx_0 = blocks.add_vcc(1)
-        self.analog_fastnoise_source_x_0 = analog.fastnoise_source_c(analog.GR_GAUSSIAN, terminalNoiseAmp, 0, 8192)
+        self.analog_fastnoise_source_x_0_0 = analog.fastnoise_source_c(analog.GR_GAUSSIAN, noiseAmp, 13579, 8192)
+        self.analog_fastnoise_source_x_0 = analog.fastnoise_source_c(analog.GR_GAUSSIAN, noiseAmp, 24680, 8192)
 
 
         ##################################################
@@ -71,16 +68,16 @@ class wifirx2(gr.top_block):
         ##################################################
         self.msg_connect((self.ieee80211_decode_0, 'out'), (self.network_socket_pdu_0, 'pdus'))
         self.connect((self.analog_fastnoise_source_x_0, 0), (self.blocks_add_xx_0, 1))
-        self.connect((self.analog_fastnoise_source_x_0, 0), (self.blocks_add_xx_0_0, 0))
-        self.connect((self.blocks_add_xx_0, 0), (self.ieee80211_signal2_0, 1))
-        self.connect((self.blocks_add_xx_0, 0), (self.ieee80211_sync_0, 2))
-        self.connect((self.blocks_add_xx_0, 0), (self.presiso_0, 0))
-        self.connect((self.blocks_add_xx_0_0, 0), (self.ieee80211_signal2_0, 2))
-        self.connect((self.blocks_file_source_0, 0), (self.blocks_add_xx_0, 0))
-        self.connect((self.blocks_file_source_0_0, 0), (self.blocks_add_xx_0_0, 1))
+        self.connect((self.analog_fastnoise_source_x_0_0, 0), (self.blocks_add_xx_0_0, 1))
+        self.connect((self.blocks_add_xx_0, 0), (self.ieee80211_signal2_0, 2))
+        self.connect((self.blocks_add_xx_0_0, 0), (self.ieee80211_signal2_0, 1))
+        self.connect((self.blocks_add_xx_0_0, 0), (self.ieee80211_sync_0, 2))
+        self.connect((self.blocks_add_xx_0_0, 0), (self.presiso_0, 0))
+        self.connect((self.blocks_file_source_0, 0), (self.blocks_add_xx_0_0, 0))
+        self.connect((self.blocks_file_source_0_0, 0), (self.blocks_add_xx_0, 0))
         self.connect((self.ieee80211_demod2_0, 0), (self.ieee80211_decode_0, 0))
-        self.connect((self.ieee80211_signal2_0, 0), (self.ieee80211_demod2_0, 0))
         self.connect((self.ieee80211_signal2_0, 1), (self.ieee80211_demod2_0, 1))
+        self.connect((self.ieee80211_signal2_0, 0), (self.ieee80211_demod2_0, 0))
         self.connect((self.ieee80211_sync_0, 0), (self.ieee80211_signal2_0, 0))
         self.connect((self.ieee80211_trigger_0, 0), (self.ieee80211_sync_0, 0))
         self.connect((self.presiso_0, 1), (self.ieee80211_sync_0, 1))
@@ -98,7 +95,6 @@ class wifirx2(gr.top_block):
 
     def set_noise_amp(self, noise_amp):
         self.noise_amp = noise_amp
-        self.analog_fastnoise_source_x_0.set_amplitude(self.noise_amp)
 
     def get_freq_132(self):
         return self.freq_132
@@ -128,11 +124,12 @@ def main(top_block_cls=wifirx2, options=None):
     signal.signal(signal.SIGTERM, sig_handler)
 
     tb.start()
+
     tb.wait()
 
 
 if __name__ == '__main__':
-
-
+    noiseAmp = 0
+    if(len(sys.argv) > 1):
+        noiseAmp = float(sys.argv[1])
     main()
-

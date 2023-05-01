@@ -81,13 +81,13 @@ def testSnrPdrSuMimo(pktFormat, nMcs, listSnr, ampSig):
         tmpPreSize = 0
         tmpCurSize = 0
         while(True):
-            time.sleep(0.5)
+            time.sleep(1)
             tmpCurSize = os.path.getsize("/home/cloud/sdr/tmpSuMimo.txt")
             if(tmpPreSize == tmpCurSize):
                 break
             else:
                 tmpPreSize = tmpCurSize
-        os.system('pkill -f gr_siso.py')
+        os.system('pkill -f gr_sumimo.py')
 
         resFile = open("/home/cloud/sdr/tmpSuMimo.txt").readlines()
         resFile.reverse()

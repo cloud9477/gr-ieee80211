@@ -79,7 +79,7 @@ def testSnrPdrSiso(pktFormat, nMcs, listSnr, ampSig):
         tmpPreSize = 0
         tmpCurSize = 0
         while(True):
-            time.sleep(0.5)
+            time.sleep(1)
             tmpCurSize = os.path.getsize("/home/cloud/sdr/tmpSiso.txt")
             if(tmpPreSize == tmpCurSize):
                 break

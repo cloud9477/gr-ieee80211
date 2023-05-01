@@ -82,11 +82,9 @@ def testSnrPdrSiso(pktFormat, nMcs, listSnr, ampSig):
             time.sleep(0.5)
             tmpCurSize = os.path.getsize("/home/cloud/sdr/tmpSiso.txt")
             if(tmpPreSize == tmpCurSize):
-                # print("finish, cur size %d, pre size %d" % (tmpCurSize, tmpPreSize))
                 break
             else:
                 tmpPreSize = tmpCurSize
-                # print("continue, cur size %d, pre size %d" % (tmpCurSize, tmpPreSize))
         os.system('pkill -f gr_siso.py')
 
         resFile = open("/home/cloud/sdr/tmpSiso.txt").readlines()

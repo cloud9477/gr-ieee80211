@@ -72,75 +72,83 @@ def genMac80211UdpAmpduVht(udpPayloads):
         print("genMac80211UdpAmpduVht udpPakcets is not list type")
         return b""
 
-if __name__ == "__main__":
-    udpPayload200  = "123456789012345678901234567890abcdefghijklmnopqrst" * 4
-    perfPktNum = 10
-    perfSnrList = list(np.arange(0, 31, 1))
-    perfSigAmp = 0.18750000
-    perfSampNum = 0
-    perfRes = []
-    phy80211Ins = phy80211.phy80211()
-    mode = 'vht'  #'ht' pr 'vht'
-
-
-    """multiple packets of different formats concatenate MIMO """
-    ssMultiList = []
-    # pkt = genMac80211UdpMPDU(udpPayload200)
-    # for mcsIter in range(8, 16):
-    #     phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.HT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=2, shortGi=False))
-    #     ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0 * np.sqrt(2), cfoHz = 0.0, num = 100, gap = True, gapLen = 10000)
-    #     ssMultiList.append(ssFinal)
-    # pkts = genMac80211UdpAmpduVht([udpPayload200])
-    # for mcsIter in range(0, 9):
-    #     phy80211Ins.genFromAmpdu(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=2, shortGi=False))
-    #     ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0 * np.sqrt(2), cfoHz = 0.0, num = 100, gap = True, gapLen = 10000)
-    #     ssMultiList.append(ssFinal)
-    # phy80211Ins.genMultiSigBinFile(ssMultiList, "/home/natong/sdr/perf_sumimo", True)
-    
-    for snrIter in range(0, len(perfSnrList)):
-        tmpNoiseAmp = np.sqrt((perfSigAmp**2)/(10.0**(perfSnrList[snrIter]/10.0)))
-
-        os.system("python3 /home/natong/sdr/gr-ieee80211/tools/performance/gr_sumimo.py " + str(tmpNoiseAmp) + " > /home/natong/sdr/tmpSumimo.txt &")
+def testSnrPdrSuMimo(pktFormat, nMcs, listSnr, ampSig):
+    tmpPerfRes = []
+    for snrIter in range(0, len(listSnr)):
+        print("current snrIter %d of %d" % (snrIter, len(listSnr)))
+        tmpNoiseAmp = np.sqrt((ampSig**2)/(10.0**(listSnr[snrIter]/10.0)))
+        os.system("python3 /home/cloud/sdr/gr-ieee80211/tools/performance/gr_sumimo.py " + str(tmpNoiseAmp) + " > /home/cloud/sdr/tmpSuMimo.txt &")
         tmpPreSize = 0
         tmpCurSize = 0
-        print("snr=%d, noise=%f "%(snrIter,tmpNoiseAmp))
         while(True):
-            time.sleep(1)
-            tmpCurSize = os.path.getsize("/home/natong/sdr/tmpSumimo.txt")
-            # print("cur s/ize %d, pre size %d" % (tmpCurSize, tmpPreSize))
+            time.sleep(0.5)
+            tmpCurSize = os.path.getsize("/home/cloud/sdr/tmpSuMimo.txt")
             if(tmpPreSize == tmpCurSize):
-                print("finish")
                 break
             else:
                 tmpPreSize = tmpCurSize
-                # print("continue")
-        os.system('pkill -f gr_sumimo.py')
+        os.system('pkill -f gr_siso.py')
 
-        resLine = open("/home/natong/sdr/tmpSumimo.txt").readlines()[-1]
-
-        resItems = resLine.split(",")
-        tmpRes = []
-        if mode == 'ht':
-            for i in range(3, len(resItems)):
-                tmpRes.append(int(resItems[i].split(":")[1]))
-            perfRes.append(tmpRes)
-
-        elif mode == 'vht':
-            if len(resItems) == 11:
-                tmpRes = [0]*9
-                perfRes.append(tmpRes)
-            elif len(resItems) == 13:
-                for i in range(4, len(resItems)):
-                    tmpRes.append(int(resItems[i].split(":")[1]))
-                perfRes.append(tmpRes)
-            elif len(resItems) == 14:
-                for i in range(5, len(resItems)):
-                    tmpRes.append(int(resItems[i].split(":")[1]))
-                perfRes.append(tmpRes)
-            else:
-                print("gnu last line output error")
+        resFile = open("/home/cloud/sdr/tmpSuMimo.txt").readlines()
+        resFile.reverse()
+        resLine = ""
+        for each in resFile:
+            if("crc32" in each and pktFormat in each):
+                resLine = each
                 break
-    print(perfRes)
+        
+        if(len(resLine)):
+            resItems = resLine.split(",")
+            tmpRes = []
+            for i in range(3, 3+nMcs):
+                tmpRes.append(int(resItems[i].split(":")[1]))
+            tmpPerfRes.append(tmpRes)
+        else:
+            tmpPerfRes.append([0] * nMcs)
+    return tmpPerfRes
+
+if __name__ == "__main__":
+    udpPayload200  = "123456789012345678901234567890abcdefghijklmnopqrst" * 4
+    perfPktNum = 100
+    perfSnrList = list(np.arange(0, 31, 1))
+    perfSigAmp = 0.18750000
+    phy80211Ins = phy80211.phy80211(ifDebug=False)
+
+    pkt = genMac80211UdpMPDU(udpPayload200)
+    pkts = genMac80211UdpAmpduVht([udpPayload200])
+
+    ssMultiList = []
+    for mcsIter in range(8, 16):
+        phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.HT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=2, shortGi=False))
+        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0 * np.sqrt(2), cfoHz = 0.0, num = perfPktNum, gap = True, gapLen = 1600)
+        ssMultiList.append(ssFinal)
+    phy80211Ins.genMultiSigBinFile(ssMultiList, "/home/cloud/sdr/sig80211GenMultipleMimo", False)
+    htPerfRes = testSnrPdrSuMimo("ht", 8, perfSnrList, perfSigAmp)
+    
+    ssMultiList = []
+    for mcsIter in range(0, 9):
+        phy80211Ins.genFromAmpdu(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=2, shortGi=False))
+        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0 * np.sqrt(2), cfoHz = 0.0, num = perfPktNum, gap = True, gapLen = 1600)
+        ssMultiList.append(ssFinal)
+    phy80211Ins.genMultiSigBinFile(ssMultiList, "/home/cloud/sdr/sig80211GenMultipleMimo", False)
+    vhtPerfRes = testSnrPdrSuMimo("vht", 10, perfSnrList, perfSigAmp)
+
+    print(htPerfRes)
+    print(vhtPerfRes)
+
+    widths = [8]
+    heights = [4,4]
+    pltFig = plt.figure(figsize=(8,8))
+    spec = pltFig.add_gridspec(ncols=1, nrows=2, width_ratios=widths,
+                            height_ratios=heights, wspace=0.3, hspace=0.4)
+    bx = pltFig.add_subplot(spec[0, 0])
+    for i in range(0, 8):
+        bx.plot([each[i] for each in htPerfRes])
+    cx = pltFig.add_subplot(spec[1, 0])
+    for i in range(0, 9):
+        cx.plot([each[i] for each in vhtPerfRes])
+    plt.show()
+
 
 
     

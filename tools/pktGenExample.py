@@ -25,6 +25,7 @@ import zlib
 from matplotlib import pyplot as plt
 import random
 import time
+import os
 import mac80211
 import phy80211header as p8h
 import phy80211
@@ -34,7 +35,15 @@ def genMac80211UdpMPDU(udpPayload):
                         "10.10.0.1",  # dest ip
                         39379,  # sour port
                         8889)  # dest port
-    udpPacket = udpIns.genPacket(bytearray(udpPayload, 'utf-8'))
+    if(isinstance(udpPayload, str)):
+        udpPacket = udpIns.genPacket(bytearray(udpPayload, 'utf-8'))
+    elif(isinstance(udpPayload, (bytes, bytearray))):
+        udpPacket = udpIns.genPacket(udpPayload)
+    else:
+        udpPacket = b""
+        print("genMac80211UdpAmpduVht packet element is not str or bytes")
+        return b""
+
     print("udp packet")
     print(udpPacket.hex())
     ipv4Ins = mac80211.ipv4(43778,  # identification
@@ -72,7 +81,14 @@ def genMac80211UdpAmpduVht(udpPayloads):
                                 "10.10.0.1",  # dest ip
                                 39379,  # sour port
                                 8889)  # dest port
-            udpPacket = udpIns.genPacket(bytearray(eachUdpPayload, 'utf-8'))
+            if(isinstance(eachUdpPayload, str)):
+                udpPacket = udpIns.genPacket(bytearray(eachUdpPayload, 'utf-8'))
+            elif(isinstance(eachUdpPayload, (bytes, bytearray))):
+                udpPacket = udpIns.genPacket(eachUdpPayload)
+            else:
+                udpPacket = b""
+                print("genMac80211UdpAmpduVht packet element is not str or bytes")
+                return b""
             print("udp packet")
             print(udpPacket.hex())
             ipv4Ins = mac80211.ipv4(43778,  # identification
@@ -159,6 +175,7 @@ if __name__ == "__main__":
     udpPayload1 = "This is packet for station 001"
     udpPayload2 = "This is packet for station 002"
     udpPayload500  = "123456789012345678901234567890abcdefghijklmnopqrst" * 10
+    udpPayload200R = bytearray(os.urandom(200))
 
     phy80211Ins = phy80211.phy80211(ifDebug=False)
 

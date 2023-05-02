@@ -645,8 +645,7 @@ class phy80211():
             tmpServiceBits = [0] * 8 + self.vhtSigBCrcBits
             if self.ifdb: print("vht service bits: ", tmpServiceBits)
             # to do the eof padding
-            # tmpPsduBits = tmpAmpduBits + p8h.C_VHT_EOF * self.m.nPadEof + [0] * 8 * self.m.nPadOctet
-            tmpPsduBits = tmpAmpduBits + tmpAmpduBits[0:int(self.m.psduLen * 8 - self.m.ampduLen * 8)]
+            tmpPsduBits = tmpAmpduBits + p8h.C_VHT_EOF * self.m.nPadEof + [0] * 8 * self.m.nPadOctet
             self.dataBits = tmpServiceBits + tmpPsduBits + [0] * self.m.nPadBits
         else:
             """

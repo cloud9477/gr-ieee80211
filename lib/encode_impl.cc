@@ -195,8 +195,13 @@ namespace gr {
           tmpHeaderShift += d_m.len;
 
           int tmpPsduLen = (d_m.nSym * d_m.nDBPS - 16 - 6) / 8;           // 20M 2x2, nES is still 1
-          memcpy(tmpDataP, &d_dataBits[16], (tmpPsduLen - d_m.len)*8);    // EOF padding tmp, copy header bits to pad
-          tmpDataP += (tmpPsduLen - d_m.len)*8;                           // padded bits, all 0, includes 6 tail bits, when scrambling, do not scramble tail
+          for(int i=0;i<((tmpPsduLen - d_m.len)/4);i++)
+          {
+            memcpy(tmpDataP, EOF_PAD_SUBFRAME, sizeof(uint8_t) * 32);     // eof padding
+            tmpDataP += 32;
+          }
+          memset(tmpDataP, 0, ((tmpPsduLen - d_m.len)%4) * 8 * sizeof(uint8_t));  // padding octets
+          tmpDataP += (((tmpPsduLen - d_m.len)%4) * 8);
           memset(tmpDataP, 0, (d_m.nSym * d_m.nDBPS - tmpPsduLen*8 - 16));
 
           if(d_m.sumu)

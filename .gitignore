@@ -7,3 +7,5 @@ build*/
 examples/*.yml
 examples/*.py
 examples/*/*.py
+tmp/*
+!/tmp/README.md

@@ -76,7 +76,7 @@ blocks:
     alias: ''
     append: 'False'
     comment: ''
-    file: /home/cloud/sdr/sig80211Gr0.bin
+    file: ../tmp/sig80211GenGr0.bin
     type: complex
     unbuffered: 'False'
     vlen: '1'
@@ -94,7 +94,7 @@ blocks:
     alias: ''
     append: 'False'
     comment: ''
-    file: /home/cloud/sdr/sig80211Gr1.bin
+    file: ../tmp/sig80211GenGr1.bin
     type: complex
     unbuffered: 'False'
     vlen: '1'
@@ -767,4 +767,3 @@ connections:
 
 metadata:
   file_format: 1
-  grc_version: 3.10.4.0

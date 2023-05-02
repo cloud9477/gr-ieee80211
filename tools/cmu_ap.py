@@ -69,26 +69,27 @@ def genMac80211UdpAmpduVht(udpPayloads):
 """
 
 if __name__ == "__main__":
-    # init the socket with gr
-    phyRxIp = "127.0.0.1"
-    phyRxPort = 9527
-    phyRxAddr = (phyRxIp, phyRxPort)
-    phyTxIp = "127.0.0.1"
-    phyTxPort = 9528
-    phyTxAddr = (phyTxIp, phyTxPort)
-    grSocket = socket.socket(family = socket.AF_INET, type = socket.SOCK_DGRAM)
-    grSocket.bind(phyRxAddr)
+    pyToolPath = os.path.dirname(__file__)
+    # # init the socket with gr
+    # phyRxIp = "127.0.0.1"
+    # phyRxPort = 9527
+    # phyRxAddr = (phyRxIp, phyRxPort)
+    # phyTxIp = "127.0.0.1"
+    # phyTxPort = 9528
+    # phyTxAddr = (phyTxIp, phyTxPort)
+    # grSocket = socket.socket(family = socket.AF_INET, type = socket.SOCK_DGRAM)
+    # grSocket.bind(phyRxAddr)
 
-    # send ndp packet
-    grNdpPkt = phy80211.genPktGrNdp()
-    grSocket.sendto(grNdpPkt, phyTxAddr)
-    print("GR NDP Pakcet Sent")
-    # wait for some time
-    time.sleep(2.0)
+    # # send ndp packet
+    # grNdpPkt = phy80211.genPktGrNdp()
+    # grSocket.sendto(grNdpPkt, phyTxAddr)
+    # print("GR NDP Pakcet Sent")
+    # # wait for some time
+    # time.sleep(2.0)
 
-    # fetch the channel info through ethernet, use the tool "pscp" with user name and passwd, you could replace with other methods
-    os.system("pscp -pw 7777 -r cloud@192.168.10.107:/home/cloud/sdr/cmu_chan0.bin /home/cloud/sdr/")
-    os.system("pscp -pw 7777 -r cloud@192.168.10.202:/home/cloud/sdr/cmu_chan1.bin /home/cloud/sdr/")
+    # # fetch the channel info through ethernet, use the tool "pscp" with user name and passwd, you could replace with other methods
+    # os.system("pscp -pw 7777 -r cloud@192.168.10.107:/home/cloud/sdr/cmu_chan0.bin /home/cloud/sdr/")
+    # os.system("pscp -pw 7777 -r cloud@192.168.10.202:/home/cloud/sdr/cmu_chan1.bin /home/cloud/sdr/")
 
     # physical instance
     phy80211Ins = phy80211.phy80211()
@@ -96,13 +97,13 @@ if __name__ == "__main__":
     # they are the vht long training field received at each station
     chan0 = []
     chan1 = []
-    fWaveComp = open("/home/cloud/sdr/cmu_chan0.bin", 'rb')
+    fWaveComp = open(os.path.join(pyToolPath, "./cmu_chan0.bin"), 'rb')
     for i in range(0,128):
         tmpR = struct.unpack('f', fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1))[0]
         tmpI = struct.unpack('f', fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1))[0]
         chan0.append(tmpR + tmpI * 1j)
     fWaveComp.close()
-    fWaveComp = open("/home/cloud/sdr/cmu_chan1.bin", 'rb')
+    fWaveComp = open(os.path.join(pyToolPath, "./cmu_chan1.bin"), 'rb')
     for i in range(0, 128):
         tmpR = struct.unpack('f', fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1))[0]
         tmpI = struct.unpack('f', fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1) + fWaveComp.read(1))[0]
@@ -149,32 +150,33 @@ if __name__ == "__main__":
     bfQForFft = [np.ones_like(bfQNormd[0])] * 3 + bfQNormd[0:28] + [
         np.ones_like(bfQNormd[0])] + bfQNormd[28:56] + [np.ones_like(bfQNormd[0])] * 4
 
-    bfQPktForGr0, bfQPktForGr1 = phy80211.genPktGrBfQ(bfQForFft)
-    grSocket.sendto(bfQPktForGr0, phyTxAddr)
-    time.sleep(0.5)
-    grSocket.sendto(bfQPktForGr1, phyTxAddr)
-    time.sleep(0.5)
     pkt0 = genMac80211UdpAmpduVht(["1234567 packet for station 000"])
     pkt1 = genMac80211UdpAmpduVht(["7654321 packet for station 111"])
-    grMuPkt = phy80211.genPktGrDataMu(pkt0, p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False), pkt1, p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False), 2)
-    print("gr pkt len %d" % len(grMuPkt))
-    grSocket.sendto(grMuPkt, phyTxAddr)
 
-    # plt.figure(11)
-    # plt.plot(np.real([each[0][0] for each in bfQForFft]))
-    # plt.plot(np.imag([each[0][0] for each in bfQForFft]))
-    # plt.figure(12)
-    # plt.plot(np.real([each[0][1] for each in bfQForFft]))
-    # plt.plot(np.imag([each[0][1] for each in bfQForFft]))
-    # plt.figure(13)
-    # plt.plot(np.real([each[1][0] for each in bfQForFft]))
-    # plt.plot(np.imag([each[1][0] for each in bfQForFft]))
-    # plt.figure(14)
-    # plt.plot(np.real([each[1][1] for each in bfQForFft]))
-    # plt.plot(np.imag([each[1][1] for each in bfQForFft]))
+    # bfQPktForGr0, bfQPktForGr1 = phy80211.genPktGrBfQ(bfQForFft)
+    # grSocket.sendto(bfQPktForGr0, phyTxAddr)
+    # time.sleep(0.5)
+    # grSocket.sendto(bfQPktForGr1, phyTxAddr)
+    # time.sleep(0.5)
+    # grMuPkt = phy80211.genPktGrDataMu(pkt0, p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False), pkt1, p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False), 2)
+    # print("gr pkt len %d" % len(grMuPkt))
+    # grSocket.sendto(grMuPkt, phyTxAddr)
+
+    plt.figure(11)
+    plt.plot(np.real([each[0][0] for each in bfQForFft]))
+    plt.plot(np.imag([each[0][0] for each in bfQForFft]))
+    plt.figure(12)
+    plt.plot(np.real([each[0][1] for each in bfQForFft]))
+    plt.plot(np.imag([each[0][1] for each in bfQForFft]))
+    plt.figure(13)
+    plt.plot(np.real([each[1][0] for each in bfQForFft]))
+    plt.plot(np.imag([each[1][0] for each in bfQForFft]))
+    plt.figure(14)
+    plt.plot(np.real([each[1][1] for each in bfQForFft]))
+    plt.plot(np.imag([each[1][1] for each in bfQForFft]))
 
     """ genrate the mu-mimo pakcet by python by not gr """
-    # phy80211Ins.genAmpduMu(nUser = 2, bfQ = bfQForFft, groupId = 2, ampdu0=pkt0, mod0=p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False), ampdu1=pkt1, mod1=p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False))
-    # ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0, cfoHz = 0.0, num = 1, gap = False, gapLen = 10000)
-    # phy80211Ins.genSigBinFile(ssFinal, "/home/cloud/sdr/cmu_mu", True)
+    phy80211Ins.genAmpduMu(nUser = 2, bfQ = bfQForFft, groupId = 2, ampdu0=pkt0, mod0=p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False), ampdu1=pkt1, mod1=p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False))
+    ssFinal = phy80211Ins.genFinalSig(multiplier = 18.0, cfoHz = 0.0, num = 1, gap = False, gapLen = 10000)
+    phy80211Ins.genSigBinFile(ssFinal, os.path.join(pyToolPath, "../tmp/cmu_mu"), True)
 

@@ -88,7 +88,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/sig80211GenMultipleMimo_2x2_0.bin
+    file: ../tmp/sig80211GenMultipleMimo_2x2_0.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -110,7 +110,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/sig80211GenMultipleMimo_2x2_1.bin
+    file: ../tmp/sig80211GenMultipleMimo_2x2_1.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'

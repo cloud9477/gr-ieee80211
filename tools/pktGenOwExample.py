@@ -25,6 +25,7 @@ import zlib
 from matplotlib import pyplot as plt
 import random
 import time
+import os
 import mac80211
 import phy80211header as p8h
 import phy80211
@@ -155,12 +156,13 @@ def genMac80211UdpAmpduHt(udpPayloads):
         return b""
 
 if __name__ == "__main__":
+    pyToolPath = os.path.dirname(__file__)
     udpPayload  = "123456789012345678901234567890"
     udpPayload1 = "This is packet for station 001"
     udpPayload2 = "This is packet for station 002"
     udpPayload500  = "123456789012345678901234567890abcdefghijklmnopqrst" * 10
 
-    phy80211Ins = phy80211.phy80211()
+    phy80211Ins = phy80211.phy80211(ifDebug=False)
 
     # pkt = genMac80211UdpMPDU(udpPayload)
     # phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.L, mcs=0, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
@@ -174,6 +176,6 @@ if __name__ == "__main__":
     pkts = genMac80211UdpAmpduVht([udpPayload])
     phy80211Ins.genFromAmpdu(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs=0, bw=p8h.BW.BW20, nSTS=1, shortGi=False), vhtPartialAid=0, vhtGroupId=0)
     ssFinal = phy80211Ins.genFinalSig(multiplier = 236298.0, cfoHz = 0.0, num = 1, gap = True, gapLen = 200)
-    phy80211Ins.genSigOwTextFile(ssFinal, "/home/cloud/wifi/sig80211GenOwVht", True)
+    phy80211Ins.genSigOwTextFile(ssFinal, os.path.join(pyToolPath, "../tmp/sig80211GenOwVht"), True)
 
 

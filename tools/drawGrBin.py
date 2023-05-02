@@ -44,6 +44,7 @@ def drawComplex(p):
         plt.plot(sigImag)
 
 if __name__ == "__main__":
-    drawComplex("/home/cloud/sdr/sig80211GenMultipleMimo_2x2_0.bin")
-    drawComplex("/home/cloud/sdr/sig80211GenMultipleMimo_2x2_1.bin")
+    pyToolPath = os.path.dirname(__file__)
+    drawComplex(os.path.join(pyToolPath, "../tmp/sig80211GenMultipleMimo_2x2_0.bin"))
+    drawComplex(os.path.join(pyToolPath, "../tmp/sig80211GenMultipleMimo_2x2_1.bin"))
     plt.show()

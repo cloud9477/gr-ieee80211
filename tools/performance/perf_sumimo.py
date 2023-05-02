@@ -73,23 +73,24 @@ def genMac80211UdpAmpduVht(udpPayloads):
         return b""
 
 def testSnrPdrSuMimo(pktFormat, nMcs, listSnr, ampSig):
+    pyToolPath = os.path.dirname(__file__)
     tmpPerfRes = []
     for snrIter in range(0, len(listSnr)):
         print("current snrIter %d of %d" % (snrIter, len(listSnr)))
         tmpNoiseAmp = np.sqrt((ampSig**2)/(10.0**(listSnr[snrIter]/10.0)))
-        os.system("python3 /home/cloud/sdr/gr-ieee80211/tools/performance/gr_sumimo.py " + str(tmpNoiseAmp) + " > /home/cloud/sdr/tmpSuMimo.txt &")
+        os.system("python3 " + os.path.join(pyToolPath, "./gr_sumimo.py ") + str(tmpNoiseAmp) + " > " + os.path.join(pyToolPath, "../../tmp/tmpSuMimoPerf.txt") + " &")
         tmpPreSize = 0
         tmpCurSize = 0
         while(True):
             time.sleep(1)
-            tmpCurSize = os.path.getsize("/home/cloud/sdr/tmpSuMimo.txt")
+            tmpCurSize = os.path.getsize(os.path.join(pyToolPath, "../../tmp/tmpSuMimoPerf.txt"))
             if(tmpPreSize == tmpCurSize):
                 break
             else:
                 tmpPreSize = tmpCurSize
         os.system('pkill -f gr_sumimo.py')
 
-        resFile = open("/home/cloud/sdr/tmpSuMimo.txt").readlines()
+        resFile = open(os.path.join(pyToolPath, "../../tmp/tmpSuMimoPerf.txt")).readlines()
         resFile.reverse()
         resLine = ""
         for each in resFile:
@@ -108,6 +109,7 @@ def testSnrPdrSuMimo(pktFormat, nMcs, listSnr, ampSig):
     return tmpPerfRes
 
 if __name__ == "__main__":
+    pyToolPath = os.path.dirname(__file__)
     udpPayload200  = "123456789012345678901234567890abcdefghijklmnopqrst" * 4
     perfPktNum = 100
     perfSnrList = list(np.arange(0, 31, 1))
@@ -122,7 +124,7 @@ if __name__ == "__main__":
         phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.HT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=2, shortGi=False))
         ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0 * np.sqrt(2), cfoHz = 0.0, num = perfPktNum, gap = True, gapLen = 1600)
         ssMultiList.append(ssFinal)
-    phy80211Ins.genMultiSigBinFile(ssMultiList, "/home/cloud/sdr/sig80211GenMultipleMimo", False)
+    phy80211Ins.genMultiSigBinFile(ssMultiList, os.path.join(pyToolPath, "../../tmp/sig80211GenMultipleMimo"), False)
     htPerfRes = testSnrPdrSuMimo("ht", 8, perfSnrList, perfSigAmp)
     
     ssMultiList = []
@@ -130,7 +132,7 @@ if __name__ == "__main__":
         phy80211Ins.genFromAmpdu(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=2, shortGi=False))
         ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0 * np.sqrt(2), cfoHz = 0.0, num = perfPktNum, gap = True, gapLen = 1600)
         ssMultiList.append(ssFinal)
-    phy80211Ins.genMultiSigBinFile(ssMultiList, "/home/cloud/sdr/sig80211GenMultipleMimo", False)
+    phy80211Ins.genMultiSigBinFile(ssMultiList, os.path.join(pyToolPath, "../../tmp/sig80211GenMultipleMimo"), False)
     vhtPerfRes = testSnrPdrSuMimo("vht", 10, perfSnrList, perfSigAmp)
 
     print(htPerfRes)

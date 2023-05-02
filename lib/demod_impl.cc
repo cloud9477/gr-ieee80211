@@ -53,7 +53,7 @@ namespace gr {
     void
     demod_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
     {
-      ninput_items_required[0] = noutput_items + 160;
+      ninput_items_required[0] = noutput_items;
     }
 
     int

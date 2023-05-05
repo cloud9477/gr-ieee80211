@@ -17,7 +17,14 @@ def genMac80211UdpMPDU(udpPayload):
                         "10.10.0.1",  # dest ip
                         39379,  # sour port
                         8889)  # dest port
-    udpPacket = udpIns.genPacket(bytearray(udpPayload, 'utf-8'))
+    if(isinstance(udpPayload, str)):
+        udpPacket = udpIns.genPacket(bytearray(udpPayload, 'utf-8'))
+    elif(isinstance(udpPayload, (bytes, bytearray))):
+        udpPacket = udpIns.genPacket(udpPayload)
+    else:
+        udpPacket = b""
+        print("genMac80211UdpAmpduVht packet element is not str or bytes")
+        return b""
     ipv4Ins = mac80211.ipv4(43778,  # identification
                             64,  # TTL
                             "10.10.0.6",
@@ -46,7 +53,14 @@ def genMac80211UdpAmpduVht(udpPayloads):
                                 "10.10.0.1",  # dest ip
                                 39379,  # sour port
                                 8889)  # dest port
-            udpPacket = udpIns.genPacket(bytearray(eachUdpPayload, 'utf-8'))
+            if(isinstance(eachUdpPayload, str)):
+                udpPacket = udpIns.genPacket(bytearray(eachUdpPayload, 'utf-8'))
+            elif(isinstance(eachUdpPayload, (bytes, bytearray))):
+                udpPacket = udpIns.genPacket(eachUdpPayload)
+            else:
+                udpPacket = b""
+                print("genMac80211UdpAmpduVht packet element is not str or bytes")
+                return b""
             ipv4Ins = mac80211.ipv4(43778,  # identification
                                     64,  # TTL
                                     "10.10.0.6",
@@ -111,13 +125,14 @@ def testSnrPdrSuMimo(pktFormat, nMcs, listSnr, ampSig):
 if __name__ == "__main__":
     pyToolPath = os.path.dirname(__file__)
     udpPayload200  = "123456789012345678901234567890abcdefghijklmnopqrst" * 4
+    udpPayload500R = bytearray(os.urandom(500))
     perfPktNum = 100
     perfSnrList = list(np.arange(0, 31, 1))
     perfSigAmp = 0.18750000
     phy80211Ins = phy80211.phy80211(ifDebug=False)
 
-    pkt = genMac80211UdpMPDU(udpPayload200)
-    pkts = genMac80211UdpAmpduVht([udpPayload200])
+    pkt = genMac80211UdpMPDU(udpPayload500R)
+    pkts = genMac80211UdpAmpduVht([udpPayload500R])
 
     ssMultiList = []
     for mcsIter in range(8, 16):

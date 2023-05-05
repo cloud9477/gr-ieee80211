@@ -15,7 +15,14 @@ def genMac80211UdpMPDU(udpPayload):
                         "10.10.0.1",  # dest ip
                         39379,  # sour port
                         8889)  # dest port
-    udpPacket = udpIns.genPacket(bytearray(udpPayload, 'utf-8'))
+    if(isinstance(udpPayload, str)):
+        udpPacket = udpIns.genPacket(bytearray(udpPayload, 'utf-8'))
+    elif(isinstance(udpPayload, (bytes, bytearray))):
+        udpPacket = udpIns.genPacket(udpPayload)
+    else:
+        udpPacket = b""
+        print("genMac80211UdpAmpduVht packet element is not str or bytes")
+        return b""
     ipv4Ins = mac80211.ipv4(43778,  # identification
                             64,  # TTL
                             "10.10.0.6",
@@ -44,7 +51,14 @@ def genMac80211UdpAmpduVht(udpPayloads):
                                 "10.10.0.1",  # dest ip
                                 39379,  # sour port
                                 8889)  # dest port
-            udpPacket = udpIns.genPacket(bytearray(eachUdpPayload, 'utf-8'))
+            if(isinstance(eachUdpPayload, str)):
+                udpPacket = udpIns.genPacket(bytearray(eachUdpPayload, 'utf-8'))
+            elif(isinstance(eachUdpPayload, (bytes, bytearray))):
+                udpPacket = udpIns.genPacket(eachUdpPayload)
+            else:
+                udpPacket = b""
+                print("genMac80211UdpAmpduVht packet element is not str or bytes")
+                return b""
             ipv4Ins = mac80211.ipv4(43778,  # identification
                                     64,  # TTL
                                     "10.10.0.6",
@@ -99,18 +113,19 @@ def testSnrPdrSiso(pktFormat, nMcs, listSnr, ampSig):
 
 if __name__ == "__main__":
     pyToolPath = os.path.dirname(__file__)
-    udpPayload200  = "123456789012345678901234567890abcdefghijklmnopqrst" * 4
+    udpPayload200  = "123456789012345678901234567890abcdefghijklmnopqrst" * 10
+    udpPayload500R = bytearray(os.urandom(500))
     perfPktNum = 100
-    perfSnrList = list(np.arange(27, 28, 1))
+    perfSnrList = list(np.arange(0, 31, 1))
     perfSigAmp = 0.18750000
     phy80211Ins = phy80211.phy80211(ifDebug=False)
 
-    pkt = genMac80211UdpMPDU(udpPayload200)
+    pkt = genMac80211UdpMPDU(udpPayload500R)
 
     ssMultiList = []
     for mcsIter in range(0, 8):
         phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.L, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
-        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0, cfoHz = 0.0, num = perfPktNum, gap = True, gapLen = 1600)
+        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0, cfoHz = 233000.0, num = perfPktNum, gap = True, gapLen = 1600)
         ssMultiList.append(ssFinal)
     phy80211Ins.genMultiSigBinFile(ssMultiList, os.path.join(pyToolPath, "../../tmp/sig80211GenMultipleSiso"), False)
     legacyPerfRes = testSnrPdrSiso("legacy", 8, perfSnrList, perfSigAmp)

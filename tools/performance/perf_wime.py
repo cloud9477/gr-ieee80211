@@ -125,19 +125,31 @@ if __name__ == "__main__":
     ssMultiList = []
     for mcsIter in range(0, 8):
         phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.L, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
+        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0, cfoHz = 0.0, num = perfPktNum, gap = True, gapLen = 1600)
+        ssMultiList.append(ssFinal)
+    phy80211Ins.genMultiSigBinFile(ssMultiList, os.path.join(pyToolPath, "../../tmp/sig80211GenMultipleSiso"), False)
+    wimePerfRes = testSnrPdrSiso("legacy", 8, perfSnrList, perfSigAmp)
+
+    ssMultiList = []
+    for mcsIter in range(0, 8):
+        phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.L, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
         ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0, cfoHz = 233000.0, num = perfPktNum, gap = True, gapLen = 1600)
         ssMultiList.append(ssFinal)
     phy80211Ins.genMultiSigBinFile(ssMultiList, os.path.join(pyToolPath, "../../tmp/sig80211GenMultipleSiso"), False)
-    legacyPerfRes = testSnrPdrSiso("legacy", 8, perfSnrList, perfSigAmp)
+    wimeCfoPerfRes = testSnrPdrSiso("legacy", 8, perfSnrList, perfSigAmp)
 
-    print(legacyPerfRes)
+    print(wimePerfRes)
+    print(wimeCfoPerfRes)
 
     widths = [8]
-    heights = [4]
-    pltFig = plt.figure(figsize=(8,4))
-    spec = pltFig.add_gridspec(ncols=1, nrows=1, width_ratios=widths,
+    heights = [4, 4]
+    pltFig = plt.figure(figsize=(8,8))
+    spec = pltFig.add_gridspec(ncols=1, nrows=2, width_ratios=widths,
                             height_ratios=heights, wspace=0.3, hspace=0.4)
     ax = pltFig.add_subplot(spec[0, 0])
     for i in range(0, 8):
-        ax.plot([each[i] for each in legacyPerfRes])
+        ax.plot([each[i] for each in wimePerfRes])
+    bx = pltFig.add_subplot(spec[1, 0])
+    for i in range(0, 8):
+        bx.plot([each[i] for each in wimeCfoPerfRes])
     plt.show()

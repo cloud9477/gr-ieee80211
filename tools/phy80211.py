@@ -64,6 +64,9 @@ class phy80211():
         self.nSTSMu = 0
         self.vhtSigBCrcBitsMu = [[], [], [], []]
         self.bfQ = []
+        # RX
+        self.rxSisoSig = []
+        self.rxSampNum = 0
         # debug
         self.ifdb = ifDebug
 
@@ -837,6 +840,69 @@ class phy80211():
     def __procAddAmp(self, multiplier):
         for ssItr in range(0, self.m.nSS):
             self.ssPhySig[ssItr] = [each * multiplier for each in self.ssPhySig[ssItr]]
+
+    def __procCorrelation(self, inSigA, inSigB):
+        if(len(inSigA) == len(inSigB)):
+            tmpMulti = np.sum([inSigA[i] * np.conj(inSigB[i]) for i in range(0, len(inSigA))])
+            tmpPwrA = np.sum([np.abs(inSigA[i])**2 for i in range(0, len(inSigA))])
+            tmpPwrB = np.sum([np.abs(inSigB[i])**2 for i in range(0, len(inSigB))])
+            return (np.abs(tmpMulti)/np.sqrt(tmpPwrA)/np.sqrt(tmpPwrB))
+        return 0
+
+    def __procRxLegacyStfTrigger(self, inSig):
+        if(len(inSig) > 32):
+            tmpPlateau = 0
+            for i in range(0, len(inSig) - 32):
+                if(self.__procCorrelation(inSig[i:i+16], inSig[i+16:i+32]) > 0.4):
+                    tmpPlateau += 1
+                    if(tmpPlateau > 20):
+                        return i
+                else:
+                    tmpPlateau = 0
+            return -1
+
+    def __procRxLegacyStfCoarseCfoEst(self, inSig, nRad):
+        if(len(inSig) >= (nRad + 16)):
+            tmpMultiAvg = np.mean([inSig[i] * np.conj(inSig[i + 16]) for i in range(0, nRad)])
+            return np.arctan2(np.imag(tmpMultiAvg), np.real(tmpMultiAvg)) / 16 * 20000000 / 2 / np.pi
+
+    def __procRxLegacyLtfSync(self, inSig):
+        if(len(inSig) >= 240):
+            tmpAutoCorre = []
+            for i in range(0, 110):
+                tmpAutoCorre.append(self.__procCorrelation(inSig[i:i+64], inSig[i+64:i+128]))
+            maxValue = max(tmpAutoCorre)
+            maxIndex = tmpAutoCorre.index(maxValue)
+            leftCorre = tmpAutoCorre[0:maxIndex]
+            rightCorre = tmpAutoCorre[maxIndex:]
+            if(len(leftCorre) and len(rightCorre)):
+                leftIndex = min(range(len(leftCorre)), key = lambda i: abs(leftCorre[i]-maxValue*0.8))
+                rightIndex = min(range(len(rightCorre)), key = lambda i: abs(rightCorre[i]-maxValue*0.8))
+                return int((leftIndex + rightIndex + maxIndex)/2)
+        return -1
+
+    def procSisoRx(self, inSig):
+        if(isinstance(inSig, list) and len(inSig) > 480):
+            self.rxSisoSig = inSig
+            self.rxSampNum = len(inSig)
+            print(self.rxSampNum)
+            procIndex = 0
+            while(self.rxSampNum > (procIndex + 480)):
+                tmpTriggerIndex = self.__procRxLegacyStfTrigger(self.rxSisoSig[procIndex:])
+                if(tmpTriggerIndex < 0):
+                    procIndex += 80
+                    continue
+                stfIndex = procIndex + tmpTriggerIndex
+                triggerCfo = self.__procRxLegacyStfCoarseCfoEst(self.rxSisoSig[stfIndex:], 64)
+                tmpSyncIndex = self.__procRxLegacyLtfSync(self.rxSisoSig[stfIndex+80:stfIndex+320])
+                if(tmpSyncIndex < 0):
+                    procIndex += 80
+                    continue
+                ltfIndex = stfIndex + 80 + tmpSyncIndex + 12
+                print(stfIndex, triggerCfo, ltfIndex)
+                
+                procIndex = stfIndex + 80
+
 
     def genFinalSig(self, multiplier = 1.0, cfoHz = 0.0, num = 1, gap = True, gapLen = 10000):
         if not self.ssPhySig:

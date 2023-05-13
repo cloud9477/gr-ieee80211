@@ -112,14 +112,14 @@ namespace gr {
       {
         if((d_nProc - d_nUsed) >= 224)
         {
-          d_sampin1 = &inSig1[8+d_nUsed];
-          d_sampin2 = &inSig1[72+d_nUsed];
-          d_sampins = &inSig1[152+d_nUsed];
+          d_sampin1 = &inSig1[C8P_SYM_SAMP_SHIFT+d_nUsed];
+          d_sampin2 = &inSig1[C8P_SYM_SAMP_SHIFT+64+d_nUsed];
+          d_sampins = &inSig1[C8P_SYM_SAMP_SHIFT+144+d_nUsed];
           for(int i=0;i<64;i++)
           {
-            d_fftin1[i] = d_sampin1[i] * gr_complex(cosf((i+8) * d_cfoRad), sinf((i+8) * d_cfoRad));
-            d_fftin2[i] = d_sampin2[i] * gr_complex(cosf((i+72) * d_cfoRad), sinf((i+72) * d_cfoRad));
-            d_fftins[i] = d_sampins[i] * gr_complex(cosf((i+152) * d_cfoRad), sinf((i+152) * d_cfoRad));
+            d_fftin1[i] = d_sampin1[i] * gr_complex(cosf((i+C8P_SYM_SAMP_SHIFT) * d_cfoRad), sinf((i+C8P_SYM_SAMP_SHIFT) * d_cfoRad));
+            d_fftin2[i] = d_sampin2[i] * gr_complex(cosf((i+C8P_SYM_SAMP_SHIFT+64) * d_cfoRad), sinf((i+C8P_SYM_SAMP_SHIFT+64) * d_cfoRad));
+            d_fftins[i] = d_sampins[i] * gr_complex(cosf((i+C8P_SYM_SAMP_SHIFT+144) * d_cfoRad), sinf((i+C8P_SYM_SAMP_SHIFT+144) * d_cfoRad));
           }
           d_ofdm_fft1.execute();
           d_ofdm_fft2.execute();

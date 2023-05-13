@@ -107,8 +107,8 @@ namespace gr {
         {
           if(d_nProc >= 160)
           {
-            fftDemod(&inSig1[8], d_fftLtfOut1);
-            fftDemod(&inSig1[8+80], d_fftLtfOut2);
+            fftDemod(&inSig1[C8P_SYM_SAMP_SHIFT], d_fftLtfOut1);
+            fftDemod(&inSig1[C8P_SYM_SAMP_SHIFT+80], d_fftLtfOut2);
             procNLSigDemodDeint(d_fftLtfOut1, d_fftLtfOut2, d_HL, d_sigHtCodedLlr, d_sigVhtACodedLlr);
             d_decoder.decode(d_sigVhtACodedLlr, d_sigVhtABits, 48);
             if(signalCheckVhtA(d_sigVhtABits))
@@ -347,7 +347,7 @@ namespace gr {
       {
         if(d_m.nLTF == 1)
         {
-          fftDemod(&sig1[8], d_fftLtfOut1);
+          fftDemod(&sig1[C8P_SYM_SAMP_SHIFT], d_fftLtfOut1);
           for(int i=0;i<64;i++)
           {
             if(i==0 || (i>=29 && i<=35))
@@ -361,10 +361,10 @@ namespace gr {
       }
       else if(d_m.nSS == 2)
       {
-        fftDemod(&sig1[8], d_fftLtfOut1);
-        fftDemod(&sig2[8], d_fftLtfOut2);
-        fftDemod(&sig1[8+80], d_fftLtfOut12);
-        fftDemod(&sig2[8+80], d_fftLtfOut22);
+        fftDemod(&sig1[C8P_SYM_SAMP_SHIFT], d_fftLtfOut1);
+        fftDemod(&sig2[C8P_SYM_SAMP_SHIFT], d_fftLtfOut2);
+        fftDemod(&sig1[C8P_SYM_SAMP_SHIFT+80], d_fftLtfOut12);
+        fftDemod(&sig2[C8P_SYM_SAMP_SHIFT+80], d_fftLtfOut22);
         for(int i=0;i<64;i++)
         {
           if(i==0 || (i>=29 && i<=35))
@@ -463,7 +463,7 @@ namespace gr {
     {
       if(d_m.nSS == 1)
       {
-        fftDemod(&sig1[8], d_fftLtfOut1);
+        fftDemod(&sig1[C8P_SYM_SAMP_SHIFT], d_fftLtfOut1);
         for(int i=0;i<64;i++)
         {
           if(i==0 || (i>=29 && i<=35))
@@ -493,8 +493,8 @@ namespace gr {
       }
       else
       {
-        fftDemod(&sig1[8], d_fftLtfOut1);
-        fftDemod(&sig2[8], d_fftLtfOut2);
+        fftDemod(&sig1[C8P_SYM_SAMP_SHIFT], d_fftLtfOut1);
+        fftDemod(&sig2[C8P_SYM_SAMP_SHIFT], d_fftLtfOut2);
 
         for(int i=0;i<64;i++)
         {
@@ -545,7 +545,7 @@ namespace gr {
     {
       if(d_m.nSS == 1)
       {
-        fftDemod(&sig1[8], d_fftLtfOut1);
+        fftDemod(&sig1[C8P_SYM_SAMP_SHIFT], d_fftLtfOut1);
         for(int i=0;i<64;i++)
         {
           if(i==0 || (i>=29 && i<=35))
@@ -575,8 +575,8 @@ namespace gr {
       }
       else
       {
-        fftDemod(&sig1[8], d_fftLtfOut1);
-        fftDemod(&sig2[8], d_fftLtfOut2);
+        fftDemod(&sig1[C8P_SYM_SAMP_SHIFT], d_fftLtfOut1);
+        fftDemod(&sig2[C8P_SYM_SAMP_SHIFT], d_fftLtfOut2);
 
         for(int i=0;i<64;i++)
         {
@@ -624,7 +624,7 @@ namespace gr {
     {
       if(d_m.nSS == 1)
       {
-        fftDemod(&sig1[8], d_fftLtfOut1);
+        fftDemod(&sig1[C8P_SYM_SAMP_SHIFT], d_fftLtfOut1);
         for(int i=0;i<64;i++)
         {
           if(i==0 || (i>=29 && i<=35))
@@ -651,8 +651,8 @@ namespace gr {
       }
       else if(d_m.nSS == 2)
       {
-        fftDemod(&sig1[8], d_fftLtfOut1);
-        fftDemod(&sig2[8], d_fftLtfOut2);
+        fftDemod(&sig1[C8P_SYM_SAMP_SHIFT], d_fftLtfOut1);
+        fftDemod(&sig2[C8P_SYM_SAMP_SHIFT], d_fftLtfOut2);
         for(int i=0;i<64;i++)
         {
           if(i==0 || (i>=29 && i<=35))
@@ -704,7 +704,7 @@ namespace gr {
     void
     demod2_impl::legacyChanUpdate(const gr_complex* sig1)
     {
-      fftDemod(&sig1[8], d_fftLtfOut1);
+      fftDemod(&sig1[C8P_SYM_SAMP_SHIFT], d_fftLtfOut1);
       for(int i=0;i<64;i++)
       {
         if(i==0 || (i>=27 && i<=37))

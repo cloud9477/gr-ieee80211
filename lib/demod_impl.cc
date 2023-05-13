@@ -107,8 +107,8 @@ namespace gr {
         {
           if(d_nProc >= 160)
           {
-            fftDemod(&inSig1[8], d_fftLtfOut1);
-            fftDemod(&inSig1[8+80], d_fftLtfOut2);
+            fftDemod(&inSig1[C8P_SYM_SAMP_SHIFT], d_fftLtfOut1);
+            fftDemod(&inSig1[C8P_SYM_SAMP_SHIFT+80], d_fftLtfOut2);
             procNLSigDemodDeint(d_fftLtfOut1, d_fftLtfOut2, d_HL, d_sigHtCodedLlr, d_sigVhtACodedLlr);
             d_decoder.decode(d_sigVhtACodedLlr, d_sigVhtABits, 48);
             if(signalCheckVhtA(d_sigVhtABits))
@@ -344,7 +344,7 @@ namespace gr {
       {
         // mu-mimo 2x2
         dout<<"non legacy mu-mimo channel estimate"<<std::endl;
-        fftDemod(&sig1[8], d_fftLtfOut1);
+        fftDemod(&sig1[C8P_SYM_SAMP_SHIFT], d_fftLtfOut1);
         for(int i=0;i<64;i++)
         {
           if(i==0 || (i>=29 && i<=35))
@@ -357,7 +357,7 @@ namespace gr {
       }
       else if(d_m.nSS == 1 && d_m.nLTF == 1)
       {
-        fftDemod(&sig1[8], d_fftLtfOut1);
+        fftDemod(&sig1[C8P_SYM_SAMP_SHIFT], d_fftLtfOut1);
         for(int i=0;i<64;i++)
         {
           if(i==0 || (i>=29 && i<=35))
@@ -372,9 +372,9 @@ namespace gr {
       {
         // nSS larger than 1, only support 2x2 channel sounding now
         dout<<"non legacy 2x2 mimo channel sounding"<<std::endl;
-        memcpy(&d_mu2x1Chan[0], &sig1[8], sizeof(gr_complex) * 64);
-        memcpy(&d_mu2x1Chan[64], &sig1[8+80], sizeof(gr_complex) * 64);
-        fftDemod(&sig1[8], d_fftLtfOut1);
+        memcpy(&d_mu2x1Chan[0], &sig1[C8P_SYM_SAMP_SHIFT], sizeof(gr_complex) * 64);
+        memcpy(&d_mu2x1Chan[64], &sig1[C8P_SYM_SAMP_SHIFT+80], sizeof(gr_complex) * 64);
+        fftDemod(&sig1[C8P_SYM_SAMP_SHIFT], d_fftLtfOut1);
         for(int i=0;i<64;i++)
         {
           if(i==0 || (i>=29 && i<=35))
@@ -391,7 +391,7 @@ namespace gr {
     void
     demod_impl::nonLegacyChanUpdate(const gr_complex* sig1)
     {
-      fftDemod(&sig1[8], d_fftLtfOut1);
+      fftDemod(&sig1[C8P_SYM_SAMP_SHIFT], d_fftLtfOut1);
       for(int i=0;i<64;i++)
       {
         if(i==0 || (i>=29 && i<=35))
@@ -431,7 +431,7 @@ namespace gr {
       {
         dout<<"ieee80211 demod, 1 ant demod sig b check if NDP"<<std::endl;
       }
-      fftDemod(&sig1[8], d_fftLtfOut1);
+      fftDemod(&sig1[C8P_SYM_SAMP_SHIFT], d_fftLtfOut1);
       for(int i=0;i<64;i++)
       {
         if(i==0 || (i>=29 && i<=35))
@@ -468,7 +468,7 @@ namespace gr {
     void
     demod_impl::legacyChanUpdate(const gr_complex* sig1)
     {
-      fftDemod(&sig1[8], d_fftLtfOut1);
+      fftDemod(&sig1[C8P_SYM_SAMP_SHIFT], d_fftLtfOut1);
       for(int i=0;i<64;i++)
       {
         if(i==0 || (i>=27 && i<=37))

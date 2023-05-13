@@ -137,7 +137,7 @@ if __name__ == "__main__":
     ssMultiList = []
     for mcsIter in range(8, 16):
         phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.HT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=2, shortGi=False))
-        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0 * np.sqrt(2), cfoHz = 0.0, num = perfPktNum, gap = True, gapLen = 1600)
+        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0 * np.sqrt(2), cfoHz = 0.0, num = perfPktNum, gap = True, gapLen = 1200)
         ssMultiList.append(ssFinal)
     phy80211Ins.genMultiSigBinFile(ssMultiList, os.path.join(pyToolPath, "../../tmp/sig80211GenMultipleMimo"), False)
     htPerfRes = testSnrPdrSuMimo("ht", 8, perfSnrList, perfSigAmp)
@@ -145,7 +145,7 @@ if __name__ == "__main__":
     ssMultiList = []
     for mcsIter in range(0, 9):
         phy80211Ins.genFromAmpdu(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=2, shortGi=False))
-        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0 * np.sqrt(2), cfoHz = 0.0, num = perfPktNum, gap = True, gapLen = 1600)
+        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0 * np.sqrt(2), cfoHz = 0.0, num = perfPktNum, gap = True, gapLen = 1200)
         ssMultiList.append(ssFinal)
     phy80211Ins.genMultiSigBinFile(ssMultiList, os.path.join(pyToolPath, "../../tmp/sig80211GenMultipleMimo"), False)
     vhtPerfRes = testSnrPdrSuMimo("vht", 10, perfSnrList, perfSigAmp)

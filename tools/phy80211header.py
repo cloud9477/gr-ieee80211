@@ -905,6 +905,14 @@ def procGi(inSig):
         print("cloud phy80211 header, procGi: input length error %d" % (len(inSig)))
         return []
 
+def procCorrelation(inSigA, inSigB):
+        if(len(inSigA) == len(inSigB)):
+            tmpMulti = np.sum([inSigA[i] * np.conj(inSigB[i]) for i in range(0, len(inSigA))])
+            tmpPwrA = np.sum([np.abs(inSigA[i])**2 for i in range(0, len(inSigA))])
+            tmpPwrB = np.sum([np.abs(inSigB[i])**2 for i in range(0, len(inSigB))])
+            return (np.abs(tmpMulti)/np.sqrt(tmpPwrA)/np.sqrt(tmpPwrB))
+        return 0
+
 def procFftDemod(inSig):
     # check len
     if(isinstance(inSig, list) and len(inSig) in [64, 128, 256]):
@@ -943,6 +951,12 @@ def procRmDcNonDataSc(inSig, phyFormat):
 
 def procToneDescaling(inSig, inNtf, nSs):
     return [each * np.sqrt(inNtf * nSs) / len(inSig) for each in inSig]
+
+def procResiCfoCompensate(inQam, p):
+    if(len(inQam) == 52):   # 20
+        tmpPilotSum = np.conj(inQam[5]*p[0] + inQam[19]*p[1] + inQam[32]*p[2] + inQam[46]*p[3])
+        tmpPilotSumAbs = np.abs(tmpPilotSum)
+        return [each * tmpPilotSum / tmpPilotSumAbs for each in inQam]
 
 def procRemovePilots(inSig):
     if(len(inSig) == 52):   # 20

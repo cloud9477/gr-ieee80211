@@ -67,6 +67,8 @@ class phy80211():
         # RX
         self.rxSisoSig = []
         self.rxSampNum = 0
+        self.rxCfo = 0
+        self.rxChanL = []
         # debug
         self.ifdb = ifDebug
 
@@ -833,27 +835,11 @@ class phy80211():
     def __genSignalWithAmp(self, inSig, m):
         return [each * m for each in inSig]
 
-    def __procAddCfo(self, cfoHz):
-        for ssItr in range(0, self.m.nSS):
-            self.ssPhySig[ssItr] = self.__genSignalWithCfo(self.ssPhySig[ssItr], cfoHz)
-    
-    def __procAddAmp(self, multiplier):
-        for ssItr in range(0, self.m.nSS):
-            self.ssPhySig[ssItr] = [each * multiplier for each in self.ssPhySig[ssItr]]
-
-    def __procCorrelation(self, inSigA, inSigB):
-        if(len(inSigA) == len(inSigB)):
-            tmpMulti = np.sum([inSigA[i] * np.conj(inSigB[i]) for i in range(0, len(inSigA))])
-            tmpPwrA = np.sum([np.abs(inSigA[i])**2 for i in range(0, len(inSigA))])
-            tmpPwrB = np.sum([np.abs(inSigB[i])**2 for i in range(0, len(inSigB))])
-            return (np.abs(tmpMulti)/np.sqrt(tmpPwrA)/np.sqrt(tmpPwrB))
-        return 0
-
     def __procRxLegacyStfTrigger(self, inSig):
         if(len(inSig) > 32):
             tmpPlateau = 0
             for i in range(0, len(inSig) - 32):
-                if(self.__procCorrelation(inSig[i:i+16], inSig[i+16:i+32]) > 0.4):
+                if(p8h.procCorrelation(inSig[i:i+16], inSig[i+16:i+32]) > 0.4):
                     tmpPlateau += 1
                     if(tmpPlateau > 20):
                         return i
@@ -866,11 +852,11 @@ class phy80211():
             tmpMultiAvg = np.mean([inSig[i] * np.conj(inSig[i + 16]) for i in range(0, nRad)])
             return np.arctan2(np.imag(tmpMultiAvg), np.real(tmpMultiAvg)) / 16 * 20000000 / 2 / np.pi
 
-    def __procRxLegacyLtfSync(self, inSig):
+    def __procRxLegacyLtfSync(self, inSig, coarseCfo):
         if(len(inSig) >= 240):
             tmpAutoCorre = []
             for i in range(0, 110):
-                tmpAutoCorre.append(self.__procCorrelation(inSig[i:i+64], inSig[i+64:i+128]))
+                tmpAutoCorre.append(p8h.procCorrelation(inSig[i:i+64], inSig[i+64:i+128]))
             maxValue = max(tmpAutoCorre)
             maxIndex = tmpAutoCorre.index(maxValue)
             leftCorre = tmpAutoCorre[0:maxIndex]
@@ -878,8 +864,29 @@ class phy80211():
             if(len(leftCorre) and len(rightCorre)):
                 leftIndex = min(range(len(leftCorre)), key = lambda i: abs(leftCorre[i]-maxValue*0.8))
                 rightIndex = min(range(len(rightCorre)), key = lambda i: abs(rightCorre[i]-maxValue*0.8))
-                return int((leftIndex + rightIndex + maxIndex)/2)
-        return -1
+                midIndex = int((leftIndex + rightIndex + maxIndex)/2)
+                tmpRadStep = coarseCfo * 2 * np.pi / 20000000
+                tmpSig = [inSig[midIndex + i] * complex(np.cos(tmpRadStep*i), np.sin(tmpRadStep*i)) for i in range(0, 128)]
+                tmpMultiAvg = np.mean([tmpSig[i] * np.conj(tmpSig[i + 64]) for i in range(0, 64)])
+                return midIndex, (np.arctan2(np.imag(tmpMultiAvg), np.real(tmpMultiAvg)) / 64 * 20000000 / 2 / np.pi)
+        return -1, 0
+
+    def __procRxLegacyChanEst(self, inSig):
+        if(len(inSig) >= 128):
+            tmpLtf1 = p8h.procFftDemod(inSig[0:64])
+            tmpLtf2 = p8h.procFftDemod(inSig[64:128])
+            tmpLtfOri = p8h.procNonDataSC(p8h.C_LTF_L[p8h.BW.BW20.value])
+            self.rxChanL = []
+            for i in range(0, 64):
+                self.rxChanL.append((tmpLtf1[i] + tmpLtf2[i]) / tmpLtfOri[i] / 2.0)
+
+    def __procRxLegacySigDemod(self, inSig):
+        if(len(inSig) >= 64):
+            tmpSigFreq = p8h.procFftDemod(inSig[0:64])
+            tmpSigFreq = [tmpSigFreq[i] / self.rxChanL[i] for i in range(0, 64)]
+            tmpSigFreq = p8h.procRmDcNonDataSc(tmpSigFreq, p8h.F.L)
+            tmpSigLlr = p8h.procRemovePilots(tmpSigFreq)
+            
 
     def procSisoRx(self, inSig):
         if(isinstance(inSig, list) and len(inSig) > 480):
@@ -888,19 +895,30 @@ class phy80211():
             print(self.rxSampNum)
             procIndex = 0
             while(self.rxSampNum > (procIndex + 480)):
+                # find beginning of stf
                 tmpTriggerIndex = self.__procRxLegacyStfTrigger(self.rxSisoSig[procIndex:])
                 if(tmpTriggerIndex < 0):
                     procIndex += 80
                     continue
                 stfIndex = procIndex + tmpTriggerIndex
+                # estimate cfo with stf
                 triggerCfo = self.__procRxLegacyStfCoarseCfoEst(self.rxSisoSig[stfIndex:], 64)
-                tmpSyncIndex = self.__procRxLegacyLtfSync(self.rxSisoSig[stfIndex+80:stfIndex+320])
+                # find beginning of ltf, mid of 80% shoulders, should be mid of GI, 
+                tmpSyncIndex, syncCfo = self.__procRxLegacyLtfSync(self.rxSisoSig[stfIndex+80:stfIndex+320], triggerCfo)
                 if(tmpSyncIndex < 0):
                     procIndex += 80
                     continue
-                ltfIndex = stfIndex + 80 + tmpSyncIndex + 12
-                print(stfIndex, triggerCfo, ltfIndex)
-                
+                # total cfo is sum of stf and ltf cfo
+                self.rxCfo = triggerCfo + syncCfo
+                ltfIndex = stfIndex + 80 + tmpSyncIndex + 10
+                # estimate legacy channel
+                tmpCfoRadStep = self.rxCfo * 2 * np.pi / 20000000
+                tmpLtfSig = [self.rxSisoSig[ltfIndex+i] * complex(np.cos(tmpCfoRadStep*i), np.sin(tmpCfoRadStep*i)) for i in range(0, 208)]
+                self.__procRxLegacyChanEst(tmpLtfSig[0:128])
+                # demod legacy signal part
+                legacySigIndex = ltfIndex+144
+                self.__procRxLegacySigDemod(tmpLtfSig[144:])
+                print("cloud phy80211, procSisoRx, stf: %d, cfo: %f, ltf: %d" % (stfIndex, self.rxCfo, ltfIndex))
                 procIndex = stfIndex + 80
 
 

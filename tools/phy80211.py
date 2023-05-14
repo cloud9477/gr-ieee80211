@@ -68,7 +68,11 @@ class phy80211():
         self.rxSisoSig = []
         self.rxSampNum = 0
         self.rxCfo = 0
+        self.rxSnrDb = 0
         self.rxChanL = []
+        self.rxLenL = 0
+        self.rxMcsL = 0
+        self.rxM = p8h.modulation()
         # debug
         self.ifdb = ifDebug
 
@@ -858,18 +862,21 @@ class phy80211():
             for i in range(0, 110):
                 tmpAutoCorre.append(p8h.procCorrelation(inSig[i:i+64], inSig[i+64:i+128]))
             maxValue = max(tmpAutoCorre)
-            maxIndex = tmpAutoCorre.index(maxValue)
-            leftCorre = tmpAutoCorre[0:maxIndex]
-            rightCorre = tmpAutoCorre[maxIndex:]
-            if(len(leftCorre) and len(rightCorre)):
-                leftIndex = min(range(len(leftCorre)), key = lambda i: abs(leftCorre[i]-maxValue*0.8))
-                rightIndex = min(range(len(rightCorre)), key = lambda i: abs(rightCorre[i]-maxValue*0.8))
-                midIndex = int((leftIndex + rightIndex + maxIndex)/2)
-                tmpRadStep = coarseCfo * 2 * np.pi / 20000000
-                tmpSig = [inSig[midIndex + i] * complex(np.cos(tmpRadStep*i), np.sin(tmpRadStep*i)) for i in range(0, 128)]
-                tmpMultiAvg = np.mean([tmpSig[i] * np.conj(tmpSig[i + 64]) for i in range(0, 64)])
-                return midIndex, (np.arctan2(np.imag(tmpMultiAvg), np.real(tmpMultiAvg)) / 64 * 20000000 / 2 / np.pi)
-        return -1, 0
+            if(maxValue > 0.5):
+                maxIndex = tmpAutoCorre.index(maxValue)
+                leftCorre = tmpAutoCorre[0:maxIndex]
+                rightCorre = tmpAutoCorre[maxIndex:]
+                if(len(leftCorre) and len(rightCorre)):
+                    leftIndex = min(range(len(leftCorre)), key = lambda i: abs(leftCorre[i]-maxValue*0.8))
+                    rightIndex = min(range(len(rightCorre)), key = lambda i: abs(rightCorre[i]-maxValue*0.8))
+                    midIndex = int((leftIndex + rightIndex + maxIndex)/2)
+                    tmpRadStep = coarseCfo * 2 * np.pi / 20000000
+                    tmpSig = [inSig[midIndex + i] * complex(np.cos(tmpRadStep*i), np.sin(tmpRadStep*i)) for i in range(0, 128)]
+                    tmpMultiAvg = np.mean([tmpSig[i] * np.conj(tmpSig[i + 64]) for i in range(0, 64)])
+                    self.rxCfo = coarseCfo + (np.arctan2(np.imag(tmpMultiAvg), np.real(tmpMultiAvg)) / 64 * 20000000 / 2 / np.pi)
+                    self.rxSnrDb = 10 * np.log10(maxValue / (1 - maxValue))
+                    return midIndex
+        return -1
 
     def __procRxLegacyChanEst(self, inSig):
         if(len(inSig) >= 128):
@@ -878,7 +885,10 @@ class phy80211():
             tmpLtfOri = p8h.procNonDataSC(p8h.C_LTF_L[p8h.BW.BW20.value])
             self.rxChanL = []
             for i in range(0, 64):
-                self.rxChanL.append((tmpLtf1[i] + tmpLtf2[i]) / tmpLtfOri[i] / 2.0)
+                if(tmpLtfOri[i] == 0):
+                    self.rxChanL.append(1)
+                else:
+                    self.rxChanL.append((tmpLtf1[i] + tmpLtf2[i]) / tmpLtfOri[i] / 2.0)
 
     def __procRxLegacySigDemod(self, inSig):
         if(len(inSig) >= 64):
@@ -887,7 +897,14 @@ class phy80211():
             tmpSigFreq = p8h.procRmDcNonDataSc(tmpSigFreq, p8h.F.L)
             tmpSigLlr = p8h.procRemovePilots(tmpSigFreq)
             return tmpSigLlr
-            
+
+    def __procRxNonLegacySigDemod(self, inSig):     # ht sig and vht sig a
+        if(len(inSig) >= 128):
+            tmpSigFreq1 = p8h.procFftDemod(inSig[0:64])
+            tmpSigLlr1 = p8h.procRemovePilots(p8h.procRmDcNonDataSc([tmpSigFreq1[i] / self.rxChanL[i] for i in range(0, 64)], p8h.F.L))
+            tmpSigFreq2 = p8h.procFftDemod(inSig[64:128])
+            tmpSigLlr2 = p8h.procRemovePilots(p8h.procRmDcNonDataSc([tmpSigFreq2[i] / self.rxChanL[i] for i in range(0, 64)], p8h.F.L))
+            return tmpSigLlr1 + tmpSigLlr2
 
     def procSisoRx(self, inSig):
         if(isinstance(inSig, list) and len(inSig) > 480):
@@ -905,27 +922,38 @@ class phy80211():
                 # estimate cfo with stf
                 triggerCfo = self.__procRxLegacyStfCoarseCfoEst(self.rxSisoSig[stfIndex:], 64)
                 # find beginning of ltf, mid of 80% shoulders, should be mid of GI, 
-                tmpSyncIndex, syncCfo = self.__procRxLegacyLtfSync(self.rxSisoSig[stfIndex+80:stfIndex+320], triggerCfo)
+                tmpSyncIndex = self.__procRxLegacyLtfSync(self.rxSisoSig[stfIndex+80:stfIndex+320], triggerCfo)
                 if(tmpSyncIndex < 0):
                     procIndex += 80
                     continue
-                # total cfo is sum of stf and ltf cfo
-                self.rxCfo = triggerCfo + syncCfo
                 ltfIndex = stfIndex + 80 + tmpSyncIndex + 10
                 # estimate legacy channel
                 tmpCfoRadStep = self.rxCfo * 2 * np.pi / 20000000
-                tmpLtfSig = [self.rxSisoSig[ltfIndex+i] * complex(np.cos(tmpCfoRadStep*i), np.sin(tmpCfoRadStep*i)) for i in range(0, 208)]
-                self.__procRxLegacyChanEst(tmpLtfSig[0:128])
+                legacySigSamples = [self.rxSisoSig[ltfIndex+i] * complex(np.cos(tmpCfoRadStep*i), np.sin(tmpCfoRadStep*i)) for i in range(0, 208)]
+                self.__procRxLegacyChanEst(legacySigSamples[0:128])
                 # demod legacy signal part
-                legacySigIndex = ltfIndex+144
-                legacySigLlrInted = list(np.real(self.__procRxLegacySigDemod(tmpLtfSig[144:])))
+                legacySigQam = self.__procRxLegacySigDemod(legacySigSamples[144:])
+                legacySigLlrInted = list(np.real(legacySigQam))
                 # deinterleave
                 legacySigLlrCoded = p8h.procDeinterleaveSigL(legacySigLlrInted)
                 # decode llr
                 legacySigBits = p8h.procViterbiDecoder(legacySigLlrCoded, 24, p8h.CR.CR12)
-                print(legacySigBits)
-                print("cloud phy80211, procSisoRx, stf: %d, cfo: %f, ltf: %d" % (stfIndex, self.rxCfo, ltfIndex))
-                procIndex = stfIndex + 80
+                legacySigSnr = p8h.procSnrSigLegacy(legacySigQam, legacySigBits)
+                if(not p8h.procCheckSigLegacy(legacySigBits) or self.rxSnrDb < 0 or legacySigSnr < 0.1):
+                    procIndex += 80
+                    continue
+                print("cloud phy80211, sig bits: ", legacySigBits)
+                print("cloud phy80211, procSisoRx, stf: %d, ltf: %d, cfo: %f, snr: %f, sig snr: %f" % (stfIndex, ltfIndex, self.rxCfo, self.rxSnrDb, legacySigSnr))
+                self.rxMcsL, self.rxLenL, legacyNSym =  p8h.procParserSigLegacy(legacySigBits)
+                sigSamples = [self.rxSisoSig[ltfIndex+208+i] * complex(np.cos(tmpCfoRadStep*i), np.sin(tmpCfoRadStep*i)) for i in range(0, legacyNSym * 80)]
+                # check format
+                if(self.rxMcsL == 0):
+                    nonLegacyQam = self.__procRxNonLegacySigDemod(sigSamples[16:80] + sigSamples[96:160])
+                    htLlrCoded = p8h.procDeinterleaveSigL(list(np.imag(nonLegacyQam[0:48]))) + p8h.procDeinterleaveSigL(list(np.imag(nonLegacyQam[48:96])))
+                    vhtLlrCoded = p8h.procDeinterleaveSigL(list(np.real(nonLegacyQam[0:48]))) + p8h.procDeinterleaveSigL(list(np.imag(nonLegacyQam[48:96])))
+                    vhtSigABits = p8h.procViterbiDecoder(vhtLlrCoded, 48, p8h.CR.CR12)
+                    print("cloud phy80211, vht sig a bits: ", vhtSigABits)
+                procIndex = stfIndex + 400
 
 
     def genFinalSig(self, multiplier = 1.0, cfoHz = 0.0, num = 1, gap = True, gapLen = 10000):

@@ -960,7 +960,9 @@ def procViterbiDecoder(llr, trellisLen, cr):
         v_cr_p = 0
         v_ae_cur = [-1000000000000000.0] * 64
         v_ae_pre = [0] + [-1000000000000000.0] * 63
-        v_state_his = [[0]*64] * (trellisLen + 1)
+        v_state_his = []
+        for i in range(0, (trellisLen + 1)):
+            v_state_his.append([0] * 64)
         # compute trellis
         while((v_llrUsed + v_cr_punc[v_cr_p] + v_cr_punc[v_cr_p+1]) <= len(llr)):
             if(v_cr_punc[v_cr_p]):
@@ -1007,7 +1009,6 @@ def procViterbiDecoder(llr, trellisLen, cr):
                 v_bits[i] = 1
         return v_bits
 
-
 def procCorrelation(inSigA, inSigB):
         if(len(inSigA) == len(inSigB)):
             tmpMulti = np.sum([inSigA[i] * np.conj(inSigB[i]) for i in range(0, len(inSigA))])
@@ -1015,6 +1016,70 @@ def procCorrelation(inSigA, inSigB):
             tmpPwrB = np.sum([np.abs(inSigB[i])**2 for i in range(0, len(inSigB))])
             return (np.abs(tmpMulti)/np.sqrt(tmpPwrA)/np.sqrt(tmpPwrB))
         return 0
+
+def procSnrSigLegacy(inQam, inBits):
+    if(isinstance(inQam, list) and isinstance(inBits, list) and len(inQam) == 48 and len(inBits) == 24):
+        tmpCodedBits = procBcc(inBits, CR.CR12)
+        tmpIntedBits = procInterleaveSigL(tmpCodedBits)
+        tmpQam = [C_QAM_MODU_TAB[M.BPSK.value][int(each)] for each in tmpIntedBits]
+        tmpPwrNoise = np.sum([np.abs(inQam[i] - tmpQam[i])**2 for i in range(0, 48)])
+        tmpPwrSig = 48
+        return (np.log10(tmpPwrSig / tmpPwrNoise) * 10)
+
+def procCheckSigLegacy(inBits):
+    if(isinstance(inBits, list) and len(inBits) == 24):
+        if(inBits[3] != 1):
+            return False
+        elif(inBits[4] != 0):
+            return False
+        elif((sum(inBits[0:17])%2) != inBits[17]):
+            return False
+        elif(sum(inBits[18:24]) != 0):
+            return False
+        else:
+            tmpPsduLen = 0
+            for i in range(0, 12):
+                tmpPsduLen = tmpPsduLen | (inBits[i+5] << i)
+            if(tmpPsduLen > 4095 or tmpPsduLen < 14):
+                return False
+            else:
+                return True
+
+def procParserSigLegacy(inBits):
+    if(isinstance(inBits, list) and len(inBits) == 24):
+        tmpRate = 0
+        tmpPsduLen = 0
+        for i in range(0, 4):
+            tmpRate = tmpRate | (inBits[i] << i)
+        if(tmpRate == 11):
+            tmpMcs = 0
+            tmpNDbps = 24
+        elif(tmpRate == 11):
+            tmpMcs = 1
+            tmpNDbps = 36
+        elif(tmpRate == 11):
+            tmpMcs = 2
+            tmpNDbps = 48
+        elif(tmpRate == 11):
+            tmpMcs = 3
+            tmpNDbps = 72
+        elif(tmpRate == 11):
+            tmpMcs = 4
+            tmpNDbps = 96
+        elif(tmpRate == 11):
+            tmpMcs = 5
+            tmpNDbps = 144
+        elif(tmpRate == 11):
+            tmpMcs = 6
+            tmpNDbps = 192
+        else:
+            tmpMcs = 7
+            tmpNDbps = 216
+        for i in range(0, 12):
+            tmpPsduLen = tmpPsduLen | (inBits[i+5] << i)
+        tmpSymLen = int(np.ceil((22 + tmpPsduLen*8)/tmpNDbps))
+        return tmpMcs, tmpPsduLen, tmpSymLen
+    return 0, 0, 0
 
 def procFftDemod(inSig):
     # check len

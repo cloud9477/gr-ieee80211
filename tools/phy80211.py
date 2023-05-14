@@ -886,6 +886,7 @@ class phy80211():
             tmpSigFreq = [tmpSigFreq[i] / self.rxChanL[i] for i in range(0, 64)]
             tmpSigFreq = p8h.procRmDcNonDataSc(tmpSigFreq, p8h.F.L)
             tmpSigLlr = p8h.procRemovePilots(tmpSigFreq)
+            return tmpSigLlr
             
 
     def procSisoRx(self, inSig):
@@ -917,7 +918,12 @@ class phy80211():
                 self.__procRxLegacyChanEst(tmpLtfSig[0:128])
                 # demod legacy signal part
                 legacySigIndex = ltfIndex+144
-                self.__procRxLegacySigDemod(tmpLtfSig[144:])
+                legacySigLlrInted = list(np.real(self.__procRxLegacySigDemod(tmpLtfSig[144:])))
+                # deinterleave
+                legacySigLlrCoded = p8h.procDeinterleaveSigL(legacySigLlrInted)
+                # decode llr
+                legacySigBits = p8h.procViterbiDecoder(legacySigLlrCoded, 24, p8h.CR.CR12)
+                print(legacySigBits)
                 print("cloud phy80211, procSisoRx, stf: %d, cfo: %f, ltf: %d" % (stfIndex, self.rxCfo, ltfIndex))
                 procIndex = stfIndex + 80
 

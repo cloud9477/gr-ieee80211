@@ -701,6 +701,30 @@ C_NDP_SIG_B = [C_NDP_SIG_B_20, C_NDP_SIG_B_40, C_NDP_SIG_B_80]
 # eof bit is 1, reserved bit 0, length is 0, crc 8, signature 0x4e
 C_VHT_EOF = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] + genBitBitCrc8([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]) + [0, 1, 1, 1, 0, 0, 1, 0]
 
+# viterbi, next state of each state with S1 = 0 and 1
+C_SV_STATE_NEXT = [
+    [ 0, 32], [ 0, 32], [ 1, 33], [ 1, 33], [ 2, 34], [ 2, 34], [ 3, 35], [ 3, 35],
+    [ 4, 36], [ 4, 36], [ 5, 37], [ 5, 37], [ 6, 38], [ 6, 38], [ 7, 39], [ 7, 39],
+    [ 8, 40], [ 8, 40], [ 9, 41], [ 9, 41], [10, 42], [10, 42], [11, 43], [11, 43],
+    [12, 44], [12, 44], [13, 45], [13, 45], [14, 46], [14, 46], [15, 47], [15, 47],
+    [16, 48], [16, 48], [17, 49], [17, 49], [18, 50], [18, 50], [19, 51], [19, 51],
+    [20, 52], [20, 52], [21, 53], [21, 53], [22, 54], [22, 54], [23, 55], [23, 55],
+    [24, 56], [24, 56], [25, 57], [25, 57], [26, 58], [26, 58], [27, 59], [27, 59],
+    [28, 60], [28, 60], [29, 61], [29, 61], [30, 62], [30, 62], [31, 63], [31, 63]
+]
+
+# viterbi, output coded 2 bits of each state with S1 = 0 and 1
+C_SV_STATE_OUTPUT = [
+    [0, 3], [3, 0], [2, 1], [1, 2], [0, 3], [3, 0], [2, 1], [1, 2],
+    [3, 0], [0, 3], [1, 2], [2, 1], [3, 0], [0, 3], [1, 2], [2, 1],
+    [3, 0], [0, 3], [1, 2], [2, 1], [3, 0], [0, 3], [1, 2], [2, 1],
+    [0, 3], [3, 0], [2, 1], [1, 2], [0, 3], [3, 0], [2, 1], [1, 2],
+    [1, 2], [2, 1], [3, 0], [0, 3], [1, 2], [2, 1], [3, 0], [0, 3],
+    [2, 1], [1, 2], [0, 3], [3, 0], [2, 1], [1, 2], [0, 3], [3, 0],
+    [2, 1], [1, 2], [0, 3], [3, 0], [2, 1], [1, 2], [0, 3], [3, 0],
+    [1, 2], [2, 1], [3, 0], [0, 3], [1, 2], [2, 1], [3, 0], [0, 3],
+]
+
 def procBcc(inBits, cr):
     if(isinstance(inBits, list) or isinstance(cr, CR)):
         # binary convolutional coding, ieee 802.11 2016 ofdm sec 17.3.5.6
@@ -757,6 +781,19 @@ def procInterleaveSigL(inBits):
         return tmpIntedBits
     else:
         print("cloud phy80211 header, interleave sig legacy input error")
+        return []
+
+def procDeinterleaveSigL(inBits):
+    if(isinstance(inBits, list)):
+        tmpDeintedBits = [0] * len(inBits)
+        s = 1
+        for k in range(0, 48):
+            i = int((48/16) * (k % 16) + np.floor(k/16))
+            j = int(s * int(np.floor(i/s)) + (int(i + 48 - np.floor(16 * i / 48)) % s))
+            tmpDeintedBits[k] = inBits[j]
+        return tmpDeintedBits
+    else:
+        print("cloud phy80211 header, deinterleave sig legacy input error")
         return []
 
 def procStreamParserNonLegacy(inEsBits, mod):
@@ -904,6 +941,72 @@ def procGi(inSig):
     else:
         print("cloud phy80211 header, procGi: input length error %d" % (len(inSig)))
         return []
+
+def procViterbiDecoder(llr, trellisLen, cr):
+    if(isinstance(llr, list) and isinstance(cr, CR)):
+        v_t = 0
+        v_t_llr0 = 0
+        v_t_llr1 = 0
+        v_llrUsed = 0
+        if(cr == CR.CR12):
+            v_cr_punc = [1, 1]
+        elif(cr == CR.CR23):
+            v_cr_punc = [1, 1, 1, 0]
+        elif(cr == CR.CR34):
+            v_cr_punc = [1, 1, 1, 0, 0, 1]
+        else:   # 5/6
+            v_cr_punc = [1, 1, 1, 0, 0, 1, 1, 0, 0, 1]
+        v_cr_len = len(v_cr_punc)
+        v_cr_p = 0
+        v_ae_cur = [-1000000000000000.0] * 64
+        v_ae_pre = [0] + [-1000000000000000.0] * 63
+        v_state_his = [[0]*64] * (trellisLen + 1)
+        # compute trellis
+        while((v_llrUsed + v_cr_punc[v_cr_p] + v_cr_punc[v_cr_p+1]) <= len(llr)):
+            if(v_cr_punc[v_cr_p]):
+                v_t_llr0 = llr[v_llrUsed]
+                v_llrUsed+=1
+            else:
+                v_t_llr0 = 0
+            if(v_cr_punc[v_cr_p+1]):
+                v_t_llr1 = llr[v_llrUsed]
+                v_llrUsed+=1
+            else:
+                v_t_llr1 = 0
+            v_t_llr_tab = [0, v_t_llr1, v_t_llr0, v_t_llr1 + v_t_llr0]
+            for i in range(0, 64):
+                v_op0 = C_SV_STATE_OUTPUT[i][0]
+                v_op1 = C_SV_STATE_OUTPUT[i][1]
+                v_acc_tmp0 = v_ae_pre[i] + v_t_llr_tab[v_op0]
+                v_acc_tmp1 = v_ae_pre[i] + v_t_llr_tab[v_op1]
+                v_next0 = C_SV_STATE_NEXT[i][0]
+                v_next1 = C_SV_STATE_NEXT[i][1]
+                if (v_acc_tmp0 > v_ae_cur[v_next0]):
+                    v_ae_cur[v_next0] = v_acc_tmp0
+                    v_state_his[v_t+1][v_next0] = i
+                if (v_acc_tmp1 > v_ae_cur[v_next1]):
+                    v_ae_cur[v_next1] = v_acc_tmp1
+                    v_state_his[v_t+1][v_next1] = i
+            v_ae_pre = v_ae_cur
+            v_ae_cur = [-1000000000000000] * 64
+            v_cr_p += 2
+            if(v_cr_p >= v_cr_len):
+                v_cr_p = 0
+            v_t += 1
+            if(v_t >= trellisLen):
+                break
+        # trace back
+        v_state_seq = [0] * (trellisLen + 1)
+        j = trellisLen
+        while(j > 0):
+            v_state_seq[j-1] = v_state_his[j][v_state_seq[j]]
+            j -= 1
+        v_bits = [0] * trellisLen
+        for i in range(0, trellisLen):
+            if (v_state_seq[i+1] == C_SV_STATE_NEXT[v_state_seq[i]][1]):
+                v_bits[i] = 1
+        return v_bits
+
 
 def procCorrelation(inSigA, inSigB):
         if(len(inSigA) == len(inSigB)):

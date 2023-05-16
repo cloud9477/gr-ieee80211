@@ -83,6 +83,8 @@ namespace gr {
           v_trellis = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("trellis"), pmt::from_long(99999)));
           t_cfo = pmt::to_float(pmt::dict_ref(d_meta, pmt::mp("cfo"), pmt::from_float(0.0f)));
           t_snr = pmt::to_float(pmt::dict_ref(d_meta, pmt::mp("snr"), pmt::from_float(0.0f)));
+          t_sssnr0 = pmt::to_float(pmt::dict_ref(d_meta, pmt::mp("sssnr0"), pmt::from_float(0.0f)));
+          t_sssnr1 = pmt::to_float(pmt::dict_ref(d_meta, pmt::mp("sssnr1"), pmt::from_float(0.0f)));
           t_rssi = pmt::to_float(pmt::dict_ref(d_meta, pmt::mp("rssi"), pmt::from_float(0.0f)));
           d_sDecode = DECODE_S_DECODE;
           t_nProcd = 0;
@@ -379,6 +381,8 @@ namespace gr {
               dbgStr += (std::string(",cfo:") + std::to_string(t_cfo));
               dbgStr += (std::string(",snr:") + std::to_string(t_snr));
               dbgStr += (std::string(",rssi:") + std::to_string(t_rssi));
+              dbgStr += (std::string(",sssnr0:") + std::to_string(t_sssnr0));
+              dbgStr += (std::string(",sssnr1:") + std::to_string(t_sssnr1));
               std::cout << dbgStr << std::endl;
             }
             else
@@ -397,6 +401,8 @@ namespace gr {
               dbgStr += (std::string(",cfo:") + std::to_string(t_cfo));
               dbgStr += (std::string(",snr:") + std::to_string(t_snr));
               dbgStr += (std::string(",rssi:") + std::to_string(t_rssi));
+              dbgStr += (std::string(",sssnr0:") + std::to_string(t_sssnr0));
+              dbgStr += (std::string(",sssnr1:") + std::to_string(t_sssnr1));
               std::cout << dbgStr << std::endl;
               // 1 byte packet format
               tmpLen += 3;

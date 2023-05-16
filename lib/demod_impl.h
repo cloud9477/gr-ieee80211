@@ -61,6 +61,7 @@ namespace gr {
       float d_cfo;
       float d_snr;
       float d_rssi;
+      float d_sssnr;    // spatial stream snr only for vht
       // check format
       svSigDecoder d_decoder;
       gr_complex d_sig1[64];
@@ -74,6 +75,9 @@ namespace gr {
       uint8_t d_sigHtBits[48];
       uint8_t d_sigVhtABits[48];
       uint8_t d_sigVhtB20Bits[26];
+      gr_complex d_sigVhtBQam[52];
+      uint8_t d_sigVhtB20BitsCoded[52];
+      uint8_t d_sigVhtB20BitsInted[52];
       // fft
       fft::fft_complex_fwd d_ofdm_fft;
       gr_complex d_fftLtfOut1[64];

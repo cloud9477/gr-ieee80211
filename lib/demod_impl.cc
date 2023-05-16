@@ -224,6 +224,10 @@ namespace gr {
           pmt::pmt_t dict = pmt::make_dict();
           dict = pmt::dict_add(dict, pmt::mp("cfo"), pmt::from_float(d_cfo));
           dict = pmt::dict_add(dict, pmt::mp("snr"), pmt::from_float(d_snr));
+          if(d_m.format == C8P_F_VHT)
+          {
+            dict = pmt::dict_add(dict, pmt::mp("sssnr0"), pmt::from_float(d_sssnr));
+          }
           dict = pmt::dict_add(dict, pmt::mp("rssi"), pmt::from_float(d_rssi));
           dict = pmt::dict_add(dict, pmt::mp("format"), pmt::from_long(d_m.format));
           dict = pmt::dict_add(dict, pmt::mp("mcs"), pmt::from_long(d_m.mcs));
@@ -451,8 +455,8 @@ namespace gr {
         {}
         else
         {
-          gr_complex tmpSig1 = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
-          d_sigVhtB20IntedLlr[j] = tmpSig1.real();
+          d_sigVhtBQam[j] = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
+          d_sigVhtB20IntedLlr[j] = d_sigVhtBQam[j].real();
           j++;
           if(j >= 52){j = 0;}
         }
@@ -462,7 +466,24 @@ namespace gr {
       {
         d_sigVhtB20CodedLlr[mapDeintVhtSigB20[i]] = d_sigVhtB20IntedLlr[i];
       }
-      SV_Decode_Sig(d_sigVhtB20CodedLlr, d_sigVhtB20Bits, 26);
+      d_decoder.decode(d_sigVhtB20CodedLlr, d_sigVhtB20Bits, 26);
+
+      bccEncoder(d_sigVhtB20Bits, d_sigVhtB20BitsCoded, 26);
+      procIntelVhtB20(d_sigVhtB20BitsCoded, d_sigVhtB20BitsInted);
+      double tmpNoisePower = 0.0;
+      for(int i=0;i<52;i++)
+      {
+        if(d_sigVhtB20BitsInted[i])
+        {
+          d_sigVhtBQam[i] -= gr_complex(1.0f, 0.0f);
+        }
+        else
+        {
+          d_sigVhtBQam[i] -= gr_complex(-1.0f, 0.0f);
+        }
+        tmpNoisePower += (double)(d_sigVhtBQam[i].real()*d_sigVhtBQam[i].real() + d_sigVhtBQam[i].imag() * d_sigVhtBQam[i].imag());
+      }
+      d_sssnr = (float)(log10(52.0/tmpNoisePower) * 10.0);
     }
 
     void

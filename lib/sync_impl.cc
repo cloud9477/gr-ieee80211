@@ -99,6 +99,7 @@ namespace gr {
           if(*d_maxAcP > 0.5)  // some miss trigger not higher than 0.5
           {
             d_maxAc = *d_maxAcP * 0.8;
+            d_maxAcD = (double)(*d_maxAcP);
             d_maxIndex = std::distance(d_tmpAc, d_maxAcP);
             d_lIndex = d_maxIndex;
             d_rIndex = d_maxIndex;
@@ -122,7 +123,7 @@ namespace gr {
             sync[d_mIndex] = 0x01;  // sync index is LTF starting index + 16
             pmt::pmt_t dict = pmt::make_dict();   // add tag to pass cfo and snr
             dict = pmt::dict_add(dict, pmt::mp("rad"), pmt::from_float(ltf_cfo(&inSig[d_mIndex])));
-            dict = pmt::dict_add(dict, pmt::mp("snr"), pmt::from_float(10.0f * log10f((*d_maxAcP) / (1 - (*d_maxAcP)))));
+            dict = pmt::dict_add(dict, pmt::mp("snr"), pmt::from_float((float)(10.0 * log10(d_maxAcD / (1.0 - d_maxAcD)))));
             dict = pmt::dict_add(dict, pmt::mp("rssi"), pmt::from_float(d_tmpPwr[d_maxIndex] / 64.0f));
             pmt::pmt_t pairs = pmt::dict_items(dict);
             for (size_t i = 0; i < pmt::length(pairs); i++) {

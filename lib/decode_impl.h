@@ -59,6 +59,8 @@ namespace gr {
       int t_mcs;
       float t_cfo;
       float t_snr;
+      float t_sssnr0;
+      float t_sssnr1;
       float t_rssi;
       // NDP channel
       gr_complex d_mu2x1Chan[128];

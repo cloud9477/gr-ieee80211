@@ -231,6 +231,16 @@ namespace gr {
           dict = pmt::dict_add(dict, pmt::mp("cfo"), pmt::from_float(d_cfo));
           dict = pmt::dict_add(dict, pmt::mp("snr"), pmt::from_float(d_snr));
           dict = pmt::dict_add(dict, pmt::mp("rssi"), pmt::from_float(d_rssi));
+          if(d_m.format == C8P_F_VHT)
+          {
+            if(d_m.nSS == 1){
+              dict = pmt::dict_add(dict, pmt::mp("sssnr0"), pmt::from_float(d_sssnr0));
+            }
+            else{
+              dict = pmt::dict_add(dict, pmt::mp("sssnr0"), pmt::from_float(d_sssnr0));
+              dict = pmt::dict_add(dict, pmt::mp("sssnr1"), pmt::from_float(d_sssnr1));
+            }
+          }
           dict = pmt::dict_add(dict, pmt::mp("format"), pmt::from_long(d_m.format));
           dict = pmt::dict_add(dict, pmt::mp("mcs"), pmt::from_long(d_m.mcs));
           dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_m.len));
@@ -643,7 +653,9 @@ namespace gr {
           {}
           else
           {
-            d_sigVhtB20IntedLlr[j] = (d_sig1[i] * tmpPilotSum / tmpPilotSumAbs).real();
+            // d_sigVhtB20IntedLlr[j] = (d_sig1[i] * tmpPilotSum / tmpPilotSumAbs).real();
+            d_sigVhtBQam0[j] = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
+            d_sigVhtB20IntedLlr[j] = d_sigVhtBQam0[j].real();
             j++;
             if(j >= 52){j = 0;}
           }
@@ -682,7 +694,9 @@ namespace gr {
           {}
           else
           {
-            d_sigVhtB20IntedLlr[j] = ((d_sig1[i] * tmpPilotSum / tmpPilotSumAbs).real() + (d_sig2[i] * tmpPilotSum / tmpPilotSumAbs).real())/2.0f;
+            d_sigVhtBQam0[j] = d_sig1[i] * tmpPilotSum / tmpPilotSumAbs;
+            d_sigVhtBQam1[j] = d_sig2[i] * tmpPilotSum / tmpPilotSumAbs;
+            d_sigVhtB20IntedLlr[j] = (d_sigVhtBQam0[j].real() + d_sigVhtBQam1[j].real())/2.0f;
             j++;
             if(j >= 52){j = 0;}
           }
@@ -698,7 +712,49 @@ namespace gr {
       {
         d_sigVhtB20CodedLlr[mapDeintVhtSigB20[i]] = d_sigVhtB20IntedLlr[i];
       }
-      SV_Decode_Sig(d_sigVhtB20CodedLlr, d_sigVhtB20Bits, 26);
+      d_decoder.decode(d_sigVhtB20CodedLlr, d_sigVhtB20Bits, 26);
+
+      bccEncoder(d_sigVhtB20Bits, d_sigVhtB20BitsCoded, 26);
+      procIntelVhtB20(d_sigVhtB20BitsCoded, d_sigVhtB20BitsInted);
+      if(d_m.nSS == 1)
+      {
+        double tmpNoisePower = 0.0;
+        for(int i=0;i<52;i++)
+        {
+          if(d_sigVhtB20BitsInted[i])
+          {
+            d_sigVhtBQam0[i] -= gr_complex(1.0f, 0.0f);
+          }
+          else
+          {
+            d_sigVhtBQam0[i] -= gr_complex(-1.0f, 0.0f);
+          }
+          tmpNoisePower += (double)(d_sigVhtBQam0[i].real()*d_sigVhtBQam0[i].real() + d_sigVhtBQam0[i].imag() * d_sigVhtBQam0[i].imag());
+        }
+        d_sssnr0 = (float)(log10(52.0/tmpNoisePower) * 10.0);
+      }
+      else if(d_m.nSS == 2)
+      {
+        double tmpNoisePower0 = 0.0;
+        double tmpNoisePower1 = 0.0;
+        for(int i=0;i<52;i++)
+        {
+          if(d_sigVhtB20BitsInted[i])
+          {
+            d_sigVhtBQam0[i] -= gr_complex(1.0f, 0.0f);
+            d_sigVhtBQam1[i] -= gr_complex(1.0f, 0.0f);
+          }
+          else
+          {
+            d_sigVhtBQam0[i] -= gr_complex(-1.0f, 0.0f);
+            d_sigVhtBQam1[i] -= gr_complex(-1.0f, 0.0f);
+          }
+          tmpNoisePower0 += (double)(d_sigVhtBQam0[i].real()*d_sigVhtBQam0[i].real() + d_sigVhtBQam0[i].imag() * d_sigVhtBQam0[i].imag());
+          tmpNoisePower1 += (double)(d_sigVhtBQam1[i].real()*d_sigVhtBQam1[i].real() + d_sigVhtBQam1[i].imag() * d_sigVhtBQam1[i].imag());
+        }
+        d_sssnr0 = (float)(log10(52.0/tmpNoisePower0) * 10.0);
+        d_sssnr1 = (float)(log10(52.0/tmpNoisePower1) * 10.0);
+      }
     }
 
     void

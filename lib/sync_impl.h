@@ -43,6 +43,7 @@ namespace gr {
       // for processing
       float *d_maxAcP;
       float d_maxAc;
+      double d_maxAcD;
       int d_maxIndex;
       int d_lIndex;
       int d_rIndex;

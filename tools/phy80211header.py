@@ -1117,11 +1117,21 @@ def procParserSigLegacy(inBits):
         return tmpMcs, tmpPsduLen, tmpSymLen
     return 0, 0, 0
 
-def procCheckSigNonLegacy(inBits):
+def procCheckSigVhtA(inBits):
     if(isinstance(inBits, list) and len(inBits) == 48):
-        if(genBitBitCrc8(inBits[0:34]) == inBits[34:42]):
-            return True
-    return False
+        if((inBits[2] != 1) or (inBits[23] != 1) or (inBits[33] != 1)):
+            return False
+        if(genBitBitCrc8(inBits[0:34]) != inBits[34:42]):
+            return False
+    return True
+
+def procCheckSigHt(inBits):
+    if(isinstance(inBits, list) and len(inBits) == 48):
+        if(inBits[26] != 1):
+            return False
+        if(genBitBitCrc8(inBits[0:34]) != inBits[34:42]):
+            return False
+    return True
 
 def procParserSigHt(inBits):
     if(isinstance(inBits, list) and len(inBits) == 48):

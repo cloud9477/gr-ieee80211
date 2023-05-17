@@ -189,9 +189,12 @@ if __name__ == "__main__":
     perfSigSnrDb = 40
     perfNoiseAmp = np.sqrt((perfSigAmp**2)/(10.0**(perfSigSnrDb/10.0)))
     
-    phy80211Ins.genFromAmpdu(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs=0, bw=p8h.BW.BW20, nSTS=1, shortGi=False), vhtPartialAid=0, vhtGroupId=0)
-    ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0, cfoHz = 0.0, num = 1, gap = True, gapLen = 1200)
-    for i in range(0, len(ssFinal[0])):
-        ssFinal[0][i] += (np.random.normal() * perfNoiseAmp * 1/np.sqrt(2) + np.random.normal() * perfNoiseAmp * 1j/np.sqrt(2))
-    phy80211Ins.procSisoRx(ssFinal[0])
+    # phy80211Ins.genFromAmpdu(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs=0, bw=p8h.BW.BW20, nSTS=1, shortGi=False), vhtPartialAid=0, vhtGroupId=0)
+    # ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0, cfoHz = 0.0, num = 1, gap = True, gapLen = 1200)
+    # for i in range(0, len(ssFinal[0])):
+    #     ssFinal[0][i] += (np.random.normal() * perfNoiseAmp * 1/np.sqrt(2) + np.random.normal() * perfNoiseAmp * 1j/np.sqrt(2))
+    # phy80211Ins.procSisoRx(ssFinal[0])
+
+    sisoSig = p8h.procLoadComplexBin(os.path.join(pyToolPath, "../tmp/sig80211GenMultipleMuMimo_2x2_0.bin"))
+    phy80211Ins.procSisoRx(sisoSig)
     

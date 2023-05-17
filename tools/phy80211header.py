@@ -19,6 +19,7 @@
 
 import numpy as np
 import struct
+import os
 from enum import Enum
 from matplotlib import pyplot as plt
 
@@ -98,6 +99,41 @@ def genBitBitCrc8(bitsIn):
         next_c[7] = c[6]
         c = next_c
     return [1 - b for b in c[::-1]]
+
+class SIG_L:
+    def __init__(self):
+        self.mcs = 0
+        self.psduLen = 0
+
+class SIG_HT:
+    def __init__(self):
+        self.mcs = 0
+        self.bw = 0
+        self.psduLen = 0
+        self.smooth = 0
+        self.notSound = 0
+        self.aggre = 0
+        self.stbc = 0
+        self.coding = 0
+        self.shortGi = 0
+        self.nExtSs = 0
+
+class SIG_VHTA:
+    def __init__(self):
+        self.bw = 0
+        self.stbc = 0
+        self.groupId = 0
+        self.suNSts = 0
+        self.suPartialAID = 0
+        self.suCoding = 0
+        self.suMcs = 0
+        self.suBeamformed = 0
+        self.muCoding = [0, 0, 0, 0]
+        self.muNSts = [0, 0, 0, 0]
+        self.txoppsNot = 0
+        self.shortGi = 0
+        self.shortGiNsymDis = 0
+        self.ldpcExtra = 0
 
 class modulation:
     def __init__(self, phyFormat=F.L, mcs=0, bw=BW.BW20, nSTS=1, shortGi=False):
@@ -1081,6 +1117,36 @@ def procParserSigLegacy(inBits):
         return tmpMcs, tmpPsduLen, tmpSymLen
     return 0, 0, 0
 
+def procCheckSigNonLegacy(inBits):
+    if(isinstance(inBits, list) and len(inBits) == 48):
+        if(genBitBitCrc8(inBits[0:34]) == inBits[34:42]):
+            return True
+    return False
+
+def procParserSigHt(inBits):
+    if(isinstance(inBits, list) and len(inBits) == 48):
+        tmpMcs = 0
+        for i in range(0, 7):
+            tmpMcs = tmpMcs | (inBits[i] << i)
+        if(inBits[7]):
+            tmpBw = BW.BW40
+        else:
+            tmpBw = BW.BW20
+        tmpLen = 0
+        for i in range(0, 16):
+            tmpLen = tmpLen | (inBits[i+8] << i)
+        tmpNSts = int(tmpMcs / 8) + 1
+        if(inBits[31]):
+            tmpShortGi = True
+        else:
+            tmpShortGi = False
+        return modulation(F.HT, tmpMcs, tmpBw, tmpNSts, tmpShortGi)
+    return modulation()
+
+def procParserSigVht(inBits):
+    if(isinstance(inBits, list) and len(inBits) == 48):
+        pass
+
 def procFftDemod(inSig):
     # check len
     if(isinstance(inSig, list) and len(inSig) in [64, 128, 256]):
@@ -1300,6 +1366,20 @@ def procSpatialMapping(inSigSs, inQ):
             for j in range(0, tmpnSS):
                 outSigSs[j].append(tmpQX[j][0])
         return outSigSs
+
+def procLoadComplexBin(inAddr):
+    if(os.path.exists(inAddr) and os.path.isfile(inAddr)):
+        fileStats = os.stat(inAddr)
+        fileSize = fileStats.st_size
+        sigSampNum = int(fileSize / 8)
+        f = open(inAddr,'rb')
+        fileBytes = f.read(fileSize)
+        f.close()
+        sigComp = []
+        for i in range(0, sigSampNum):
+            sigComp.append(complex(struct.unpack('f', fileBytes[i*8:i*8+4])[0], struct.unpack('f', fileBytes[i*8+4:i*8+8])[0]))
+        return sigComp
+        
 
 def genNoiseAmpWithSnrDb(sigAmp, snrDbList):
     if(isinstance(sigAmp, (int, float)) and isinstance(snrDbList, list)):

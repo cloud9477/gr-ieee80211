@@ -951,8 +951,54 @@ class phy80211():
                     nonLegacyQam = self.__procRxNonLegacySigDemod(sigSamples[16:80] + sigSamples[96:160])
                     htLlrCoded = p8h.procDeinterleaveSigL(list(np.imag(nonLegacyQam[0:48]))) + p8h.procDeinterleaveSigL(list(np.imag(nonLegacyQam[48:96])))
                     vhtLlrCoded = p8h.procDeinterleaveSigL(list(np.real(nonLegacyQam[0:48]))) + p8h.procDeinterleaveSigL(list(np.imag(nonLegacyQam[48:96])))
+                    htSigBits = p8h.procViterbiDecoder(htLlrCoded, 48, p8h.CR.CR12)
                     vhtSigABits = p8h.procViterbiDecoder(vhtLlrCoded, 48, p8h.CR.CR12)
-                    print("cloud phy80211, vht sig a bits: ", vhtSigABits)
+                    if(p8h.procCheckSigNonLegacy(vhtSigABits)):
+                        print("cloud phy80211, vht sig a bits: ", vhtSigABits)
+                        vhtStf = sigSamples[160:240]
+                        vhtLtf1 = p8h.procFftDemod(sigSamples[240+16:240+80])
+                        vhtLtf2 = p8h.procFftDemod(sigSamples[240+96:240+160])
+                        vhtSigB = p8h.procFftDemod(sigSamples[240+176:240+240])
+                        userId = 0
+                        if(userId == 0):
+                            ssItr = 0
+                            ltfIter = 0
+                            vhtLtfOri1 = []
+                            for j in range(0, len(p8h.C_LTF_VHT[self.m.bw.value])):
+                                if (self.m.bw == p8h.BW.BW20 and (j - 28) in [-21, -7, 7, 21]):
+                                    vhtLtfOri1.append(p8h.C_LTF_VHT[self.m.bw.value][j] * p8h.C_R_LTF_VHT_4[ltfIter])
+                                else:   # ht or vht non pilot sub carriers
+                                    vhtLtfOri1.append(p8h.C_LTF_VHT[self.m.bw.value][j] * p8h.C_P_LTF_VHT_4[ssItr][ltfIter])
+                            vhtLtfOri1 = p8h.procNonDataSC(vhtLtfOri1)
+                            print(vhtLtfOri1)
+                            ltfIter = 1
+                            vhtLtfOri2 = []
+                            for j in range(0, len(p8h.C_LTF_VHT[self.m.bw.value])):
+                                if (self.m.bw == p8h.BW.BW20 and (j - 28) in [-21, -7, 7, 21]):
+                                    vhtLtfOri2.append(p8h.C_LTF_VHT[self.m.bw.value][j] * p8h.C_R_LTF_VHT_4[ltfIter])
+                                else:   # ht or vht non pilot sub carriers
+                                    vhtLtfOri2.append(p8h.C_LTF_VHT[self.m.bw.value][j] * p8h.C_P_LTF_VHT_4[ssItr][ltfIter])
+                            vhtLtfOri2 = p8h.procNonDataSC(vhtLtfOri2)
+                            print(vhtLtfOri2)
+                            vhtChan1 = []
+                            for i in range(0,64):
+                                if(vhtLtfOri1[i]==0):
+                                    vhtChan1.append(1)
+                                else:
+                                    vhtChan1.append(vhtLtf1[i]/vhtLtfOri1[i])
+                            vhtChan2 = []
+                            for i in range(0,64):
+                                if(vhtLtfOri2[i]==0):
+                                    vhtChan2.append(1)
+                                else:
+                                    vhtChan2.append(vhtLtf2[i]/vhtLtfOri2[i])
+                            vhtChan = [(vhtChan1[i]+vhtChan2[i])/2.0 for i in range(0,64)]
+                            vhtSigBQam = [vhtSigB[i]/vhtChan[i] for i in range(0,64)]
+                            vhtSigBLlr = np.real(p8h.procRemovePilots(p8h.procRmDcNonDataSc(vhtSigBQam, p8h.F.VHT)))
+                            print(vhtSigBLlr)
+                    else:
+                        pass
+                    
                 procIndex = stfIndex + 400
 
 

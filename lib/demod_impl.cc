@@ -349,13 +349,31 @@ namespace gr {
         // mu-mimo 2x2
         dout<<"non legacy mu-mimo channel estimate"<<std::endl;
         fftDemod(&sig1[C8P_SYM_SAMP_SHIFT], d_fftLtfOut1);
-        for(int i=0;i<64;i++)
+        fftDemod(&sig1[C8P_SYM_SAMP_SHIFT+80], d_fftLtfOut2);
+        if(d_muPos == 0)  // pos 0
         {
-          if(i==0 || (i>=29 && i<=35))
-          {}
-          else
+          for(int i=0;i<64;i++)
           {
-            d_H_NL[i] = d_fftLtfOut1[i] / LTF_NL_28_F_FLOAT[i];
+            if(i==0 || (i>=29 && i<=35))
+            {}
+            else
+            {
+              // d_H_NL[i] = d_fftLtfOut1[i] / LTF_NL_28_F_FLOAT[i];
+              d_H_NL[i] = (d_fftLtfOut1[i]-d_fftLtfOut2[i]) / (LTF_NL_28_F_FLOAT[i] * 2.0f);
+            }
+          }
+        }
+        else  // pos 1
+        {
+          for(int i=0;i<64;i++)
+          {
+            if(i==0 || (i>=29 && i<=35))
+            {}
+            else
+            {
+              // d_H_NL[i] = d_fftLtfOut1[i] / LTF_NL_28_F_FLOAT[i];
+              d_H_NL[i] = (d_fftLtfOut1[i]/LTF_NL_28_F_FLOAT[i] + d_fftLtfOut2[i]/LTF_NL_28_F_FLOAT_VHT22[i]) / 2.0f;
+            }
           }
         }
       }

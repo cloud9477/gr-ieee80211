@@ -864,18 +864,28 @@ class phy80211():
             maxValue = max(tmpAutoCorre)
             if(maxValue > 0.5):
                 maxIndex = tmpAutoCorre.index(maxValue)
-                leftCorre = tmpAutoCorre[0:maxIndex]
-                rightCorre = tmpAutoCorre[maxIndex:]
-                if(len(leftCorre) and len(rightCorre)):
-                    leftIndex = min(range(len(leftCorre)), key = lambda i: abs(leftCorre[i]-maxValue*0.8))
-                    rightIndex = min(range(len(rightCorre)), key = lambda i: abs(rightCorre[i]-maxValue*0.8))
-                    midIndex = int((leftIndex + rightIndex + maxIndex)/2)
-                    tmpRadStep = coarseCfo * 2 * np.pi / 20000000
-                    tmpSig = [inSig[midIndex + i] * complex(np.cos(tmpRadStep*i), np.sin(tmpRadStep*i)) for i in range(0, 128)]
-                    tmpMultiAvg = np.mean([tmpSig[i] * np.conj(tmpSig[i + 64]) for i in range(0, 64)])
-                    self.rxCfo = coarseCfo + (np.arctan2(np.imag(tmpMultiAvg), np.real(tmpMultiAvg)) / 64 * 20000000 / 2 / np.pi)
-                    self.rxSnrDb = 10 * np.log10(maxValue / (1 - maxValue))
-                    return midIndex
+                leftIndex = maxIndex
+                leftCorre = maxValue * 0.2
+                for i in range(maxIndex, maxIndex-32, -1):
+                    if(i >= 0):
+                        if(abs(tmpAutoCorre[i] - maxValue*0.8) < leftCorre):
+                            leftIndex = i
+                            leftCorre = abs(tmpAutoCorre[i] - maxValue*0.8)
+                rightIndex = maxIndex
+                rightCorre = maxValue * 0.2
+                for i in range(maxIndex, maxIndex+32, -1):
+                    if(i < len(tmpAutoCorre)):
+                        if(abs(tmpAutoCorre[i] - maxValue*0.8) < rightCorre):
+                            rightIndex = i
+                            rightCorre = abs(tmpAutoCorre[i] - maxValue*0.8)
+                
+                midIndex = int((leftIndex + rightIndex)/2)
+                tmpRadStep = coarseCfo * 2 * np.pi / 20000000
+                tmpSig = [inSig[midIndex + i] * complex(np.cos(tmpRadStep*i), np.sin(tmpRadStep*i)) for i in range(0, 128)]
+                tmpMultiAvg = np.mean([tmpSig[i] * np.conj(tmpSig[i + 64]) for i in range(0, 64)])
+                self.rxCfo = coarseCfo + (np.arctan2(np.imag(tmpMultiAvg), np.real(tmpMultiAvg)) / 64 * 20000000 / 2 / np.pi)
+                self.rxSnrDb = 10 * np.log10(maxValue / (1 - maxValue))
+                return midIndex
         return -1
 
     def __procRxLegacyChanEst(self, inSig):

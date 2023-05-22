@@ -30,7 +30,7 @@
 #define C8P_MAX_N_SS 2
 #define C8P_MAX_N_CBPSS 416 // 256QAM 8bit/sc * 52 = 416
 
-#define C8P_SYM_SAMP_SHIFT 10
+#define C8P_SYM_SAMP_SHIFT 8
 
 #define C8P_F_L 0
 #define C8P_F_HT 1

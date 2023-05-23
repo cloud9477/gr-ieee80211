@@ -45,6 +45,18 @@ blocks:
     coordinate: [288, 12.0]
     rotation: 0
     state: enabled
+- name: freq_112
+  id: variable
+  parameters:
+    comment: ''
+    value: 5560e6
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [480, 12.0]
+    rotation: 0
+    state: enabled
 - name: freq_132
   id: variable
   parameters:
@@ -54,7 +66,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [280, 76.0]
+    coordinate: [384, 12.0]
     rotation: 0
     state: enabled
 - name: samp_rate
@@ -183,7 +195,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [376, 12.0]
+    coordinate: [1088, 12.0]
     rotation: 0
     state: true
 - name: note_0_0
@@ -196,7 +208,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [376, 60.0]
+    coordinate: [1088, 60.0]
     rotation: 0
     state: true
 - name: uhd_usrp_sink_0
@@ -268,7 +280,7 @@ blocks:
     bw7: '0'
     bw8: '0'
     bw9: '0'
-    center_freq0: freq_100
+    center_freq0: freq_112
     center_freq1: '0'
     center_freq10: '0'
     center_freq11: '0'
@@ -545,7 +557,7 @@ blocks:
     bw7: '0'
     bw8: '0'
     bw9: '0'
-    center_freq0: freq_132
+    center_freq0: freq_112
     center_freq1: freq_132
     center_freq10: '0'
     center_freq11: '0'
@@ -589,8 +601,8 @@ blocks:
     comment: Sync and TSB Tag
     dev_addr: '""'
     dev_args: ''
-    gain0: '0.9'
-    gain1: '0.9'
+    gain0: '0.8'
+    gain1: '0.8'
     gain10: '0'
     gain11: '0'
     gain12: '0'

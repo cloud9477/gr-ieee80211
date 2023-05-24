@@ -52,7 +52,7 @@ class wifirx2(gr.top_block):
         self.ieee80211_sync_0 = ieee80211.sync()
         self.ieee80211_signal2_0 = ieee80211.signal2()
         self.ieee80211_demod2_0 = ieee80211.demod2()
-        self.ieee80211_decode_0 = ieee80211.decode()
+        self.ieee80211_decode_0 = ieee80211.decode(True)
         self.blocks_file_source_0_0 = blocks.file_source(gr.sizeof_gr_complex*1, os.path.join(os.path.dirname(__file__), '../../tmp/sig80211GenMultipleMimo_2x2_1.bin'), False, 0, 0)
         self.blocks_file_source_0_0.set_begin_tag(pmt.PMT_NIL)
         self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, os.path.join(os.path.dirname(__file__), '../../tmp/sig80211GenMultipleMimo_2x2_0.bin'), False, 0, 0)

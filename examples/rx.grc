@@ -102,20 +102,21 @@ blocks:
     bus_structure: null
     coordinate: [8, 148.0]
     rotation: 0
-    state: disabled
+    state: enabled
 - name: ieee80211_decode_0
   id: ieee80211_decode
   parameters:
     affinity: ''
     alias: ''
     comment: ''
+    ifdebug: 'True'
     maxoutbuf: '0'
     minoutbuf: '0'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1048, 168.0]
+    coordinate: [1064, 164.0]
     rotation: 0
     state: enabled
 - name: ieee80211_demod_0
@@ -197,7 +198,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1184, 140.0]
+    coordinate: [1280, 140.0]
     rotation: 0
     state: enabled
 - name: presiso_0
@@ -648,9 +649,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [64, 308.0]
+    coordinate: [64, 276.0]
     rotation: 0
-    state: enabled
+    state: disabled
 
 connections:
 - [blocks_file_source_0, '0', ieee80211_signal_0, '1']

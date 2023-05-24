@@ -91,7 +91,7 @@ namespace gr {
 
 
     public:
-      decode_impl();
+      decode_impl(bool ifdebug);
       ~decode_impl();
 
       // Where all the action really happens

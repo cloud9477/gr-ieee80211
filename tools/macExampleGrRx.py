@@ -39,7 +39,7 @@ while(True):
     tmpPktType = int(rxPkt[0])
     tmpPktLen = int(rxPkt[1]) + int(rxPkt[2]) * 256
     tmpPkt = rxPkt[3:(3+tmpPktLen)]
-    # print(len(rxPkt), tmpPktLen+3, tmpPktLen, tmpPktType, packetSeq, rxAddr)
+    tmpMcs = rxPkt[3+tmpPktLen]
     if(tmpPktType == 20):
         print("cloud mac80211 NDP received, channel info saved")
         # tmpChanPkt = rxPkt[3:1024 + 3]
@@ -50,11 +50,11 @@ while(True):
     elif(tmpPktType in [0, 1, 2]):
         # self defined phy format
         if(tmpPktType == 0):
-            print("cloud mac80211 received legacy packet")
+            print("cloud mac80211 received Legacy packet, len:%d, mcs:%d" % (tmpPktLen, tmpMcs))
         elif(tmpPktType == 1):
-            print("cloud mac80211 received HT packet")
+            print("cloud mac80211 received HT packet, len:%d, mcs:%d" % (tmpPktLen, tmpMcs))
         elif(tmpPktType == 2):
-            print("cloud mac80211 received VHT packet")
+            print("cloud mac80211 received VHT packet, len:%d, mcs:%d" % (tmpPktLen, tmpMcs))
         m8h.pktParser(tmpPkt[:-4])
     else:
         print("cloud mac80211 packet type error")

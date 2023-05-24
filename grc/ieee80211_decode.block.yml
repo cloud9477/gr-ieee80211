@@ -4,7 +4,13 @@ category: '[ieee80211]'
 
 templates:
   imports: from gnuradio import ieee80211
-  make: ieee80211.decode()
+  make: ieee80211.decode(${ifdebug})
+
+parameters:
+- id: ifdebug
+  label: Print Debug Info
+  dtype: bool
+  default: 'True'
 
 inputs:
 - label: inLlr

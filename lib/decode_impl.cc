@@ -24,16 +24,17 @@
 namespace gr {
   namespace ieee80211 {
     decode::sptr
-    decode::make()
+    decode::make(bool ifdebug)
     {
-      return gnuradio::make_block_sptr<decode_impl>(
+      return gnuradio::make_block_sptr<decode_impl>(ifdebug
         );
     }
 
-    decode_impl::decode_impl()
+    decode_impl::decode_impl(bool ifdebug)
       : gr::block("decode",
               gr::io_signature::make(1, 1, sizeof(float)),
-              gr::io_signature::make(0, 0, 0))
+              gr::io_signature::make(0, 0, 0)),
+              d_debug(ifdebug)
     {
       message_port_register_out(pmt::mp("out"));
 
@@ -42,7 +43,6 @@ namespace gr {
       memset(d_vhtMcsCount, 0, sizeof(uint64_t) * 10);
       memset(d_legacyMcsCount, 0, sizeof(uint64_t) * 8);
       memset(d_htMcsCount, 0, sizeof(uint64_t) * 8);
-      d_debug = false;
 
       set_tag_propagation_policy(block::TPP_DONT);
     }
@@ -92,7 +92,7 @@ namespace gr {
           
           if(t_len > DECODE_B_MAX || v_trellis > DECODE_T_MAX)
           {
-            dout<<"ieee80211 decode, packet len " << t_len << " or trellis len "<< v_trellis <<" not supported." << std::endl;
+            // dout<<"ieee80211 decode, packet len " << t_len << " or trellis len "<< v_trellis <<" not supported." << std::endl;
             d_sDecode = DECODE_S_CLEAN;
           }
           else
@@ -113,7 +113,7 @@ namespace gr {
                 tmpFloatPointer[i*2] = d_mu2x1Chan[i].real();
                 tmpFloatPointer[i*2+1] = d_mu2x1Chan[i].imag();
               }
-              dout<<"ieee80211 decode, vht NDP 2x1 channel report:"<<tmpLen<<std::endl;
+              // dout<<"ieee80211 decode, vht NDP 2x1 channel report:"<<tmpLen<<std::endl;
               pmt::pmt_t tmpMeta = pmt::make_dict();
               tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(tmpLen+3));
               pmt::pmt_t tmpPayload = pmt::make_blob((uint8_t*)d_mu2x1ChanFloatBytes, tmpLen+3);
@@ -372,40 +372,47 @@ namespace gr {
             d_crc32.reset();
             d_crc32.process_bytes(d_pktBytes + 3, tmpLen);
             if (d_crc32.checksum() != 558161692) {
-              std::string dbgStr("ieee80211 decode, vht crc32 wrong, total:");
-              dbgStr += std::to_string(d_nPktCorrect);
-              for(int i=0;i<10;i++)
+              if(d_debug)
               {
-                dbgStr += (std::string(",") + std::to_string(i) + std::string(":") + std::to_string(d_vhtMcsCount[i]));
+                std::string dbgStr("ieee80211 decode, vht crc32 wrong, total:");
+                dbgStr += std::to_string(d_nPktCorrect);
+                for(int i=0;i<10;i++)
+                {
+                  dbgStr += (std::string(",") + std::to_string(i) + std::string(":") + std::to_string(d_vhtMcsCount[i]));
+                }
+                dbgStr += (std::string(",cfo:") + std::to_string(t_cfo));
+                dbgStr += (std::string(",snr:") + std::to_string(t_snr));
+                dbgStr += (std::string(",rssi:") + std::to_string(t_rssi));
+                dbgStr += (std::string(",sssnr0:") + std::to_string(t_sssnr0));
+                dbgStr += (std::string(",sssnr1:") + std::to_string(t_sssnr1));
+                dout << dbgStr << std::endl;
               }
-              dbgStr += (std::string(",cfo:") + std::to_string(t_cfo));
-              dbgStr += (std::string(",snr:") + std::to_string(t_snr));
-              dbgStr += (std::string(",rssi:") + std::to_string(t_rssi));
-              dbgStr += (std::string(",sssnr0:") + std::to_string(t_sssnr0));
-              dbgStr += (std::string(",sssnr1:") + std::to_string(t_sssnr1));
-              std::cout << dbgStr << std::endl;
             }
             else
             {
-              d_nPktCorrect++;
-              if(t_mcs >= 0 && t_mcs < 10)
+              if(d_debug)
               {
-                d_vhtMcsCount[t_mcs]++;
+                d_nPktCorrect++;
+                if(t_mcs >= 0 && t_mcs < 10)
+                {
+                  d_vhtMcsCount[t_mcs]++;
+                }
+                std::string dbgStr("ieee80211 decode, vht crc32 correct, total:");
+                dbgStr += std::to_string(d_nPktCorrect);
+                for(int i=0;i<10;i++)
+                {
+                  dbgStr += (std::string(",") + std::to_string(i) + std::string(":") + std::to_string(d_vhtMcsCount[i]));
+                }
+                dbgStr += (std::string(",cfo:") + std::to_string(t_cfo));
+                dbgStr += (std::string(",snr:") + std::to_string(t_snr));
+                dbgStr += (std::string(",rssi:") + std::to_string(t_rssi));
+                dbgStr += (std::string(",sssnr0:") + std::to_string(t_sssnr0));
+                dbgStr += (std::string(",sssnr1:") + std::to_string(t_sssnr1));
+                dout << dbgStr << std::endl;
               }
-              std::string dbgStr("ieee80211 decode, vht crc32 correct, total:");
-              dbgStr += std::to_string(d_nPktCorrect);
-              for(int i=0;i<10;i++)
-              {
-                dbgStr += (std::string(",") + std::to_string(i) + std::string(":") + std::to_string(d_vhtMcsCount[i]));
-              }
-              dbgStr += (std::string(",cfo:") + std::to_string(t_cfo));
-              dbgStr += (std::string(",snr:") + std::to_string(t_snr));
-              dbgStr += (std::string(",rssi:") + std::to_string(t_rssi));
-              dbgStr += (std::string(",sssnr0:") + std::to_string(t_sssnr0));
-              dbgStr += (std::string(",sssnr1:") + std::to_string(t_sssnr1));
-              std::cout << dbgStr << std::endl;
               // 1 byte packet format
-              tmpLen += 3;
+              d_pktBytes[tmpLen + 3] = t_mcs;
+              tmpLen += 4;
               pmt::pmt_t tmpMeta = pmt::make_dict();
               tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(tmpLen));
               pmt::pmt_t tmpPayload = pmt::make_blob(d_pktBytes, tmpLen);
@@ -444,78 +451,68 @@ namespace gr {
           d_crc32.reset();
           d_crc32.process_bytes(d_pktBytes + 3, t_len);
           if (d_crc32.checksum() != 558161692) {
-            if(t_format == C8P_F_L)
+            if(d_debug)
             {
-              std::string dbgStr("ieee80211 decode, legacy crc32 wrong, total:");
+              std::string dbgStr;
+              if(t_format == C8P_F_L){
+                dbgStr = std::string("ieee80211 decode, legacy crc32 wrong, total:");
+              }
+              else{
+                dbgStr = std::string("ieee80211 decode, ht crc32 wrong, total:");
+              }
               dbgStr += std::to_string(d_nPktCorrect);
               for(int i=0;i<8;i++)
               {
-                dbgStr += (std::string(",") + std::to_string(i) + std::string(":") + std::to_string(d_legacyMcsCount[i]));
+                dbgStr += (std::string(",") + std::to_string(i) + std::string(":"));
+                if(t_format == C8P_F_L){
+                  dbgStr += std::to_string(d_legacyMcsCount[i]);
+                }
+                else{
+                  dbgStr += std::to_string(d_htMcsCount[i]);
+                }
               }
               dbgStr += (std::string(",cfo:") + std::to_string(t_cfo));
               dbgStr += (std::string(",snr:") + std::to_string(t_snr));
               dbgStr += (std::string(",rssi:") + std::to_string(t_rssi));
-              std::cout << dbgStr << std::endl;
-            }
-            else
-            {
-              std::string dbgStr("ieee80211 decode, ht crc32 wrong, total:");
-              dbgStr += std::to_string(d_nPktCorrect);
-              for(int i=0;i<8;i++)
-              {
-                dbgStr += (std::string(",") + std::to_string(i) + std::string(":") + std::to_string(d_htMcsCount[i]));
-              }
-              dbgStr += (std::string(",cfo:") + std::to_string(t_cfo));
-              dbgStr += (std::string(",snr:") + std::to_string(t_snr));
-              dbgStr += (std::string(",rssi:") + std::to_string(t_rssi));
-              std::cout << dbgStr << std::endl;
+              dout << dbgStr << std::endl;
             }
           }
           else
           {
-            d_nPktCorrect++;
-            if(t_mcs >= 0)
+            if(d_debug)
             {
-              if(t_format == C8P_F_L && t_mcs < 8)
-              {
+              d_nPktCorrect++;
+
+              std::string dbgStr;
+              if(t_format == C8P_F_L){
+                dbgStr = std::string("ieee80211 decode, legacy crc32 correct, total:");
                 d_legacyMcsCount[t_mcs]++;
-                std::string dbgStr("ieee80211 decode, legacy crc32 correct, total:");
-                dbgStr += std::to_string(d_nPktCorrect);
-                for(int i=0;i<8;i++)
-                {
-                  dbgStr += (std::string(",") + std::to_string(i) + std::string(":") + std::to_string(d_legacyMcsCount[i]));
-                }
-                dbgStr += (std::string(",cfo:") + std::to_string(t_cfo));
-                dbgStr += (std::string(",snr:") + std::to_string(t_snr));
-                dbgStr += (std::string(",rssi:") + std::to_string(t_rssi));
-                std::cout << dbgStr << std::endl;
               }
-              else if(t_format == C8P_F_HT && t_mcs < 16)
-              {
+              else{
+                dbgStr = std::string("ieee80211 decode, ht crc32 correct, total:");
                 d_htMcsCount[t_mcs%8]++;
-                std::string dbgStr("ieee80211 decode, ht crc32 correct, total:");
-                dbgStr += std::to_string(d_nPktCorrect);
-                for(int i=0;i<8;i++)
-                {
-                  dbgStr += (std::string(",") + std::to_string(i) + std::string(":") + std::to_string(d_htMcsCount[i]));
-                }
-                dbgStr += (std::string(",cfo:") + std::to_string(t_cfo));
-                dbgStr += (std::string(",snr:") + std::to_string(t_snr));
-                dbgStr += (std::string(",rssi:") + std::to_string(t_rssi));
-                std::cout << dbgStr << std::endl;
               }
-              else
+              dbgStr += std::to_string(d_nPktCorrect);
+              for(int i=0;i<8;i++)
               {
-                dout << "ieee80211 decode, format "<<t_format<<" mcs error: "<< t_mcs<<std::endl;
+                dbgStr += (std::string(",") + std::to_string(i) + std::string(":"));
+                if(t_format == C8P_F_L){
+                  dbgStr += std::to_string(d_legacyMcsCount[i]);
+                }
+                else{
+                  dbgStr += std::to_string(d_htMcsCount[i]);
+                }
               }
+              dbgStr += (std::string(",cfo:") + std::to_string(t_cfo));
+              dbgStr += (std::string(",snr:") + std::to_string(t_snr));
+              dbgStr += (std::string(",rssi:") + std::to_string(t_rssi));
+              dout << dbgStr << std::endl;
             }
-            else
-            {
-              dout << "ieee80211 decode, format "<<t_format<<" mcs error: "<< t_mcs<<std::endl;
-            }
+
+            d_pktBytes[3+t_len] = t_mcs;
             pmt::pmt_t tmpMeta = pmt::make_dict();
-            tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(t_len+3));
-            pmt::pmt_t tmpPayload = pmt::make_blob(d_pktBytes, t_len+3);
+            tmpMeta = pmt::dict_add(tmpMeta, pmt::mp("len"), pmt::from_long(t_len+4));
+            pmt::pmt_t tmpPayload = pmt::make_blob(d_pktBytes, t_len+4);
             message_port_pub(pmt::mp("out"), pmt::cons(tmpMeta, tmpPayload));
           }
         }

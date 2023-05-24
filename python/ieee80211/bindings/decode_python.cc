@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(decode.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(a361cf4d308060a5eddc043fa1d668da)                     */
+/* BINDTOOL_HEADER_FILE_HASH(dc21917a94d93bd9318193b5718f02a9)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -37,6 +37,7 @@ void bind_decode(py::module& m)
         std::shared_ptr<decode>>(m, "decode", D(decode))
 
         .def(py::init(&decode::make),
+           py::arg("ifdebug"),
            D(decode,make)
         )
         

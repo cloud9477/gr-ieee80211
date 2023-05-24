@@ -131,13 +131,14 @@ blocks:
     affinity: ''
     alias: ''
     comment: ''
+    ifdebug: 'True'
     maxoutbuf: '0'
     minoutbuf: '0'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1064, 184.0]
+    coordinate: [1072, 180.0]
     rotation: 0
     state: enabled
 - name: ieee80211_demod2_0
@@ -217,7 +218,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1200, 156.0]
+    coordinate: [1296, 156.0]
     rotation: 0
     state: enabled
 - name: presiso_0
@@ -668,7 +669,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [64, 340.0]
+    coordinate: [72, 308.0]
     rotation: 0
     state: disabled
 

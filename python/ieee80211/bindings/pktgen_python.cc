@@ -13,8 +13,8 @@
 /* If manual edits are made, the following tags should be modified accordingly.    */
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
-/* BINDTOOL_HEADER_FILE(encode.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(9be28fdc1ac3866953deaf643c003733)                     */
+/* BINDTOOL_HEADER_FILE(pktgen.h)                                        */
+/* BINDTOOL_HEADER_FILE_HASH(8b0d89a929bd76db57f8b64d993c82ae)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -23,21 +23,22 @@
 
 namespace py = pybind11;
 
-#include <gnuradio/ieee80211/encode.h>
+#include <gnuradio/ieee80211/pktgen.h>
 // pydoc.h is automatically generated in the build directory
-#include <encode_pydoc.h>
+#include <pktgen_pydoc.h>
 
-void bind_encode(py::module& m)
+void bind_pktgen(py::module& m)
 {
 
-    using encode    = ::gr::ieee80211::encode;
+    using pktgen    = ::gr::ieee80211::pktgen;
 
 
-    py::class_<encode, gr::block, gr::basic_block,
-        std::shared_ptr<encode>>(m, "encode", D(encode))
+    py::class_<pktgen, gr::tagged_stream_block, gr::block, gr::basic_block,
+        std::shared_ptr<pktgen>>(m, "pktgen", D(pktgen))
 
-        .def(py::init(&encode::make),
-           D(encode,make)
+        .def(py::init(&pktgen::make),
+           py::arg("lengthtagname") = "packet_len",
+           D(pktgen,make)
         )
         
 

@@ -22,22 +22,15 @@
 #define INCLUDED_IEEE80211_ENCODE_IMPL_H
 
 #include <gnuradio/ieee80211/encode.h>
-#include <gnuradio/pdu.h>
 #include "cloud80211phy.h"
 
-using namespace boost::placeholders;
+#define ENCODE_S_RDTAG 1
+#define ENCODE_S_RDPKT 2
+#define ENCODE_S_MOD 3
+#define ENCODE_S_COPY 4
+#define ENCODE_S_CLEAN 5
 
-#define ENCODE_S_IDLE 0
-#define ENCODE_S_SCEDULE 1
-#define ENCODE_S_ENCODE 2
-#define ENCODE_S_COPY 3
-#define ENCODE_S_PAD 4
-
-#define DECODE_CB_MAX 67000   // max coded bits
-#define DECODE_B_MAX 33000    // max ampdu bits
-#define DECODE_D_MAX 4095     // max ampdu bytes
-
-#define dout d_debug&&std::cout
+#define ENCODE_GR_PAD 160
 
 namespace gr {
   namespace ieee80211 {
@@ -45,80 +38,51 @@ namespace gr {
     class encode_impl : public encode
     {
     private:
-      // block
       int d_sEncode;
+      int d_nProc;
       int d_nGen;
-      int d_nChipsGen;
-      int d_nChipsGenProcd;
-      bool d_debug;
-      int d_nChipsPadded;
-      // msg
-      void msgRead(pmt::pmt_t msg);
-      uint8_t d_dataBits[DECODE_B_MAX];
-      uint8_t d_dataBits2[DECODE_B_MAX];
-      uint8_t d_scramBits[DECODE_B_MAX];
-      uint8_t d_scramBits2[DECODE_B_MAX];
-      uint8_t d_convlBits[DECODE_CB_MAX];
-      uint8_t d_convlBits2[DECODE_CB_MAX];
-      uint8_t d_punctBits[DECODE_CB_MAX];
-      uint8_t d_punctBits2[DECODE_CB_MAX];
-      uint8_t d_parsdBits1[DECODE_CB_MAX];
-      uint8_t d_parsdBits2[DECODE_CB_MAX];
-      uint8_t d_IntedBits1[DECODE_CB_MAX];
-      uint8_t d_IntedBits2[DECODE_CB_MAX];
-      uint8_t d_qamChips1[DECODE_CB_MAX];
-      uint8_t d_qamChips2[DECODE_CB_MAX];
+      int d_nUsed;
+      int d_nPassed;
+      // input pkt
+      std::vector<gr::tag_t> d_tags;
+      int d_pktFormat;
       int d_pktSeq;
-      // modulation
+      int d_pktMcs0;
+      int d_pktNss0;
+      int d_pktLen0;
+      int d_nPktTotal;
+      int d_nPktRead;
+      uint8_t d_sigBitsL[24];
+      uint8_t d_sigBitsCodedL[48];
+      uint8_t d_sigBitsNL[48];
+      uint8_t d_sigBitsCodedNL[96];
+      uint8_t d_sigBitsB[26];
+      uint8_t d_sigBitsCodedB[52];
+      std::vector<uint8_t> d_sigBitsIntedL;
+      std::vector<uint8_t> d_sigBitsIntedNL;
+      std::vector<uint8_t> d_sigBitsIntedB0;
+      uint8_t d_pkt[4095];
+      uint8_t d_bits0[65728];
+      uint8_t d_bitsCoded[65728];
+      uint8_t d_bitsPunct[65728];
+      uint8_t d_bitsInted0[65728];
+      uint8_t d_chips0[65728];
       c8p_mod d_m;
-      // signal
-      uint8_t d_legacySig[24];
-      uint8_t d_legacySigCoded[48];
-      uint8_t d_legacySigInted[48];
-
-      uint8_t d_htSig[48];
-      uint8_t d_htSigCoded[96];
-      uint8_t d_htSigInted[96];
-
-      uint8_t d_vhtSigA[48];
-      uint8_t d_vhtSigACoded[96];
-      uint8_t d_vhtSigAInted[96];
-
-      uint8_t d_vhtSigB[26];
-      uint8_t d_vhtSigBCoded[52];
-      uint8_t d_vhtSigBInted[52];
-      uint8_t d_vhtSigBCrc8[8];
-
-      uint8_t d_vhtSigBMu1[26];
-      uint8_t d_vhtSigBMu1Coded[52];
-      uint8_t d_vhtSigBMu1Inted[52];
-      uint8_t d_vhtSigBMu1Crc8[8];
-
-      uint8_t d_vhtBfQbytesR[1024];
-      uint8_t d_vhtBfQbytesI[1024];
-      // tag
-      std::vector<uint8_t> d_tagLegacyBits;
-      std::vector<uint8_t> d_tagVhtABits;
-      std::vector<uint8_t> d_tagVhtBBits;
-      std::vector<uint8_t> d_tagVhtBMu1Bits;
-      std::vector<uint8_t> d_tagHtBits;
-      std::vector<gr_complex> d_tagBfQ;
-
-      
-     protected:
-      int calculate_output_stream_length(const gr_vector_int &ninput_items);
+      // copy samples out
+      int d_nSampTotal;
+      int d_nSampCopied;
 
      public:
-      encode_impl(const std::string& lengthtagname = "packet_len");
+      encode_impl();
       ~encode_impl();
 
       // Where all the action really happens
-      int work(
-              int noutput_items,
-              gr_vector_int &ninput_items,
-              gr_vector_const_void_star &input_items,
-              gr_vector_void_star &output_items
-      );
+      void forecast (int noutput_items, gr_vector_int &ninput_items_required);
+
+      int general_work(int noutput_items,
+           gr_vector_int &ninput_items,
+           gr_vector_const_void_star &input_items,
+           gr_vector_void_star &output_items);
     };
 
   } // namespace ieee80211

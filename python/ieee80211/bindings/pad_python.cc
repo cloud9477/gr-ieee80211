@@ -13,8 +13,8 @@
 /* If manual edits are made, the following tags should be modified accordingly.    */
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
-/* BINDTOOL_HEADER_FILE(encode.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(9be28fdc1ac3866953deaf643c003733)                     */
+/* BINDTOOL_HEADER_FILE(pad.h)                                        */
+/* BINDTOOL_HEADER_FILE_HASH(ddf5ba72069a2ab2f7dea3993c515c37)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -23,21 +23,21 @@
 
 namespace py = pybind11;
 
-#include <gnuradio/ieee80211/encode.h>
+#include <gnuradio/ieee80211/pad.h>
 // pydoc.h is automatically generated in the build directory
-#include <encode_pydoc.h>
+#include <pad_pydoc.h>
 
-void bind_encode(py::module& m)
+void bind_pad(py::module& m)
 {
 
-    using encode    = ::gr::ieee80211::encode;
+    using pad    = gr::ieee80211::pad;
 
 
-    py::class_<encode, gr::block, gr::basic_block,
-        std::shared_ptr<encode>>(m, "encode", D(encode))
+    py::class_<pad, gr::block, gr::basic_block,
+        std::shared_ptr<pad>>(m, "pad", D(pad))
 
-        .def(py::init(&encode::make),
-           D(encode,make)
+        .def(py::init(&pad::make),
+           D(pad,make)
         )
         
 

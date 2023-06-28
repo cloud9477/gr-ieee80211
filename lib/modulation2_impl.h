@@ -18,11 +18,14 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDED_IEEE80211_MODULATION_IMPL_H
-#define INCLUDED_IEEE80211_MODULATION_IMPL_H
+#ifndef INCLUDED_IEEE80211_MODULATION2_IMPL_H
+#define INCLUDED_IEEE80211_MODULATION2_IMPL_H
 
-#include <gnuradio/ieee80211/modulation.h>
+#include <gnuradio/ieee80211/modulation2.h>
+#include <gnuradio/pdu.h>
 #include "cloud80211phy.h"
+
+using namespace boost::placeholders;
 
 #define MODUL_S_RD_TAG 0
 #define MODUL_S_SIG 1
@@ -36,7 +39,7 @@
 namespace gr {
   namespace ieee80211 {
 
-    class modulation_impl : public modulation
+    class modulation2_impl : public modulation2
     {
     private:
       // block
@@ -53,13 +56,21 @@ namespace gr {
       int d_pktMcs0;
       int d_pktNss0;
       int d_pktLen0;
+      int d_pktMcs1;
+      int d_pktNss1;
+      int d_pktLen1;
       // modulation
       c8p_mod d_m;
       std::vector<uint8_t> d_sigBitsIntedL;
       std::vector<uint8_t> d_sigBitsIntedNL;
       std::vector<uint8_t> d_sigBitsIntedB0;
+      std::vector<uint8_t> d_sigBitsIntedB1;
+      gr_complex d_vhtMuBfQ[256];
       gr_complex d_sigl[64];     // legacy
       gr_complex d_signl[384];    // nl siso
+      gr_complex d_signl0[448];   // nl 2x2
+      gr_complex d_signl1[448];   // nl 2x2
+      gr_complex d_signl1vht[448];   // nl 2x2
       gr_complex *d_sigP0, *d_sigP1;
       int d_nSampSigTotal;
       int d_nSampSigCopied;
@@ -67,10 +78,13 @@ namespace gr {
       gr_complex d_pilotsL[1408][4];
       gr_complex d_pilotsVHT[1408][4];
       gr_complex d_pilotsHT[1408][4];
+      gr_complex d_pilotsHT20[1408][4];
+      gr_complex d_pilotsHT21[1408][4];
+      void msgRead(pmt::pmt_t msg);
 
      public:
-      modulation_impl();
-      ~modulation_impl();
+      modulation2_impl();
+      ~modulation2_impl();
 
       // Where all the action really happens
       void forecast (int noutput_items, gr_vector_int &ninput_items_required);
@@ -79,9 +93,10 @@ namespace gr {
            gr_vector_int &ninput_items,
            gr_vector_const_void_star &input_items,
            gr_vector_void_star &output_items);
+
     };
 
   } // namespace ieee80211
 } // namespace gr
 
-#endif /* INCLUDED_IEEE80211_MODULATION_IMPL_H */
+#endif /* INCLUDED_IEEE80211_MODULATION2_IMPL_H */

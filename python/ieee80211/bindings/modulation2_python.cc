@@ -13,8 +13,8 @@
 /* If manual edits are made, the following tags should be modified accordingly.    */
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
-/* BINDTOOL_HEADER_FILE(encode.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(9be28fdc1ac3866953deaf643c003733)                     */
+/* BINDTOOL_HEADER_FILE(modulation2.h)                                        */
+/* BINDTOOL_HEADER_FILE_HASH(d1f72642c853d665ee111c62bf543431)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -23,21 +23,21 @@
 
 namespace py = pybind11;
 
-#include <gnuradio/ieee80211/encode.h>
+#include <gnuradio/ieee80211/modulation2.h>
 // pydoc.h is automatically generated in the build directory
-#include <encode_pydoc.h>
+#include <modulation2_pydoc.h>
 
-void bind_encode(py::module& m)
+void bind_modulation2(py::module& m)
 {
 
-    using encode    = ::gr::ieee80211::encode;
+    using modulation2    = gr::ieee80211::modulation2;
 
 
-    py::class_<encode, gr::block, gr::basic_block,
-        std::shared_ptr<encode>>(m, "encode", D(encode))
+    py::class_<modulation2, gr::block, gr::basic_block,
+        std::shared_ptr<modulation2>>(m, "modulation2", D(modulation2))
 
-        .def(py::init(&encode::make),
-           D(encode,make)
+        .def(py::init(&modulation2::make),
+           D(modulation2,make)
         )
         
 

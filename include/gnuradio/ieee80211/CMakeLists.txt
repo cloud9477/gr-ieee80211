@@ -20,5 +20,9 @@ install(FILES
     encode.h
     signal2.h
     demod2.h
-    DESTINATION include/gnuradio/ieee80211
+    pktgen.h
+    encode2.h
+    pad.h
+    modulation2.h
+    pad2.h DESTINATION include/gnuradio/ieee80211
 )

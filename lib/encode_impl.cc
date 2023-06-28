@@ -25,30 +25,24 @@ namespace gr {
   namespace ieee80211 {
 
     encode::sptr
-    encode::make(const std::string& tsb_tag_key)
+    encode::make()
     {
-      return gnuradio::make_block_sptr<encode_impl>(tsb_tag_key
+      return gnuradio::make_block_sptr<encode_impl>(
         );
     }
 
     /*
      * The private constructor
      */
-    encode_impl::encode_impl(const std::string& tsb_tag_key)
-      : gr::tagged_stream_block("encode",
-              gr::io_signature::make(0, 0, 0),
-              gr::io_signature::make(2, 2, sizeof(uint8_t)), tsb_tag_key)
+    encode_impl::encode_impl()
+      : gr::block("encode",
+              gr::io_signature::make(1, 1, sizeof(uint8_t)),
+              gr::io_signature::make(1, 1, sizeof(uint8_t)))
     {
-      d_sEncode = ENCODE_S_IDLE;
-      d_debug = true;
-      d_pktSeq = 0;
-      d_nChipsPadded = 624;   // sometimes num of chips are too small which do not trigger the stream passing
-
-      memset(d_vhtBfQbytesR, 0, 1024);
-      memset(d_vhtBfQbytesI, 0, 1024);
-
-      message_port_register_in(pmt::mp("pdus"));
-      set_msg_handler(pmt::mp("pdus"), boost::bind(&encode_impl::msgRead, this, _1));
+      d_sEncode = ENCODE_S_RDTAG;
+      d_sigBitsIntedL = std::vector<uint8_t>(48, 0);
+      d_sigBitsIntedNL = std::vector<uint8_t>(96, 0);
+      d_sigBitsIntedB0 = std::vector<uint8_t>(52, 0);
     }
 
     /*
@@ -59,479 +53,221 @@ namespace gr {
     }
 
     void
-    encode_impl::msgRead(pmt::pmt_t msg)
+    encode_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
     {
-      /* 1B format, 1B mcs, 1B nss, 2B len, total 5B, len is 0 then NDP*/
-      pmt::pmt_t vector = pmt::cdr(msg);
-      int tmpMsgLen = pmt::blob_length(vector);
-      size_t tmpOffset(0);
-      const uint8_t *tmpPkt = (const uint8_t *)pmt::uniform_vector_elements(vector, tmpOffset);
-      if((tmpMsgLen < 5) || (tmpMsgLen > DECODE_D_MAX)){
-        return;
-      }
-
-      int tmpFormat = (int)tmpPkt[0];
-
-      if(tmpFormat == C8P_F_VHT_BFQ_R)
-      {
-        memcpy(d_vhtBfQbytesR, &tmpPkt[1], 1024);
-        std::cout<<"beamforming Q real updated"<<std::endl;
-        return;
-      }
-
-      if(tmpFormat == C8P_F_VHT_BFQ_I)
-      {
-        memcpy(d_vhtBfQbytesI, &tmpPkt[1], 1024);
-        std::cout<<"beamforming Q imag updated"<<std::endl;
-        return;
-      }
-
-      int tmpHeaderShift;
-      
-      if(tmpFormat == C8P_F_VHT_MU)
-      {
-        // byte 0 format, user0 1-4, user1 5-8, group ID 9
-        tmpHeaderShift = 10;
-        int tmpMcs0 = (int)tmpPkt[1];
-        // int tmpNss0 = (int)tmpPkt[2];
-        int tmpLen0 = ((int)tmpPkt[4] * 256  + (int)tmpPkt[3]);
-        int tmpMcs1 = (int)tmpPkt[5];
-        // int tmpNss1 = (int)tmpPkt[6];
-        int tmpLen1 = ((int)tmpPkt[8] * 256  + (int)tmpPkt[7]);
-        int tmpGroupId = (int)tmpPkt[9];
-        dout<<"ieee80211 encode, format: mu, mcs0:"<<tmpMcs0<<", nSS0:1, len0:"<<tmpLen0<<", mcs1:"<<tmpMcs1<<", nSS1:1, len1:"<<tmpLen1<<std::endl;
-        formatToModMu(&d_m, tmpMcs0, 1, tmpLen0, tmpMcs1, 1, tmpLen1);
-        d_m.groupId = tmpGroupId;
-        float* tmpFloatPR = (float*)d_vhtBfQbytesR;
-        float* tmpFloatPI = (float*)d_vhtBfQbytesI;
-        d_tagBfQ.clear();
-        d_tagBfQ.reserve(256);
-        gr_complex tmpQValue;
-        for(int i=0;i<256;i++)
-        {
-          tmpQValue = gr_complex(*tmpFloatPR, *tmpFloatPI);
-          tmpFloatPR += 1;
-          tmpFloatPI += 1;
-          d_tagBfQ.push_back(tmpQValue);
-        }
-      }
-      else
-      {
-        tmpHeaderShift = 5;
-        int tmpMcs = (int)tmpPkt[1];
-        int tmpNss = (int)tmpPkt[2];
-        int tmpLen = ((int)tmpPkt[4] * 256  + (int)tmpPkt[3]);
-        dout<<"ieee80211 encode, format:"<<tmpFormat<<", mcs:"<<tmpMcs<<", nSS:"<<tmpNss<<", len:"<<tmpLen<<std::endl;
-        formatToModSu(&d_m, tmpFormat, tmpMcs, tmpNss, tmpLen);
-      }
-
-      if(d_m.format == C8P_F_L)
-      {
-        // legacy
-        legacySigBitsGen(d_legacySig, d_legacySigCoded, d_m.mcs, d_m.len);
-        procIntelLegacyBpsk(d_legacySigCoded, d_legacySigInted);
-
-        uint8_t* tmpDataP = d_dataBits;
-        memset(tmpDataP, 0, 16);
-        tmpDataP += 16;
-        for(int i=0;i<d_m.len;i++)
-        {
-          for(int j=0;j<8;j++)
-          {
-            tmpDataP[j] = (tmpPkt[i + tmpHeaderShift] >> j) & 0x01;
-          }
-          tmpDataP += 8;
-        }
-        // tail
-        memset(tmpDataP, 0, 6);
-        tmpDataP += 6;
-        // pad
-        memset(tmpDataP, 0, (d_m.nSym * d_m.nDBPS - 22 - d_m.len*8));
-      }
-      else if(d_m.format == C8P_F_VHT)
-      {
-        // vht
-        vhtSigABitsGen(d_vhtSigA, d_vhtSigACoded, &d_m);
-        procIntelLegacyBpsk(&d_vhtSigACoded[0], &d_vhtSigAInted[0]);
-        procIntelLegacyBpsk(&d_vhtSigACoded[48], &d_vhtSigAInted[48]);
-        if(d_m.sumu)
-        {
-          vhtSigB20BitsGenMU(d_vhtSigB, d_vhtSigBCoded, d_vhtSigBCrc8, d_vhtSigBMu1, d_vhtSigBMu1Coded, d_vhtSigBMu1Crc8, &d_m);
-          procIntelVhtB20(d_vhtSigBCoded, d_vhtSigBInted);
-          procIntelVhtB20(d_vhtSigBMu1Coded, d_vhtSigBMu1Inted);
-        }
-        else
-        {
-          vhtSigB20BitsGenSU(d_vhtSigB, d_vhtSigBCoded, d_vhtSigBCrc8, &d_m);
-          procIntelVhtB20(d_vhtSigBCoded, d_vhtSigBInted);
-        }
-
-        if(d_m.nSym > 0)
-        {
-          // legacy training 16, legacy sig 4, vhtsiga 8, vht training 4+4n, vhtsigb, payload, no short GI
-          int tmpTxTime = 20 + 8 + 4 + d_m.nLTF * 4 + 4 + d_m.nSym * 4;
-          int tmpLegacyLen = ((tmpTxTime - 20) / 4 + (((tmpTxTime - 20) % 4) != 0)) * 3 - 3;
-          legacySigBitsGen(d_legacySig, d_legacySigCoded, 0, tmpLegacyLen);
-          procIntelLegacyBpsk(d_legacySigCoded, d_legacySigInted);
-
-          if(d_m.sumu)
-          {
-            vhtModMuToSu(&d_m, 0);  // set mod info to be user 0
-          }
-
-          uint8_t* tmpDataP = d_dataBits;   // data bits, service part
-          memset(tmpDataP, 0, 8);
-          tmpDataP += 8;
-          memcpy(tmpDataP, d_vhtSigBCrc8, 8);
-          tmpDataP += 8;
-          for(int i=0;i<d_m.len;i++)        // data bits, psdu part
-          {
-            for(int j=0;j<8;j++)
-            {
-              tmpDataP[j] = (tmpPkt[i + tmpHeaderShift] >> j) & 0x01;
-            }
-            tmpDataP += 8;
-          }
-          tmpHeaderShift += d_m.len;
-
-          int tmpPsduLen = (d_m.nSym * d_m.nDBPS - 16 - 6) / 8;           // 20M 2x2, nES is still 1
-          for(int i=0;i<((tmpPsduLen - d_m.len)/4);i++)
-          {
-            memcpy(tmpDataP, EOF_PAD_SUBFRAME, sizeof(uint8_t) * 32);     // eof padding
-            tmpDataP += 32;
-          }
-          memset(tmpDataP, 0, ((tmpPsduLen - d_m.len)%4) * 8 * sizeof(uint8_t));  // padding octets
-          tmpDataP += (((tmpPsduLen - d_m.len)%4) * 8);
-          memset(tmpDataP, 0, (d_m.nSym * d_m.nDBPS - tmpPsduLen*8 - 16));
-
-          if(d_m.sumu)
-          {
-            // set mod info to be user 1, this version no other users
-            vhtModMuToSu(&d_m, 1);
-            // init pointer
-            tmpDataP = d_dataBits2;
-            // 7 scrambler init, 1 reserved
-            memset(tmpDataP, 0, 8);
-            tmpDataP += 8;
-            // 8 sig b crc8
-            memcpy(tmpDataP, d_vhtSigBMu1Crc8, 8);
-            tmpDataP += 8;
-            // data
-            for(int i=0;i<d_m.len;i++)
-            {
-              for(int j=0;j<8;j++)
-              {
-                tmpDataP[j] = (tmpPkt[i + tmpHeaderShift] >> j) & 0x01;
-              }
-              tmpDataP += 8;
-            }
-            // general packet with payload
-            tmpPsduLen = (d_m.nSym * d_m.nDBPS - 16 - 6)/8;
-            // EOF padding tmp, copy header bits to pad
-            memcpy(tmpDataP, &d_dataBits[16], (tmpPsduLen - d_m.len)*8);
-            tmpDataP += (tmpPsduLen - d_m.len)*8;
-            // tail pading, all 0, includes tail bits, when scrambling, do not scramble tail
-            memset(tmpDataP, 0, (d_m.nSym * d_m.nDBPS - tmpPsduLen*8 - 16));
-
-          }
-        }
-        else
-        {
-          // NDP channel sounding, legacy, vht sig a, vht training, vht sig b
-          int tmpTxTime = 20 + 8 + 4 + d_m.nLTF * 4 + 4;
-          int tmpLegacyLen = ((tmpTxTime - 20) / 4 + (((tmpTxTime - 20) % 4) != 0)) * 3 - 3;
-          legacySigBitsGen(d_legacySig, d_legacySigCoded, 0, tmpLegacyLen);
-          procIntelLegacyBpsk(d_legacySigCoded, d_legacySigInted);
-        }
-      }
-      else
-      {
-        // ht
-        htSigBitsGen(d_htSig, d_htSigCoded, &d_m);
-        procIntelLegacyBpsk(&d_htSigCoded[0], &d_htSigInted[0]);
-        procIntelLegacyBpsk(&d_htSigCoded[48], &d_htSigInted[48]);
-        // legacy training and sig 20, htsig 8, ht training 4+4n, payload, no short GI
-        int tmpTxTime = 20 + 8 + 4 + d_m.nLTF * 4 + d_m.nSym * 4;
-        int tmpLegacyLen = ((tmpTxTime - 20) / 4 + (((tmpTxTime - 20) % 4) != 0)) * 3 - 3;
-        legacySigBitsGen(d_legacySig, d_legacySigCoded, 0, tmpLegacyLen);
-        procIntelLegacyBpsk(d_legacySigCoded, d_legacySigInted);
-
-        uint8_t* tmpDataP = d_dataBits;
-        // service
-        memset(tmpDataP, 0, 16);
-        tmpDataP += 16;
-        // data
-        for(int i=0;i<d_m.len;i++)
-        {
-          for(int j=0;j<8;j++)
-          {
-            tmpDataP[j] = (tmpPkt[i + tmpHeaderShift] >> j) & 0x01;
-          }
-          tmpDataP += 8;
-        }
-        // tail
-        memset(tmpDataP, 0, 6);
-        tmpDataP += 6;
-        // pad
-        memset(tmpDataP, 0, (d_m.nSym * d_m.nDBPS - 22 - d_m.len*8));
-      }
-      d_sEncode = ENCODE_S_SCEDULE;
+      ninput_items_required[0] = noutput_items;
     }
 
     int
-    encode_impl::calculate_output_stream_length(const gr_vector_int &ninput_items)
-    {
-      if(d_sEncode == ENCODE_S_SCEDULE)
-      {
-        dout<<"ieee80211 encode, schedule in calculate, nSym:"<<d_m.nSym<<", total sample output:"<<(d_m.nSym * d_m.nSD)<<std::endl;
-        d_nChipsGen = d_m.nSym * d_m.nSD;
-        d_nChipsGenProcd = 0;
-        d_sEncode = ENCODE_S_ENCODE;
-      }
-      return (d_nChipsGen + d_nChipsPadded);
-    }
-
-    int
-    encode_impl::work (int noutput_items,
+    encode_impl::general_work (int noutput_items,
                        gr_vector_int &ninput_items,
                        gr_vector_const_void_star &input_items,
                        gr_vector_void_star &output_items)
     {
-      //auto in = static_cast<const input_type*>(input_items[0]);
-      uint8_t* outChips1 = static_cast<uint8_t*>(output_items[0]);
-      uint8_t* outChips2 = static_cast<uint8_t*>(output_items[1]);
+      const uint8_t* inPkt = static_cast<const uint8_t*>(input_items[0]);
+      uint8_t* outChips0 = static_cast<uint8_t*>(output_items[0]);
+      d_nProc = ninput_items[0];
       d_nGen = noutput_items;
+      d_nUsed = 0;
+      d_nPassed = 0;
 
-      switch(d_sEncode)
+      if(d_sEncode == ENCODE_S_RDTAG)
       {
-        case ENCODE_S_IDLE:
+        get_tags_in_range(d_tags, 0, nitems_read(0) , nitems_read(0) + 1);
+        if (d_tags.size())
         {
-          return 0;
-        }
-
-        case ENCODE_S_SCEDULE:
-        {
-          return 0;
-        }
-
-        case ENCODE_S_ENCODE:
-        {
-          dout<<"ieee80211 encode, encode and gen tag, seq:"<<d_pktSeq<<std::endl;
-          if(d_m.sumu)
-          {
-            // user 0
-            vhtModMuToSu(&d_m, 0);
-            scramEncoder(d_dataBits, d_scramBits, (d_m.nSym * d_m.nDBPS - 6), 93);
-            memset(&d_scramBits[d_m.nSym * d_m.nDBPS - 6], 0, 6);
-            // binary convolutional coding
-            bccEncoder(d_scramBits, d_convlBits, d_m.nSym * d_m.nDBPS);
-            // puncturing
-            punctEncoder(d_convlBits, d_punctBits, d_m.nSym * d_m.nDBPS * 2, &d_m);
-            // interleave
-            for(int i=0;i<d_m.nSym;i++)
-            {
-              procSymIntelNL2SS1(&d_punctBits[i*d_m.nCBPS], &d_IntedBits1[i*d_m.nCBPS], &d_m);
-            }
-            // bits to qam chips
-            bitsToChips(d_IntedBits1, d_qamChips1, &d_m);
-
-            // user 1
-            vhtModMuToSu(&d_m, 1);
-            scramEncoder(d_dataBits2, d_scramBits2, (d_m.nSym * d_m.nDBPS - 6), 93);
-            memset(&d_scramBits2[d_m.nSym * d_m.nDBPS - 6], 0, 6);
-            // binary convolutional coding
-            bccEncoder(d_scramBits2, d_convlBits2, d_m.nSym * d_m.nDBPS);
-            // puncturing
-            punctEncoder(d_convlBits2, d_punctBits2, d_m.nSym * d_m.nDBPS * 2, &d_m);
-            // interleave
-            for(int i=0;i<d_m.nSym;i++)
-            {
-              procSymIntelNL2SS1(&d_punctBits2[i*d_m.nCBPS], &d_IntedBits2[i*d_m.nCBPS], &d_m);
-            }
-            // bits to qam chips
-            bitsToChips(d_IntedBits2, d_qamChips2, &d_m);
+          pmt::pmt_t d_meta = pmt::make_dict();
+          for (auto tag : d_tags){
+            d_meta = pmt::dict_add(d_meta, tag.key, tag.value);
           }
-          else if(d_m.nSym > 0)
+          d_pktFormat = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("format"), pmt::from_long(-1)));
+          d_pktMcs0 = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("mcs0"), pmt::from_long(-1)));
+          d_pktNss0 = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("nss0"), pmt::from_long(-1)));
+          d_pktLen0 = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len0"), pmt::from_long(-1)));
+          d_pktSeq = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("seq"), pmt::from_long(-1)));
+          d_nPktTotal = d_pktLen0;
+          if(d_pktFormat == C8P_F_VHT_MU || d_pktNss0 > 1)
           {
-            // scrambling
-            if(d_m.format == C8P_F_VHT)
-            {
-              scramEncoder(d_dataBits, d_scramBits, (d_m.nSym * d_m.nDBPS - 6), 93);
-              memset(&d_scramBits[d_m.nSym * d_m.nDBPS - 6], 0, 6);
-            }
-            else
-            {
-              scramEncoder(d_dataBits, d_scramBits, (d_m.nSym * d_m.nDBPS), 93);
-              memset(&d_scramBits[d_m.len * 8 + 16], 0, 6);
-            }
-            // binary convolutional coding
-            bccEncoder(d_scramBits, d_convlBits, d_m.nSym * d_m.nDBPS);
-            // puncturing
-            punctEncoder(d_convlBits, d_punctBits, d_m.nSym * d_m.nDBPS * 2, &d_m);
-            // interleave and convert to qam chips
-            if(d_m.nSS == 1)
-            {
-              if(d_m.format == C8P_F_L)
-              {
-                for(int i=0;i<d_m.nSym;i++)
-                {
-                  procSymIntelL2(&d_punctBits[i*d_m.nCBPS], &d_IntedBits1[i*d_m.nCBPS], &d_m);
-                }
-              }
-              else
-              {
-                for(int i=0;i<d_m.nSym;i++)
-                {
-                  procSymIntelNL2SS1(&d_punctBits[i*d_m.nCBPS], &d_IntedBits1[i*d_m.nCBPS], &d_m);
-                }
-              }
-              bitsToChips(d_IntedBits1, d_qamChips1, &d_m);
-              memset(d_qamChips2, 0, d_m.nSym * d_m.nSD);
-            }
-            else
-            {
-              // stream parser first
-              streamParser2(d_punctBits, d_parsdBits1, d_parsdBits2, d_m.nSym * d_m.nCBPS, &d_m);
-              // interleave
-              for(int i=0;i<d_m.nSym;i++)
-              {
-                procSymIntelNL2SS1(&d_parsdBits1[i*d_m.nCBPSS], &d_IntedBits1[i*d_m.nCBPSS], &d_m);
-                procSymIntelNL2SS2(&d_parsdBits2[i*d_m.nCBPSS], &d_IntedBits2[i*d_m.nCBPSS], &d_m);
-              }
-              // convert to qam chips
-              bitsToChips(d_IntedBits1, d_qamChips1, &d_m);
-              bitsToChips(d_IntedBits2, d_qamChips2, &d_m);
-            }
+            std::cout<<"ieee80211 encode, format not supported"<<std::endl;
+            d_nPktTotal += pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len1"), pmt::from_long(-1)));
+            d_pktFormat = -1;
           }
           else
           {
-            // VHT NDP
+            std::cout<<"ieee80211 encode, su #"<<d_pktSeq<<", format:"<<d_pktFormat<<", mcs:"<<d_pktMcs0<<", nss:"<<d_pktNss0<<", len:"<<d_pktLen0<<std::endl;
           }
-
-          // gen tag
-          d_tagLegacyBits.clear();
-          d_tagLegacyBits.reserve(48);
-          for(int i=0;i<48;i++)
-          {
-            d_tagLegacyBits.push_back(d_legacySigInted[i]);
-          }
-          pmt::pmt_t dict = pmt::make_dict();
-          if(d_m.sumu)
-          {
-            dict = pmt::dict_add(dict, pmt::mp("format"), pmt::from_long(C8P_F_VHT_MU));
-            dict = pmt::dict_add(dict, pmt::mp("mcs0"), pmt::from_long(d_m.mcsMu[0]));
-            dict = pmt::dict_add(dict, pmt::mp("len0"), pmt::from_long(d_m.lenMu[0]));
-            dict = pmt::dict_add(dict, pmt::mp("mcs1"), pmt::from_long(d_m.mcsMu[1]));
-            dict = pmt::dict_add(dict, pmt::mp("len1"), pmt::from_long(d_m.lenMu[1]));
-          }
-          else
-          {
-            dict = pmt::dict_add(dict, pmt::mp("format"), pmt::from_long(d_m.format));
-            dict = pmt::dict_add(dict, pmt::mp("mcs"), pmt::from_long(d_m.mcs));
-            dict = pmt::dict_add(dict, pmt::mp("nss"), pmt::from_long(d_m.nSS));
-            dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_m.len));
-          }
-          dict = pmt::dict_add(dict, pmt::mp("seq"), pmt::from_long(d_pktSeq));
-          dict = pmt::dict_add(dict, pmt::mp("total"), pmt::from_long(d_nChipsGen + d_nChipsPadded));   // chips with padded
-          dict = pmt::dict_add(dict, pmt::mp("lsig"), pmt::init_u8vector(d_tagLegacyBits.size(), d_tagLegacyBits));
-          d_pktSeq++;
-          if(d_m.format == C8P_F_HT)
-          {
-            d_tagHtBits.clear();
-            d_tagHtBits.reserve(96);
-            for(int i=0;i<96;i++)
-            {
-              d_tagHtBits.push_back(d_htSigInted[i]);
-            }
-            dict = pmt::dict_add(dict, pmt::mp("htsig"), pmt::init_u8vector(d_tagHtBits.size(), d_tagHtBits));
-          }
-          else if(d_m.format == C8P_F_VHT)
-          {
-            // sig a bits
-            d_tagVhtABits.clear();
-            d_tagVhtABits.reserve(96);
-            for(int i=0;i<96;i++)
-            {
-              d_tagVhtABits.push_back(d_vhtSigAInted[i]);
-            }
-            dict = pmt::dict_add(dict, pmt::mp("vhtsiga"), pmt::init_u8vector(d_tagVhtABits.size(), d_tagVhtABits));
-            // sig b bits
-            d_tagVhtBBits.clear();
-            d_tagVhtBBits.reserve(52);
-            for(int i=0;i<52;i++)
-            {
-              d_tagVhtBBits.push_back(d_vhtSigBInted[i]);
-            }
-            dict = pmt::dict_add(dict, pmt::mp("vhtsigb"), pmt::init_u8vector(d_tagVhtBBits.size(), d_tagVhtBBits));
-            // mu-mimo, 2nd sig b
-            if(d_m.sumu)
-            {
-              d_tagVhtBMu1Bits.clear();
-              d_tagVhtBMu1Bits.reserve(52);
-              for(int i=0;i<52;i++)
-              {
-                d_tagVhtBMu1Bits.push_back(d_vhtSigBMu1Inted[i]);
-              }
-              dict = pmt::dict_add(dict, pmt::mp("vhtsigb1"), pmt::init_u8vector(d_tagVhtBMu1Bits.size(), d_tagVhtBMu1Bits));
-              dict = pmt::dict_add(dict, pmt::mp("vhtbfq"), pmt::init_c32vector(d_tagBfQ.size(), d_tagBfQ));
-            }
-          }
-          pmt::pmt_t pairs = pmt::dict_items(dict);
-          for (size_t i = 0; i < pmt::length(pairs); i++) {
-              pmt::pmt_t pair = pmt::nth(i, pairs);
-              add_item_tag(0,                   // output port index
-                            nitems_written(0),  // output sample index
-                            pmt::car(pair),     
-                            pmt::cdr(pair),
-                            alias_pmt());
-          }
-          if(d_m.len > 0)
-          {
-            d_sEncode = ENCODE_S_COPY;
-          }
-          else
-          {
-            // NDP, skip copy
-            d_sEncode = ENCODE_S_PAD;
-          }
-          return 0;
-        }
-
-        case ENCODE_S_COPY:
-        {
-          int o1 = 0;
-          while((o1 + d_m.nSD) < d_nGen)
-          {
-            memcpy(&outChips1[o1], &d_qamChips1[d_nChipsGenProcd], d_m.nSD);
-            memcpy(&outChips2[o1], &d_qamChips2[d_nChipsGenProcd], d_m.nSD);
-
-            o1 += d_m.nSD;
-            d_nChipsGenProcd += d_m.nSD;
-            if(d_nChipsGenProcd >= d_nChipsGen)
-            {
-              d_sEncode = ENCODE_S_PAD;
-              break;
-            }
-          }
-          return o1;
-        }
-
-        case ENCODE_S_PAD:
-        {
-          if(d_nGen >= d_nChipsPadded)
-          {
-            memset(outChips1, 0, d_nChipsPadded);
-            memset(outChips2, 0, d_nChipsPadded);
-            d_sEncode = ENCODE_S_IDLE;
-            return d_nChipsPadded;
-          }
-          return 0;
+          d_nPktRead = 0;
+          d_sEncode = ENCODE_S_RDPKT;
         }
       }
 
-      // Tell runtime system how many output items we produced.
-      d_sEncode = ENCODE_S_IDLE;
-      return 0;
+      if(d_sEncode == ENCODE_S_RDPKT)
+      {
+        if(d_nProc >= (d_nPktTotal - d_nPktRead))
+        {
+          if(d_pktFormat >= 0)
+          {
+            memcpy(d_pkt + d_nPktRead, inPkt, (d_nPktTotal - d_nPktRead));
+            d_sEncode = ENCODE_S_MOD;
+          }
+          else
+          {
+            d_sEncode = ENCODE_S_CLEAN;
+          }
+          d_nUsed += (d_nPktTotal - d_nPktRead);
+        }
+        else
+        {
+          if(d_pktFormat >= 0)
+          {
+            memcpy(d_pkt + d_nPktRead, inPkt, d_nProc);
+          }
+          d_nPktRead += d_nProc;
+          d_nUsed += d_nProc;
+        }
+      }
+
+      if(d_sEncode == ENCODE_S_MOD)
+      {
+        pmt::pmt_t dict = pmt::make_dict();
+        // signal part
+        formatToModSu(&d_m, d_pktFormat, d_pktMcs0, d_pktNss0, d_pktLen0);
+        if(d_pktFormat == C8P_F_L)
+        {
+          legacySigBitsGen(d_sigBitsL, d_sigBitsCodedL, d_m.mcs, d_m.len);
+          procIntelLegacyBpsk(d_sigBitsCodedL, &d_sigBitsIntedL[0]);
+          memset(d_bits0, 0, 16);   // service bits
+        }
+        else if(d_pktFormat == C8P_F_VHT)
+        {
+          vhtSigABitsGen(d_sigBitsNL, d_sigBitsCodedNL, &d_m);
+          procIntelLegacyBpsk(&d_sigBitsCodedNL[0], &d_sigBitsIntedNL[0]);
+          procIntelLegacyBpsk(&d_sigBitsCodedNL[48], &d_sigBitsIntedNL[48]);
+          memset(d_bits0, 0, 8);
+          vhtSigB20BitsGenSU(d_sigBitsB, d_sigBitsCodedB, &d_bits0[8], &d_m);   // servcie bits sig b crc
+          procIntelVhtB20(d_sigBitsCodedB, &d_sigBitsIntedB0[0]);
+          dict = pmt::dict_add(dict, pmt::mp("signl"), pmt::init_u8vector(d_sigBitsIntedNL.size(), d_sigBitsIntedNL));
+          dict = pmt::dict_add(dict, pmt::mp("sigb0"), pmt::init_u8vector(d_sigBitsIntedB0.size(), d_sigBitsIntedB0));
+          // legacy training 16, legacy sig 4, vhtsiga 8, vht training 4+4n, vhtsigb, payload, no short GI
+          int tmpTxTime = 20 + 8 + 4 + d_m.nLTF * 4 + 4 + d_m.nSym * 4;
+          int tmpLegacyLen = ((tmpTxTime - 20) / 4 + (((tmpTxTime - 20) % 4) != 0)) * 3 - 3;
+          legacySigBitsGen(d_sigBitsL, d_sigBitsCodedL, 0, tmpLegacyLen);
+          procIntelLegacyBpsk(d_sigBitsCodedL, &d_sigBitsIntedL[0]);
+        }
+        else
+        {
+          htSigBitsGen(d_sigBitsNL, d_sigBitsCodedNL, &d_m);
+          procIntelLegacyBpsk(&d_sigBitsCodedNL[0], &d_sigBitsIntedNL[0]);
+          procIntelLegacyBpsk(&d_sigBitsCodedNL[48], &d_sigBitsIntedNL[48]);
+          dict = pmt::dict_add(dict, pmt::mp("signl"), pmt::init_u8vector(d_sigBitsIntedNL.size(), d_sigBitsIntedNL));
+          // legacy training and sig 20, htsig 8, ht training 4+4n, payload, no short GI
+          int tmpTxTime = 20 + 8 + 4 + d_m.nLTF * 4 + d_m.nSym * 4;
+          int tmpLegacyLen = ((tmpTxTime - 20) / 4 + (((tmpTxTime - 20) % 4) != 0)) * 3 - 3;
+          legacySigBitsGen(d_sigBitsL, d_sigBitsCodedL, 0, tmpLegacyLen);
+          procIntelLegacyBpsk(d_sigBitsCodedL, &d_sigBitsIntedL[0]);
+          memset(d_bits0, 0, 16); // service bits
+        }
+        dict = pmt::dict_add(dict, pmt::mp("sigl"), pmt::init_u8vector(d_sigBitsIntedL.size(), d_sigBitsIntedL));
+
+        // psdu
+        int tmpDataP = 16;
+        for(int i=0;i<d_m.len;i++)
+        {
+          for(int j=0;j<8;j++)
+          {
+            d_bits0[tmpDataP] = (d_pkt[i] >> j) & 0x01;
+            tmpDataP++;
+          }
+        }
+        if(d_pktFormat == C8P_F_VHT)
+        {
+          int tmpPsduLen = (d_m.nSym * d_m.nDBPS - 16 - 6) / 8;           // 20M 2x2, nES is still 1
+          for(int i=0;i<((tmpPsduLen - d_m.len)/4);i++)
+          {
+            memcpy(&d_bits0[tmpDataP], EOF_PAD_SUBFRAME, sizeof(uint8_t) * 32);     // eof padding
+            tmpDataP += 32;
+          }
+          memset(&d_bits0[tmpDataP], 0, ((tmpPsduLen - d_m.len)%4) * 8 * sizeof(uint8_t));  // padding octets
+          tmpDataP += (((tmpPsduLen - d_m.len)%4) * 8);
+          memset(&d_bits0[tmpDataP], 0, (d_m.nSym * d_m.nDBPS - tmpPsduLen*8 - 16));        // padding bits and tail
+          scramEncoder2(d_bits0, (d_m.nSym * d_m.nDBPS - 6), 93);  // scrambling
+        }
+        else
+        {
+          memset(&d_bits0[tmpDataP], 0, 6);   // legacy and ht tail
+          tmpDataP += 6;
+          memset(&d_bits0[tmpDataP], 0, (d_m.nSym * d_m.nDBPS - 22 - d_m.len*8));   // legacy and ht pad
+          scramEncoder2(d_bits0, (d_m.nSym * d_m.nDBPS), 93);
+          memset(&d_bits0[d_m.len * 8 + 16], 0, 6);
+        }
+        bccEncoder(d_bits0, d_bitsCoded, d_m.nSym * d_m.nDBPS);   // binary convolutional coding
+        punctEncoder(d_bitsCoded, d_bitsPunct, d_m.nSym * d_m.nDBPS * 2, &d_m);   // puncturing
+        if(d_m.format == C8P_F_L)
+        {
+          for(int i=0;i<d_m.nSym;i++)
+          {
+            procSymIntelL2(&d_bitsPunct[i*d_m.nCBPS], &d_bitsInted0[i*d_m.nCBPS], &d_m);
+          }
+        }
+        else
+        {
+          for(int i=0;i<d_m.nSym;i++)
+          {
+            procSymIntelNL2SS1(&d_bitsPunct[i*d_m.nCBPS], &d_bitsInted0[i*d_m.nCBPS], &d_m);
+          }
+        }
+        bitsToChips(d_bitsInted0, d_chips0, &d_m);
+
+        d_nSampTotal = d_m.nSym * d_m.nSD + ENCODE_GR_PAD;
+        d_nSampCopied = 0;
+
+        // write tag
+        dict = pmt::dict_add(dict, pmt::mp("format"), pmt::from_long(d_pktFormat));
+        dict = pmt::dict_add(dict, pmt::mp("mcs0"), pmt::from_long(d_pktMcs0));
+        dict = pmt::dict_add(dict, pmt::mp("nss0"), pmt::from_long(d_pktNss0));
+        dict = pmt::dict_add(dict, pmt::mp("len0"), pmt::from_long(d_pktLen0));
+        dict = pmt::dict_add(dict, pmt::mp("seq"), pmt::from_long(d_pktSeq));
+        pmt::pmt_t pairs = pmt::dict_items(dict);
+        for (size_t i = 0; i < pmt::length(pairs); i++) {
+            pmt::pmt_t pair = pmt::nth(i, pairs);
+            add_item_tag(0,                   // output port index
+                          nitems_written(0),  // output sample index
+                          pmt::car(pair),     
+                          pmt::cdr(pair),
+                          alias_pmt());
+        }
+        d_sEncode = ENCODE_S_COPY;
+      }
+
+      if(d_sEncode == ENCODE_S_COPY)
+      {
+        if(d_nGen < (d_nSampTotal - d_nSampCopied))
+        {
+          memcpy(outChips0, d_chips0 + d_nSampCopied, d_nGen * sizeof(uint8_t));
+          d_nPassed += d_nGen;
+          d_nSampCopied += d_nGen;
+        }
+        else
+        {
+          memcpy(outChips0, d_chips0 + d_nSampCopied, (d_nSampTotal - d_nSampCopied) * sizeof(uint8_t));
+          d_nPassed += (d_nSampTotal - d_nSampCopied);
+          d_nSampCopied = d_nSampTotal;
+          std::cout<<"ieee80211 encode, output sig done #"<<d_pktSeq<<std::endl;
+          d_sEncode = ENCODE_S_CLEAN;
+        }
+      }
+
+      if(d_sEncode == ENCODE_S_CLEAN)
+      {
+        if(d_nProc >= ENCODE_GR_PAD)
+        {
+          d_nUsed += ENCODE_GR_PAD;
+          d_sEncode = ENCODE_S_RDTAG;
+        }
+      }
+
+      consume_each (d_nUsed);
+      return d_nPassed;
     }
 
   } /* namespace ieee80211 */

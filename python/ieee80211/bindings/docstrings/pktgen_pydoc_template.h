@@ -16,12 +16,12 @@
 
 
  
- static const char *__doc_gr_ieee80211_encode = R"doc()doc";
+ static const char *__doc_gr_ieee80211_pktgen = R"doc()doc";
 
 
- static const char *__doc_gr_ieee80211_encode_encode = R"doc()doc";
+ static const char *__doc_gr_ieee80211_pktgen_pktgen = R"doc()doc";
 
 
- static const char *__doc_gr_ieee80211_encode_make = R"doc()doc";
+ static const char *__doc_gr_ieee80211_pktgen_make = R"doc()doc";
 
   

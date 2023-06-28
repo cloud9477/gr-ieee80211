@@ -1,20 +1,23 @@
-id: ieee80211_modulation
-label: modulation
+id: ieee80211_encode2
+label: encode2
 category: '[ieee80211]'
 
 templates:
   imports: from gnuradio import ieee80211
-  make: ieee80211.modulation()
+  make: ieee80211.encode2()
 
 inputs:
-- label: inChips
+- label: inBits
   domain: stream
   dtype: byte
 
 outputs:
-- label: outSig
+- label: outChip0
   domain: stream
-  dtype: complex
+  dtype: byte
+- label: outChip1
+  domain: stream
+  dtype: byte
 
 #  'file_format' specifies the version of the GRC yml format used in the file
 #  and should usually not be changed.

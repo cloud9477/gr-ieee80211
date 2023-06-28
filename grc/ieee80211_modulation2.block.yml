@@ -1,18 +1,26 @@
-id: ieee80211_modulation
-label: modulation
+id: ieee80211_modulation2
+label: modulation2
 category: '[ieee80211]'
 
 templates:
   imports: from gnuradio import ieee80211
-  make: ieee80211.modulation()
+  make: ieee80211.modulation2()
 
 inputs:
-- label: inChips
+- domain: message
+  id: pdus
+- label: inChips0
+  domain: stream
+  dtype: byte
+- label: inChips1
   domain: stream
   dtype: byte
 
 outputs:
-- label: outSig
+- label: outSig0
+  domain: stream
+  dtype: complex
+- label: outSig1
   domain: stream
   dtype: complex
 

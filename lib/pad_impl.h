@@ -1,7 +1,7 @@
 /*
  *
  *     GNU Radio IEEE 802.11a/g/n/ac 20M bw and upto 2x2
- *     QAM modulation
+ *     TX Legacy preamble and padding
  *     Copyright (C) June 1, 2022  Zelin Yun
  *
  *     This program is free software: you can redistribute it and/or modify
@@ -18,59 +18,45 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDED_IEEE80211_MODULATION_IMPL_H
-#define INCLUDED_IEEE80211_MODULATION_IMPL_H
+#ifndef INCLUDED_IEEE80211_PAD_IMPL_H
+#define INCLUDED_IEEE80211_PAD_IMPL_H
 
-#include <gnuradio/ieee80211/modulation.h>
+#include <gnuradio/ieee80211/pad.h>
+#include <gnuradio/fft/fft.h>
 #include "cloud80211phy.h"
 
-#define MODUL_S_RD_TAG 0
-#define MODUL_S_SIG 1
-#define MODUL_S_DATA 2
-#define MODUL_S_CLEAN 3
+#define PAD_S_TAG 0
+#define PAD_S_PRE 1
+#define PAD_S_SIG 2
+#define PAD_S_DATA 3
 
-#define MODUL_GR_GAP 160
-
-#define MODUL_N_PADSYM 2
+#define PAD_SCALE 5.333333f
 
 namespace gr {
   namespace ieee80211 {
 
-    class modulation_impl : public modulation
+    class pad_impl : public pad
     {
     private:
-      // block
-      int d_sModul;
+      int d_sPad;
       int d_nProc;
       int d_nGen;
       int d_nProced;
       int d_nGened;
-      bool d_debug;
-      // tags
       std::vector<gr::tag_t> d_tags;
       int d_pktFormat;
-      int d_pktSeq;
-      int d_pktMcs0;
-      int d_pktNss0;
-      int d_pktLen0;
-      // modulation
-      c8p_mod d_m;
-      std::vector<uint8_t> d_sigBitsIntedL;
-      std::vector<uint8_t> d_sigBitsIntedNL;
-      std::vector<uint8_t> d_sigBitsIntedB0;
-      gr_complex d_sigl[64];     // legacy
-      gr_complex d_signl[384];    // nl siso
-      gr_complex *d_sigP0, *d_sigP1;
-      int d_nSampSigTotal;
-      int d_nSampSigCopied;
-      int d_nSymCopied;
-      gr_complex d_pilotsL[1408][4];
-      gr_complex d_pilotsVHT[1408][4];
-      gr_complex d_pilotsHT[1408][4];
-
-     public:
-      modulation_impl();
-      ~modulation_impl();
+      int d_pktNss;
+      int d_pktLen;
+      float d_scaler;
+      gr_complex d_preamblel0[400];
+      fft::fft_complex_rev d_ofdm_fft;
+      int d_nSampCopied;
+      int d_nSampTotal;
+      float d_scaleMask[320];
+      int d_scaleTotal;
+    public:
+      pad_impl();
+      ~pad_impl();
 
       // Where all the action really happens
       void forecast (int noutput_items, gr_vector_int &ninput_items_required);
@@ -79,9 +65,10 @@ namespace gr {
            gr_vector_int &ninput_items,
            gr_vector_const_void_star &input_items,
            gr_vector_void_star &output_items);
+
     };
 
   } // namespace ieee80211
 } // namespace gr
 
-#endif /* INCLUDED_IEEE80211_MODULATION_IMPL_H */
+#endif /* INCLUDED_IEEE80211_PAD_IMPL_H */

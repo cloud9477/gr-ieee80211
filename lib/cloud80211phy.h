@@ -36,8 +36,7 @@
 #define C8P_F_HT 1
 #define C8P_F_VHT 2
 #define C8P_F_VHT_MU 3
-#define C8P_F_VHT_BFQ_R 10
-#define C8P_F_VHT_BFQ_I 11
+#define C8P_F_VHT_BFQ 10
 #define C8P_F_VHT_NDP 20
 
 #define C8P_BW_20   0
@@ -149,6 +148,9 @@ class svSigDecoder
 	void decode(float* llrv, uint8_t* decoded_bits, int trellisLen);
 };
 
+extern const int MAP_QAM_TO_NONSHIFTED_SC_L[48];
+extern const int MAP_QAM_TO_NONSHIFTED_SC_NL[52];
+
 extern const int C8P_LEGACY_DP_SC[64];
 extern const int C8P_LEGACY_D_SC[64];
 extern const int FFT_26_DEMAP[64];
@@ -211,7 +213,9 @@ void procCSD(gr_complex* sig, int cycShift);
 void procToneScaling(gr_complex* sig, int ntf, int nss, int len);
 void procNss2SymBfQ(gr_complex* sig0, gr_complex* sig1, gr_complex* bfQ);
 void procChipsToQam(const uint8_t* inChips,  gr_complex* outQam, int qamType, int len);
-void procInsertPilotsDc(gr_complex* sigIn, gr_complex* sigOut, gr_complex* pilots, int format);
+void procChipsToQamNonShiftedScL(const uint8_t* inChips, gr_complex* outQam, int qamType);
+void procChipsToQamNonShiftedScNL(const uint8_t* inChips, gr_complex* outQam, int qamType);
+void procInsertPilots(gr_complex* sigIn, gr_complex* pilots);
 void procNonDataSc(gr_complex* sigIn, gr_complex* sigOut, int format);
 
 void procLHSigDemodDeint(gr_complex *sym1, gr_complex *sym2, gr_complex *sig, std::vector<gr_complex> &h, float *llr);
@@ -231,6 +235,7 @@ void genCrc8Bits(uint8_t* inBits, uint8_t* outBits, int len);
 bool checkBitCrc8(uint8_t* inBits, int len, uint8_t* crcBits);
 void bccEncoder(uint8_t* inBits, uint8_t* outBits, int len);
 void scramEncoder(uint8_t* inBits, uint8_t* outBits, int len, int init);
+void scramEncoder2(uint8_t* inBits, int len, int init);
 void punctEncoder(uint8_t* inBits, uint8_t* outBits, int len, c8p_mod* mod);
 void streamParser2(uint8_t* inBits, uint8_t* outBits1, uint8_t* outBits2, int len, c8p_mod* mod);
 void bitsToChips(uint8_t* inBits, uint8_t* outChips, c8p_mod* mod);

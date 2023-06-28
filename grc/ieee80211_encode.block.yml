@@ -4,23 +4,15 @@ category: '[ieee80211]'
 
 templates:
   imports: from gnuradio import ieee80211
-  make: ieee80211.encode(${tag})
-
-parameters:
-- id: tag
-  label: Length tag name
-  dtype: string
-  default: packet_len
+  make: ieee80211.encode()
 
 inputs:
-- domain: message
-  id: pdus
-
-outputs:
-- label: outBits1
+- label: inBits
   domain: stream
   dtype: byte
-- label: outBits2
+
+outputs:
+- label: outChips
   domain: stream
   dtype: byte
 

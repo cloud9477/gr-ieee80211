@@ -86,7 +86,7 @@ namespace gr {
           d_pktLen0 = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len0"), pmt::from_long(-1)));
           d_pktSeq = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("seq"), pmt::from_long(-1)));
           d_nPktTotal = d_pktLen0;
-          if(d_pktFormat == C8P_F_VHT_MU || d_pktNss0 > 1)
+          if(d_pktFormat == C8P_F_VHT_MU || d_pktNss0 > 1 || d_pktLen0 < 1)
           {
             std::cout<<"ieee80211 encode, format not supported"<<std::endl;
             d_nPktTotal += pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len1"), pmt::from_long(-1)));

@@ -319,7 +319,7 @@ blocks:
     marker9: '-1'
     name: '""'
     nconnections: '1'
-    size: '40000'
+    size: '4000'
     srate: samp_rate
     stemplot: 'False'
     style1: '1'
@@ -339,7 +339,7 @@ blocks:
     tr_slope: qtgui.TRIG_SLOPE_POS
     tr_tag: '""'
     type: complex
-    update_time: '0.10'
+    update_time: '0.01'
     width1: '1'
     width10: '1'
     width2: '1'

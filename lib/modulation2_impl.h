@@ -71,6 +71,8 @@ namespace gr {
       gr_complex d_signl0[448];   // nl 2x2
       gr_complex d_signl1[448];   // nl 2x2
       gr_complex d_signl1vht[448];   // nl 2x2
+      gr_complex d_signl0mu[448];
+      gr_complex d_signl1mu[448];
       gr_complex *d_sigP0, *d_sigP1;
       int d_nSampSigTotal;
       int d_nSampSigCopied;

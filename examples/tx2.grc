@@ -395,7 +395,7 @@ blocks:
     marker9: '-1'
     name: '""'
     nconnections: '1'
-    size: '1024'
+    size: '4000'
     srate: samp_rate
     stemplot: 'False'
     style1: '1'
@@ -415,7 +415,7 @@ blocks:
     tr_slope: qtgui.TRIG_SLOPE_POS
     tr_tag: '""'
     type: complex
-    update_time: '0.10'
+    update_time: '0.01'
     width1: '1'
     width10: '1'
     width2: '1'
@@ -434,9 +434,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1416, 20.0]
+    coordinate: [1408, 92.0]
     rotation: 0
-    state: true
+    state: enabled
 - name: qtgui_time_sink_x_1
   id: qtgui_time_sink_x
   parameters:
@@ -492,7 +492,7 @@ blocks:
     marker9: '-1'
     name: '""'
     nconnections: '1'
-    size: '1024'
+    size: '4000'
     srate: samp_rate
     stemplot: 'False'
     style1: '1'
@@ -512,7 +512,7 @@ blocks:
     tr_slope: qtgui.TRIG_SLOPE_POS
     tr_tag: '""'
     type: complex
-    update_time: '0.10'
+    update_time: '0.01'
     width1: '1'
     width10: '1'
     width2: '1'
@@ -531,9 +531,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1416, 100.0]
+    coordinate: [1408, 12.0]
     rotation: 0
-    state: true
+    state: enabled
 - name: uhd_usrp_sink_0_0
   id: uhd_usrp_sink
   parameters:
@@ -824,10 +824,10 @@ connections:
 - [ieee80211_modulation2_0, '0', blocks_stream_to_vector_0, '0']
 - [ieee80211_modulation2_0, '1', blocks_stream_to_vector_0_0, '0']
 - [ieee80211_pad2_0, '0', blocks_file_sink_0, '0']
-- [ieee80211_pad2_0, '0', qtgui_time_sink_x_0, '0']
+- [ieee80211_pad2_0, '0', qtgui_time_sink_x_1, '0']
 - [ieee80211_pad2_0, '0', uhd_usrp_sink_0_0, '0']
 - [ieee80211_pad2_0, '1', blocks_file_sink_0_0, '0']
-- [ieee80211_pad2_0, '1', qtgui_time_sink_x_1, '0']
+- [ieee80211_pad2_0, '1', qtgui_time_sink_x_0, '0']
 - [ieee80211_pad2_0, '1', uhd_usrp_sink_0_0, '1']
 - [ieee80211_pktgen_0, '0', ieee80211_encode2_0, '0']
 - [network_socket_pdu_0, pdus, ieee80211_modulation2_0, pdus]

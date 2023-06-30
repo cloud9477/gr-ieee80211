@@ -110,7 +110,6 @@ namespace gr {
         get_tags_in_range(d_tags, 0, nitems_read(0) , nitems_read(0) + 1);
         if (d_tags.size())
         {
-          std::cout<<"ieee80211 mod, get tag"<<std::endl;
           pmt::pmt_t d_meta = pmt::make_dict();
           for (auto tag : d_tags){
             d_meta = pmt::dict_add(d_meta, tag.key, tag.value);
@@ -131,6 +130,16 @@ namespace gr {
             d_scaler = 1.0f / sqrt(56.0f) / PAD_SCALE;
           }
           d_nSampTotal = (d_pktLen - d_scaleTotal);
+
+          pmt::pmt_t dict = pmt::make_dict();
+          dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_nSampTotal+400));
+          pmt::pmt_t pairs = pmt::dict_items(dict);
+          for (size_t i = 0; i < pmt::length(pairs); i++) {
+              pmt::pmt_t pair = pmt::nth(i, pairs);
+              add_item_tag(0, nitems_written(0), pmt::car(pair), pmt::cdr(pair), alias_pmt());
+              add_item_tag(1, nitems_written(1), pmt::car(pair), pmt::cdr(pair), alias_pmt());
+          }
+          
           d_sPad = PAD_S_PRE;
         }
       }

@@ -103,7 +103,7 @@ namespace gr {
               d_tagMu2x1Chan = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("mu2x1chan"), pmt::PMT_NIL));
               std::copy(d_tagMu2x1Chan.begin(), d_tagMu2x1Chan.end(), d_mu2x1Chan);
               int tmpLen = sizeof(float)*256;
-              d_mu2x1ChanFloatBytes[0] = C8P_F_VHT_NDP;
+              d_mu2x1ChanFloatBytes[0] = C8P_F_VHT_CHAN;
               d_mu2x1ChanFloatBytes[1] = tmpLen%256;  // byte 1-2 packet len
               d_mu2x1ChanFloatBytes[2] = tmpLen/256;
               float* tmpFloatPointer = (float*)&d_mu2x1ChanFloatBytes[3];

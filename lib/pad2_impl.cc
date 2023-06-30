@@ -130,7 +130,6 @@ namespace gr {
         get_tags_in_range(d_tags, 0, nitems_read(0) , nitems_read(0) + 1);
         if (d_tags.size())
         {
-          std::cout<<"ieee80211 mod, get tag"<<std::endl;
           pmt::pmt_t d_meta = pmt::make_dict();
           for (auto tag : d_tags){
             d_meta = pmt::dict_add(d_meta, tag.key, tag.value);
@@ -151,6 +150,24 @@ namespace gr {
             d_scaler = 1.0f / sqrt(56.0f) / PAD_SCALE;
           }
           d_nSampTotal = (d_pktLen - d_scaleTotal);
+
+          static const pmt::pmt_t time_key = pmt::string_to_symbol("tx_time");
+          struct timeval t;
+          gettimeofday(&t, NULL);
+          uhd::time_spec_t now = uhd::time_spec_t(t.tv_sec + t.tv_usec / 1000000.0) + uhd::time_spec_t(0.001);
+          const pmt::pmt_t time_value = pmt::make_tuple(pmt::from_uint64(now.get_full_secs()), pmt::from_double(now.get_frac_secs()));
+          add_item_tag(0, nitems_written(0), time_key, time_value, alias_pmt());
+          add_item_tag(1, nitems_written(1), time_key, time_value, alias_pmt());
+
+          pmt::pmt_t dict = pmt::make_dict();
+          dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_nSampTotal+400));
+          pmt::pmt_t pairs = pmt::dict_items(dict);
+          for (size_t i = 0; i < pmt::length(pairs); i++) {
+              pmt::pmt_t pair = pmt::nth(i, pairs);
+              add_item_tag(0, nitems_written(0), pmt::car(pair), pmt::cdr(pair), alias_pmt());
+              add_item_tag(1, nitems_written(1), pmt::car(pair), pmt::cdr(pair), alias_pmt());
+          }
+
           d_sPad = PAD_S_PRE;
         }
       }

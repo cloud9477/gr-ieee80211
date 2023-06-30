@@ -37,7 +37,7 @@
 #define C8P_F_VHT 2
 #define C8P_F_VHT_MU 3
 #define C8P_F_VHT_BFQ 10
-#define C8P_F_VHT_NDP 20
+#define C8P_F_VHT_CHAN 20
 
 #define C8P_BW_20   0
 #define C8P_BW_40   1

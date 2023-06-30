@@ -1162,14 +1162,13 @@ def genPktGrDataMu(mpdu0, mod0, mpdu1, mod1, groupId):
 
 def genPktGrBfQ(bfQ):
     if(isinstance(bfQ, list)):
-        tmpBytesR = b"" + struct.pack('<B', p8h.GR_F.QR.value)
-        tmpBytesI = b"" + struct.pack('<B', p8h.GR_F.QI.value)
+        tmpBytes = b"" + struct.pack('<B', p8h.GR_F.BFQ.value)
         for each in bfQ:
             for i in range(0, 2):
                 for j in range(0, 2):
-                    tmpBytesR += struct.pack('<f', np.real(each[i][j]))
-                    tmpBytesI += struct.pack('<f', np.imag(each[i][j]))
-        return tmpBytesR, tmpBytesI
+                    tmpBytes += struct.pack('<f', np.real(each[i][j]))
+                    tmpBytes += struct.pack('<f', np.imag(each[i][j]))
+        return tmpBytes
     else:
         print("cloud 80211phy, genPktGrData input param error")
         return b"", b""

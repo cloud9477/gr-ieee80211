@@ -40,8 +40,7 @@ class GR_F(Enum):
     HT = 1
     VHT = 2
     MU = 3
-    QR = 10
-    QI = 11
+    BFQ = 10
     NDP = 20
 
 class F(Enum):

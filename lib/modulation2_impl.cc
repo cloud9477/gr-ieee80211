@@ -51,6 +51,8 @@ namespace gr {
       memset((uint8_t*)d_signl0, 0, sizeof(gr_complex) * 448);
       memset((uint8_t*)d_signl1, 0, sizeof(gr_complex) * 448);
       memset((uint8_t*)d_signl1vht, 0, sizeof(gr_complex) * 448);
+      memset((uint8_t*)d_signl0mu, 0, sizeof(gr_complex) * 448);
+      memset((uint8_t*)d_signl1mu, 0, sizeof(gr_complex) * 448);
       // non legacy stf
       memcpy(d_signl+192, C8P_STF_F, sizeof(gr_complex) * 64);
       memcpy(d_signl0+192, C8P_STF_F, sizeof(gr_complex) * 64);
@@ -115,12 +117,12 @@ namespace gr {
       if(tmpPktFormat == C8P_F_VHT_BFQ && tmpPktLen==2049)
       {
         std::cout<<"ieee80211 mod, get bfq"<<std::endl;
-        const float *tmpPR = (const float*)(tmpPkt + 1);
-        const float *tmpPI = (const float*)(tmpPkt + 1025);
-        for(int i=0;i<256;i++)
-        {
-          d_vhtMuBfQ[i] = gr_complex(tmpPR[i], tmpPI[i]);
-        }
+        memcpy((uint8_t*) d_vhtMuBfQ, (tmpPkt + 1), sizeof(gr_complex) * 256);
+        memcpy(d_signl0mu+192, d_signl0+192, sizeof(gr_complex) * 192);
+        memcpy(d_signl1mu+192, d_signl1vht+192, sizeof(gr_complex) * 192);
+        procNss2SymBfQ(d_signl0mu+192, d_signl1mu+192, d_vhtMuBfQ);
+        procNss2SymBfQ(d_signl0mu+256, d_signl1mu+256, d_vhtMuBfQ);
+        procNss2SymBfQ(d_signl0mu+320, d_signl1mu+320, d_vhtMuBfQ);
       }
     }
 
@@ -176,14 +178,36 @@ namespace gr {
             d_pktMcs1 = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("mcs1"), pmt::from_long(-1)));
             d_pktNss1 = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("nss1"), pmt::from_long(-1)));
             d_pktLen1 = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len1"), pmt::from_long(-1)));
+            std::cout<<"ieee80211 mod2, mu #"<<d_pktSeq<<", mcs0:"<<d_pktMcs0<<", nss0:"<<d_pktNss0<<", len0:"<<d_pktLen0<<", mcs1:"<<d_pktMcs1<<", nss1:"<<d_pktNss1<<", len1:"<<d_pktLen1<<std::endl;
             formatToModMu(&d_m, d_pktMcs0, 1, d_pktLen0, d_pktMcs1, 1, d_pktLen1);
+            d_nSymCopied = 0;
+            d_nSampSigCopied = 0;
+            d_sigBitsIntedNL = pmt::u8vector_elements(pmt::dict_ref(d_meta, pmt::mp("signl"), pmt::PMT_NIL));
+            d_sigBitsIntedB0 = pmt::u8vector_elements(pmt::dict_ref(d_meta, pmt::mp("sigb0"), pmt::PMT_NIL));
+            d_sigBitsIntedB1 = pmt::u8vector_elements(pmt::dict_ref(d_meta, pmt::mp("sigb1"), pmt::PMT_NIL));
+            procChipsToQamNonShiftedScL(&d_sigBitsIntedL[0], d_signl0mu, C8P_QAM_BPSK);
+            procChipsToQamNonShiftedScL(&d_sigBitsIntedNL[0], d_signl0mu+64, C8P_QAM_BPSK);
+            procChipsToQamNonShiftedScL(&d_sigBitsIntedNL[48], d_signl0mu+128, C8P_QAM_QBPSK);
+            procInsertPilots(d_signl0mu, tmpSigPilots);
+            procInsertPilots(d_signl0mu+64, tmpSigPilots);
+            procInsertPilots(d_signl0mu+128, tmpSigPilots);
+            memcpy((uint8_t*)d_signl1mu, (uint8_t*)d_signl0mu, sizeof(gr_complex)*192);
+            procChipsToQamNonShiftedScNL(&d_sigBitsIntedB0[0], d_signl0mu+384, C8P_QAM_BPSK);
+            procChipsToQamNonShiftedScNL(&d_sigBitsIntedB1[0], d_signl1mu+384, C8P_QAM_BPSK);
+            procCSD(d_signl1mu, -200);
+            procCSD(d_signl1mu+64, -200);
+            procCSD(d_signl1mu+128, -200);
+            procCSD(d_signl1mu+384, -400);
+            procNss2SymBfQ(d_signl0mu+384, d_signl1mu+384, d_vhtMuBfQ);
+            d_sigP0 = d_signl0mu;
+            d_sigP1 = d_signl1mu;
             d_nSampSigTotal = 448;
-            dict = pmt::dict_add(dict, pmt::mp("packet_len"), pmt::from_long(7+d_m.nSym));
+            dict = pmt::dict_add(dict, pmt::mp("packet_len"), pmt::from_long(7+d_m.nSym+MODUL_N_PADSYM));
             dict = pmt::dict_add(dict, pmt::mp("nss"), pmt::from_long(2));
           }
           else
           {
-            std::cout<<"ieee80211 mod, su #"<<d_pktSeq<<", format:"<<d_pktFormat<<", mcs:"<<d_pktMcs0<<", nss:"<<d_pktNss0<<", len:"<<d_pktLen0<<std::endl;
+            std::cout<<"ieee80211 mod2, su #"<<d_pktSeq<<", format:"<<d_pktFormat<<", mcs:"<<d_pktMcs0<<", nss:"<<d_pktNss0<<", len:"<<d_pktLen0<<std::endl;
             formatToModSu(&d_m, d_pktFormat, d_pktMcs0, d_pktNss0, d_pktLen0);
             d_nSymCopied = 0;
             d_nSampSigCopied = 0;
@@ -327,7 +351,16 @@ namespace gr {
             }
             else if((d_nGen - d_nGened) >= 64 && (d_nProc - d_nProced) >= d_m.nSD)
             {
-              if(d_m.format == C8P_F_L)
+              if(d_m.sumu)
+              {
+                procChipsToQamNonShiftedScNL(inChips0 + d_nProced, outSig0 + d_nGened, d_m.modMu[0]);
+                procChipsToQamNonShiftedScNL(inChips1 + d_nProced, outSig1 + d_nGened, d_m.modMu[1]);
+                procInsertPilots(outSig0 + d_nGened, d_pilotsVHT[d_nSymCopied]);
+                procInsertPilots(outSig1 + d_nGened, d_pilotsVHT[d_nSymCopied]);
+                procCSD(outSig1 + d_nGened, -400);
+                procNss2SymBfQ(outSig0 + d_nGened, outSig1 + d_nGened, d_vhtMuBfQ);
+              }
+              else if(d_m.format == C8P_F_L)
               {
                 procChipsToQamNonShiftedScL(inChips0 + d_nProced, outSig0 + d_nGened, d_m.mod);
                 procInsertPilots(outSig0 + d_nGened, d_pilotsL[d_nSymCopied]);

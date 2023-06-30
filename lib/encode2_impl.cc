@@ -97,8 +97,6 @@ namespace gr {
             d_pktMuGroupId = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("gid"), pmt::from_long(-1)));
             std::cout<<"ieee80211 encode2, mu #"<<d_pktSeq<<", mcs0:"<<d_pktMcs0<<", nss0:"<<d_pktNss0<<", len0:"<<d_pktLen0<<", mcs1:"<<d_pktMcs1<<", nss1:"<<d_pktNss1<<", len1:"<<d_pktLen1<<std::endl;
             d_nPktTotal += d_pktLen1;
-            formatToModMu(&d_m, d_pktMcs0, 1, d_pktLen0, d_pktMcs1, 1, d_pktLen1);
-            d_m.groupId = d_pktMuGroupId;
           }
           else
           {
@@ -130,6 +128,83 @@ namespace gr {
         pmt::pmt_t dict = pmt::make_dict();
         if(d_pktFormat == C8P_F_VHT_MU)
         {
+          formatToModMu(&d_m, d_pktMcs0, 1, d_pktLen0, d_pktMcs1, 1, d_pktLen1);
+          d_m.groupId = d_pktMuGroupId;
+          vhtSigABitsGen(d_sigBitsNL, d_sigBitsCodedNL, &d_m);
+          procIntelLegacyBpsk(&d_sigBitsCodedNL[0], &d_sigBitsIntedNL[0]);
+          procIntelLegacyBpsk(&d_sigBitsCodedNL[48], &d_sigBitsIntedNL[48]);
+          memset(d_bits0, 0, 8);
+          memset(d_bits1, 0, 8);
+          vhtSigB20BitsGenMU(d_sigBitsB0, d_sigBitsCodedB0, &d_bits0[8], d_sigBitsB1, d_sigBitsCodedB1, &d_bits1[8], &d_m);
+          procIntelVhtB20(d_sigBitsCodedB0, &d_sigBitsIntedB0[0]);
+          procIntelVhtB20(d_sigBitsCodedB1, &d_sigBitsIntedB1[0]);
+          int tmpTxTime = 20 + 8 + 4 + d_m.nLTF * 4 + 4 + d_m.nSym * 4;
+          int tmpLegacyLen = ((tmpTxTime - 20) / 4 + (((tmpTxTime - 20) % 4) != 0)) * 3 - 3;
+          legacySigBitsGen(d_sigBitsL, d_sigBitsCodedL, 0, tmpLegacyLen);
+          procIntelLegacyBpsk(d_sigBitsCodedL, &d_sigBitsIntedL[0]);
+          dict = pmt::dict_add(dict, pmt::mp("sigl"), pmt::init_u8vector(d_sigBitsIntedL.size(), d_sigBitsIntedL));
+          dict = pmt::dict_add(dict, pmt::mp("signl"), pmt::init_u8vector(d_sigBitsIntedNL.size(), d_sigBitsIntedNL));
+          dict = pmt::dict_add(dict, pmt::mp("sigb0"), pmt::init_u8vector(d_sigBitsIntedB0.size(), d_sigBitsIntedB0));
+          dict = pmt::dict_add(dict, pmt::mp("sigb1"), pmt::init_u8vector(d_sigBitsIntedB1.size(), d_sigBitsIntedB1));
+
+          vhtModMuToSu(&d_m, 0);  // set mod info to be user 0
+          int tmpPsduLen = (d_m.nSym * d_m.nDBPS - 16 - 6) / 8;           // 20M 2x2, nES is still 1
+          int tmpDataP = 16;
+          for(int i=0;i<d_m.len;i++)
+          {
+            for(int j=0;j<8;j++)
+            {
+              d_bits0[tmpDataP] = (d_pkt[i] >> j) & 0x01;
+              tmpDataP++;
+            }
+          }
+          for(int i=0;i<((tmpPsduLen - d_m.len)/4);i++)
+          {
+            memcpy(&d_bits0[tmpDataP], EOF_PAD_SUBFRAME, sizeof(uint8_t) * 32);     // eof padding
+            tmpDataP += 32;
+          }
+          memset(&d_bits0[tmpDataP], 0, ((tmpPsduLen - d_m.len)%4) * 8 * sizeof(uint8_t));  // padding octets
+          tmpDataP += (((tmpPsduLen - d_m.len)%4) * 8);
+          memset(&d_bits0[tmpDataP], 0, (d_m.nSym * d_m.nDBPS - tmpPsduLen*8 - 16));        // padding bits and tail
+          scramEncoder2(d_bits0, (d_m.nSym * d_m.nDBPS - 6), 93);  // scrambling
+          bccEncoder(d_bits0, d_bitsCoded, d_m.nSym * d_m.nDBPS);   // binary convolutional coding
+          punctEncoder(d_bitsCoded, d_bitsPunct, d_m.nSym * d_m.nDBPS * 2, &d_m);   // puncturing
+          for(int i=0;i<d_m.nSym;i++)
+          {
+            procSymIntelNL2SS1(&d_bitsPunct[i*d_m.nCBPS], &d_bitsInted0[i*d_m.nCBPS], &d_m);
+          }
+          bitsToChips(d_bitsInted0, d_chips0, &d_m);
+
+          vhtModMuToSu(&d_m, 1);  // set mod info to be user 0
+          tmpPsduLen = (d_m.nSym * d_m.nDBPS - 16 - 6) / 8;           // 20M 2x2, nES is still 1
+          tmpDataP = 16;
+          for(int i=0;i<d_m.len;i++)
+          {
+            for(int j=0;j<8;j++)
+            {
+              d_bits1[tmpDataP] = (d_pkt[i+d_pktLen0] >> j) & 0x01;
+              tmpDataP++;
+            }
+          }
+          for(int i=0;i<((tmpPsduLen - d_m.len)/4);i++)
+          {
+            memcpy(&d_bits1[tmpDataP], EOF_PAD_SUBFRAME, sizeof(uint8_t) * 32);     // eof padding
+            tmpDataP += 32;
+          }
+          memset(&d_bits1[tmpDataP], 0, ((tmpPsduLen - d_m.len)%4) * 8 * sizeof(uint8_t));  // padding octets
+          tmpDataP += (((tmpPsduLen - d_m.len)%4) * 8);
+          memset(&d_bits1[tmpDataP], 0, (d_m.nSym * d_m.nDBPS - tmpPsduLen*8 - 16));        // padding bits and tail
+          scramEncoder2(d_bits1, (d_m.nSym * d_m.nDBPS - 6), 93);  // scrambling
+          bccEncoder(d_bits1, d_bitsCoded, d_m.nSym * d_m.nDBPS);   // binary convolutional coding
+          punctEncoder(d_bitsCoded, d_bitsPunct, d_m.nSym * d_m.nDBPS * 2, &d_m);   // puncturing
+          for(int i=0;i<d_m.nSym;i++)
+          {
+            procSymIntelNL2SS1(&d_bitsPunct[i*d_m.nCBPS], &d_bitsInted1[i*d_m.nCBPS], &d_m);
+          }
+          bitsToChips(d_bitsInted1, d_chips1, &d_m);
+          d_nSampTotal = d_m.nSym * d_m.nSD + ENCODE_GR_PAD;
+          d_nSampCopied = 0;
+
           // write tag
           dict = pmt::dict_add(dict, pmt::mp("format"), pmt::from_long(d_pktFormat));
           dict = pmt::dict_add(dict, pmt::mp("mcs0"), pmt::from_long(d_pktMcs0));
@@ -138,7 +213,6 @@ namespace gr {
           dict = pmt::dict_add(dict, pmt::mp("mcs1"), pmt::from_long(d_pktMcs1));
           dict = pmt::dict_add(dict, pmt::mp("nss1"), pmt::from_long(d_pktNss1));
           dict = pmt::dict_add(dict, pmt::mp("len1"), pmt::from_long(d_pktLen1));
-          dict = pmt::dict_add(dict, pmt::mp("gid"), pmt::from_long(d_pktMuGroupId));
           dict = pmt::dict_add(dict, pmt::mp("seq"), pmt::from_long(d_pktSeq));
         }
         else
@@ -157,8 +231,8 @@ namespace gr {
             procIntelLegacyBpsk(&d_sigBitsCodedNL[0], &d_sigBitsIntedNL[0]);
             procIntelLegacyBpsk(&d_sigBitsCodedNL[48], &d_sigBitsIntedNL[48]);
             memset(d_bits0, 0, 8);
-            vhtSigB20BitsGenSU(d_sigBitsB, d_sigBitsCodedB, &d_bits0[8], &d_m);   // servcie bits sig b crc
-            procIntelVhtB20(d_sigBitsCodedB, &d_sigBitsIntedB0[0]);
+            vhtSigB20BitsGenSU(d_sigBitsB0, d_sigBitsCodedB0, &d_bits0[8], &d_m);   // servcie bits sig b crc
+            procIntelVhtB20(d_sigBitsCodedB0, &d_sigBitsIntedB0[0]);
             dict = pmt::dict_add(dict, pmt::mp("signl"), pmt::init_u8vector(d_sigBitsIntedNL.size(), d_sigBitsIntedNL));
             dict = pmt::dict_add(dict, pmt::mp("sigb0"), pmt::init_u8vector(d_sigBitsIntedB0.size(), d_sigBitsIntedB0));
             // legacy training 16, legacy sig 4, vhtsiga 8, vht training 4+4n, vhtsigb, payload, no short GI
@@ -183,68 +257,71 @@ namespace gr {
           dict = pmt::dict_add(dict, pmt::mp("sigl"), pmt::init_u8vector(d_sigBitsIntedL.size(), d_sigBitsIntedL));
 
           // psdu
-          int tmpDataP = 16;
-          for(int i=0;i<d_m.len;i++)
+          if(d_m.len > 0)
           {
-            for(int j=0;j<8;j++)
+            int tmpDataP = 16;
+            for(int i=0;i<d_m.len;i++)
             {
-              d_bits0[tmpDataP] = (d_pkt[i] >> j) & 0x01;
-              tmpDataP++;
-            }
-          }
-          if(d_pktFormat == C8P_F_VHT)
-          {
-            int tmpPsduLen = (d_m.nSym * d_m.nDBPS - 16 - 6) / 8;           // 20M 2x2, nES is still 1
-            for(int i=0;i<((tmpPsduLen - d_m.len)/4);i++)
-            {
-              memcpy(&d_bits0[tmpDataP], EOF_PAD_SUBFRAME, sizeof(uint8_t) * 32);     // eof padding
-              tmpDataP += 32;
-            }
-            memset(&d_bits0[tmpDataP], 0, ((tmpPsduLen - d_m.len)%4) * 8 * sizeof(uint8_t));  // padding octets
-            tmpDataP += (((tmpPsduLen - d_m.len)%4) * 8);
-            memset(&d_bits0[tmpDataP], 0, (d_m.nSym * d_m.nDBPS - tmpPsduLen*8 - 16));        // padding bits and tail
-            scramEncoder2(d_bits0, (d_m.nSym * d_m.nDBPS - 6), 93);  // scrambling
-          }
-          else
-          {
-            memset(&d_bits0[tmpDataP], 0, 6);   // legacy and ht tail
-            tmpDataP += 6;
-            memset(&d_bits0[tmpDataP], 0, (d_m.nSym * d_m.nDBPS - 22 - d_m.len*8));   // legacy and ht pad
-            scramEncoder2(d_bits0, (d_m.nSym * d_m.nDBPS), 93);
-            memset(&d_bits0[d_m.len * 8 + 16], 0, 6);
-          }
-          bccEncoder(d_bits0, d_bitsCoded, d_m.nSym * d_m.nDBPS);   // binary convolutional coding
-          punctEncoder(d_bitsCoded, d_bitsPunct, d_m.nSym * d_m.nDBPS * 2, &d_m);   // puncturing
-          if(d_m.nSS == 1)
-          {
-            if(d_m.format == C8P_F_L)
-            {
-              for(int i=0;i<d_m.nSym;i++)
+              for(int j=0;j<8;j++)
               {
-                procSymIntelL2(&d_bitsPunct[i*d_m.nCBPS], &d_bitsInted0[i*d_m.nCBPS], &d_m);
+                d_bits0[tmpDataP] = (d_pkt[i] >> j) & 0x01;
+                tmpDataP++;
               }
+            }
+            if(d_m.format == C8P_F_VHT)
+            {
+              int tmpPsduLen = (d_m.nSym * d_m.nDBPS - 16 - 6) / 8;           // 20M 2x2, nES is still 1
+              for(int i=0;i<((tmpPsduLen - d_m.len)/4);i++)
+              {
+                memcpy(&d_bits0[tmpDataP], EOF_PAD_SUBFRAME, sizeof(uint8_t) * 32);     // eof padding
+                tmpDataP += 32;
+              }
+              memset(&d_bits0[tmpDataP], 0, ((tmpPsduLen - d_m.len)%4) * 8 * sizeof(uint8_t));  // padding octets
+              tmpDataP += (((tmpPsduLen - d_m.len)%4) * 8);
+              memset(&d_bits0[tmpDataP], 0, (d_m.nSym * d_m.nDBPS - tmpPsduLen*8 - 16));        // padding bits and tail
+              scramEncoder2(d_bits0, (d_m.nSym * d_m.nDBPS - 6), 93);  // scrambling
             }
             else
             {
+              memset(&d_bits0[tmpDataP], 0, 6);   // legacy and ht tail
+              tmpDataP += 6;
+              memset(&d_bits0[tmpDataP], 0, (d_m.nSym * d_m.nDBPS - 22 - d_m.len*8));   // legacy and ht pad
+              scramEncoder2(d_bits0, (d_m.nSym * d_m.nDBPS), 93);
+              memset(&d_bits0[d_m.len * 8 + 16], 0, 6);
+            }
+            bccEncoder(d_bits0, d_bitsCoded, d_m.nSym * d_m.nDBPS);   // binary convolutional coding
+            punctEncoder(d_bitsCoded, d_bitsPunct, d_m.nSym * d_m.nDBPS * 2, &d_m);   // puncturing
+            if(d_m.nSS == 1)
+            {
+              if(d_m.format == C8P_F_L)
+              {
+                for(int i=0;i<d_m.nSym;i++)
+                {
+                  procSymIntelL2(&d_bitsPunct[i*d_m.nCBPS], &d_bitsInted0[i*d_m.nCBPS], &d_m);
+                }
+              }
+              else
+              {
+                for(int i=0;i<d_m.nSym;i++)
+                {
+                  procSymIntelNL2SS1(&d_bitsPunct[i*d_m.nCBPS], &d_bitsInted0[i*d_m.nCBPS], &d_m);
+                }
+              }
+              bitsToChips(d_bitsInted0, d_chips0, &d_m);
+            }
+            else
+            {
+              // stream parser first
+              streamParser2(d_bitsPunct, d_bitsStream0, d_bitsStream1, d_m.nSym * d_m.nCBPS, &d_m);
+              // interleave
               for(int i=0;i<d_m.nSym;i++)
               {
-                procSymIntelNL2SS1(&d_bitsPunct[i*d_m.nCBPS], &d_bitsInted0[i*d_m.nCBPS], &d_m);
+                procSymIntelNL2SS1(&d_bitsStream0[i*d_m.nCBPSS], &d_bitsInted0[i*d_m.nCBPSS], &d_m);
+                procSymIntelNL2SS2(&d_bitsStream1[i*d_m.nCBPSS], &d_bitsInted1[i*d_m.nCBPSS], &d_m);
               }
+              bitsToChips(d_bitsInted0, d_chips0, &d_m);
+              bitsToChips(d_bitsInted1, d_chips1, &d_m);
             }
-            bitsToChips(d_bitsInted0, d_chips0, &d_m);
-          }
-          else
-          {
-            // stream parser first
-            streamParser2(d_bitsPunct, d_bitsStream0, d_bitsStream1, d_m.nSym * d_m.nCBPS, &d_m);
-            // interleave
-            for(int i=0;i<d_m.nSym;i++)
-            {
-              procSymIntelNL2SS1(&d_bitsStream0[i*d_m.nCBPSS], &d_bitsInted0[i*d_m.nCBPSS], &d_m);
-              procSymIntelNL2SS2(&d_bitsStream1[i*d_m.nCBPSS], &d_bitsInted1[i*d_m.nCBPSS], &d_m);
-            }
-            bitsToChips(d_bitsInted0, d_chips0, &d_m);
-            bitsToChips(d_bitsInted1, d_chips1, &d_m);
           }
           d_nSampTotal = d_m.nSym * d_m.nSD + ENCODE_GR_PAD;
           d_nSampCopied = 0;
@@ -290,7 +367,7 @@ namespace gr {
           }
           d_nPassed += (d_nSampTotal - d_nSampCopied);
           d_nSampCopied = d_nSampTotal;
-          std::cout<<"ieee80211 encoder2, output sig done #"<<d_pktSeq<<std::endl;
+          std::cout<<"ieee80211 encode2, output sig done #"<<d_pktSeq<<std::endl;
           d_sEncode = ENCODE_S_CLEAN;
         }
       }

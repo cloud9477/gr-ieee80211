@@ -248,14 +248,13 @@ if __name__ == "__main__":
     # # map Q to FFT non-zero sub carriers
     # bfQForFft = [np.ones_like(bfQNormd[0])] * 3 + bfQNormd[0:28] + [
     #     np.ones_like(bfQNormd[0])] + bfQNormd[28:56] + [np.ones_like(bfQNormd[0])] * 4
-    # bfQPktForGr0, bfQPktForGr1 = phy80211.genPktGrBfQ(bfQForFft)
-    # grSocket.sendto(bfQPktForGr0, phyTxAddr)
-    # time.sleep(0.5)
-    # grSocket.sendto(bfQPktForGr1, phyTxAddr)
-    # time.sleep(0.5)
+    # bfQPktForGr = phy80211.genPktGrBfQ(bfQForFft)
+    # grSocket.sendto(bfQPktForGr, phyTxAddr)
     # pkt0 = genMac80211UdpAmpduVht(["1234567 packet for station 000"])
     # pkt1 = genMac80211UdpAmpduVht(["7654321 packet for station 111"])
     # grMuPkt = phy80211.genPktGrDataMu(pkt0, p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False), pkt1, p8h.modulation(p8h.F.VHT, 0, p8h.BW.BW20, 1, False), 2)
     # print("gr pkt len %d" % len(grMuPkt))
-    # grSocket.sendto(grMuPkt, phyTxAddr)
+    # for i in range(0, 10):
+    #     grSocket.sendto(grMuPkt, phyTxAddr)
+    #     time.sleep(0.01)
 

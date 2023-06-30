@@ -137,7 +137,6 @@ namespace gr {
           for (size_t i = 0; i < pmt::length(pairs); i++) {
               pmt::pmt_t pair = pmt::nth(i, pairs);
               add_item_tag(0, nitems_written(0), pmt::car(pair), pmt::cdr(pair), alias_pmt());
-              add_item_tag(1, nitems_written(1), pmt::car(pair), pmt::cdr(pair), alias_pmt());
           }
           
           d_sPad = PAD_S_PRE;

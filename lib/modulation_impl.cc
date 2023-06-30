@@ -55,7 +55,7 @@ namespace gr {
       {
         for(int j=0;j<4;j++)
         {
-          d_pilotsL[i][j] = tmpPilotL[j] * PILOT_P[i%127];
+          d_pilotsL[i][j] = tmpPilotL[j] * PILOT_P[(i+1)%127];
           d_pilotsHT[i][j] = tmpPilotNL[j] * PILOT_P[(i+3)%127];
           d_pilotsVHT[i][j] = tmpPilotNL[j] * PILOT_P[(i+4)%127];
         }

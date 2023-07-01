@@ -1,6 +1,6 @@
 id: ieee80211_modulation2
-label: modulation2
-category: '[ieee80211]'
+label: Mod 2
+category: '[IEEE 802.11ac WiFi 5]'
 
 templates:
   imports: from gnuradio import ieee80211

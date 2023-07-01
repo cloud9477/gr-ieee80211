@@ -1,6 +1,6 @@
 id: ieee80211_encode2
-label: encode2
-category: '[ieee80211]'
+label: Encode 2
+category: '[IEEE 802.11ac WiFi 5]'
 
 templates:
   imports: from gnuradio import ieee80211

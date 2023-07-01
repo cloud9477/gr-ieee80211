@@ -1,6 +1,6 @@
 id: ieee80211_decode
-label: decode
-category: '[ieee80211]'
+label: Decode
+category: '[IEEE 802.11ac WiFi 5]'
 
 templates:
   imports: from gnuradio import ieee80211

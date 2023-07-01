@@ -1,6 +1,6 @@
 id: ieee80211_demod2
-label: demod2
-category: '[ieee80211]'
+label: Demod 2
+category: '[IEEE 802.11ac WiFi 5]'
 
 templates:
   imports: from gnuradio import ieee80211

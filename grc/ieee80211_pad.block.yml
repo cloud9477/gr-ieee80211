@@ -1,6 +1,6 @@
 id: ieee80211_pad
-label: pad
-category: '[ieee80211]'
+label: Padding
+category: '[IEEE 802.11ac WiFi 5]'
 
 templates:
   imports: from gnuradio import ieee80211

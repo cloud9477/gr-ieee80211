@@ -2,7 +2,7 @@ options:
   parameters:
     author: ''
     catch_exceptions: 'True'
-    category: '[ieee80211]'
+    category: '[IEEE 802.11ac WiFi 5]'
     cmake_opt: ''
     comment: ''
     copyright: ''
@@ -22,7 +22,7 @@ options:
     run_options: prompt
     sizing_mode: fixed
     thread_safe_setters: ''
-    title: preproc
+    title: Pre Proc
     window_size: (1000,1000)
   states:
     bus_sink: false

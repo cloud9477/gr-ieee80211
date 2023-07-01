@@ -2,7 +2,7 @@ options:
   parameters:
     author: ''
     catch_exceptions: 'True'
-    category: '[IEEE 802.11ac WiFi 5]'
+    category: '[IEEE 802.11 GR-WiFi]'
     cmake_opt: ''
     comment: ''
     copyright: ''

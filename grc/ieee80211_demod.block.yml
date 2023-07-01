@@ -1,6 +1,6 @@
 id: ieee80211_demod
 label: Demod
-category: '[IEEE 802.11ac WiFi 5]'
+category: '[IEEE 802.11 GR-WiFi]'
 
 templates:
   imports: from gnuradio import ieee80211

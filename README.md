@@ -1,5 +1,5 @@
 # gr-ieee80211
-<font color=#5050f0>GR-WiFi</font> : GNU Radio IEEE 802.11a/g/n/ac (WiFi 5) Transceiver
+#### $\textcolor{#5050f0}{\textsf{GR-WiFi}}$ : GNU Radio IEEE 802.11a/g/n/ac (WiFi 5) Transceiver
 ------
 - Support SISO and upto 2x2 <font color=orange>SU-MIMO</font> and <font color=orange>MU-MIMO</font>.
 - Ubuntu 22.04 and GNU Radio 3.10 (recommanded).

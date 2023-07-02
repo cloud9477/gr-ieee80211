@@ -1,7 +1,7 @@
 # gr-ieee80211
-#### $\textcolor{#5050f0}{\textsf{GR-WiFi}}$ : GNU Radio IEEE 802.11a/g/n/ac (WiFi 5) Transceiver
+**<font color=#5050f0>GR-WiFi</font>** : GNU Radio IEEE 802.11a/g/n/ac (WiFi 5) Transceiver
 ------
-- Support SISO and upto 2x2 <font color=orange>SU-MIMO</font> and <font color=orange>MU-MIMO</font>.
+- Support SISO and upto 2x2 **<font color=orange>SU-MIMO</font>** and **<font color=orange>MU-MIMO</font>**.
 - Ubuntu 22.04 and GNU Radio 3.10 (recommanded).
 - V0.1 branch is the previous stable version.
 - Main branch is working on faster TX and RX, not stable yet.
@@ -19,12 +19,12 @@ RX
 
 Introduction
 ------
-- This <font color=#5050f0>GR-WiFi</font> has actually two major components:
-- <font color=#f05050>[1] GNU Radio transceiver (GR-TRX)</font>
+- This **<font color=#5050f0>GR-WiFi</font>** has actually two major components:
+- **<font color=#f05050>[1] ------ GNU Radio transceiver (GR-TRX) ------</font>**
 - 1.1 GNU Radio transceiver provides an IEEE 802.11 physical layer.
 - 1.2 MAC layer for GNU Radio transceiver is under development.
 - 1.3 Due to the non-real-time of GR and USRP, the MAC layer will not be compatible to IEEE 802.11 MAC.
-- <font color=#f05050>[2] Python Tool Box (PY-TB)</font>
+- **<font color=#f05050>[2] ----------- Python Tool Box (PY-TB) ----------- </font>**
 - 2.1 Python Tool Box is in the **gr-ieee80211/tools/** folder.
 - 2.2 PY-TB provides all kinds of scripts to generate WiFi signal (**gr-ieee80211/tools/pktGenExample.py**), test performance (**gr-ieee80211/tools/performance**) and so on.
 - 2.3 We provide basic scripts to use GR-TRX in PY-TB, like a monitor (**gr-ieee80211/tools/macExampleGrRx.py**) and a transmitter (**gr-ieee80211/tools/macExampleGrTx.py**)
@@ -80,9 +80,9 @@ sdr@sdr:~$ sudo ldconfig
 ```
 - After that, reopen the GNU Radio and then you will see the the **preproc** block in your tool box.
 
-How To Use <font color=#f05050>PY-TB</font>
+How To Use **<font color=#f05050>PY-TB</font>**
 ------
-1. Follow the installation to install <font color=#5050f0>GR-WiFi</font> first. Then go to the **gr-ieee80211/tools** folder, run **pktGenExample.py**, you will see
+1. Follow the installation to install **<font color=#5050f0>GR-WiFi</font>** first. Then go to the **gr-ieee80211/tools** folder, run **pktGenExample.py**, you will see
 
 ![alt text](https://github.com/cloud9477/gr-ieee80211/blob/main/figExample1.png?raw=true)
 
@@ -92,16 +92,16 @@ How To Use <font color=#f05050>PY-TB</font>
 
 3. In the second figure above, it shows the signal samples of HT and VHT 2x2 SU-MIMO formats.
 
-How To Use <font color=#f05050>GR-TRX</font>
+How To Use **<font color=#f05050>GR-TRX</font>**
 ------
-1. Follow the installation to install <font color=#5050f0>GR-WiFi</font> first. Then open GNU Radio, in GNU Radio, open the file **tx.grc** in **gr-ieee80211/example** folder, run the flow graph.
+1. Follow the installation to install **<font color=#5050f0>GR-WiFi</font>** first. Then open GNU Radio, in GNU Radio, open the file **tx.grc** in **gr-ieee80211/example** folder, run the flow graph.
 2. Open a terminal and then run the **macExampleGrTx.py** in **gr-ieee80211/tools** folder. You will see the following results:
 
 ![alt text](https://github.com/cloud9477/gr-ieee80211/blob/main/figExample3.png?raw=true)
 
-3. The principle is that, first the **macExampleGrTx.py** of <font color=#f05050>PY-TB</font> generates a MAC layer packet and transfer it to the GNU Radio Socket PDU block using UDP. This is how we design the API of <font color=#f05050>GR-TRX</font>. Besides the MAC packet, the MCS and stream number are also passed to <font color=#f05050>GR-TRX</font>. Next the packet is coded and modulated with BCC and OFDM. Finally the signal is shown on the Time Sink. If you enable the USRP Sink, the signal will be sent out through the given channel and the devices nearby in the same channel should receive it, for example, a wireless adaptor working in the monitor mode. The transmitting time can be spicified with UHD API.
+3. The principle is that, first the **macExampleGrTx.py** of **<font color=#f05050>PY-TB</font>** generates a MAC layer packet and transfer it to the GNU Radio Socket PDU block using UDP. This is how we design the API of **<font color=#f05050>GR-TRX</font>**. Besides the MAC packet, the MCS and stream number are also passed to **<font color=#f05050>GR-TRX</font>**. Next the packet is coded and modulated with BCC and OFDM. Finally the signal is shown on the Time Sink. If you enable the USRP Sink, the signal will be sent out through the given channel and the devices nearby in the same channel should receive it, for example, a wireless adaptor working in the monitor mode. The transmitting time can be spicified with UHD API.
 
-4. Next we see the receiver. In the previous "How To Use <font color=#f05050>PY-TB</font>", you will have one bin files in **gr-ieee80211/tmp** folder named **sig80211GenMultipleSiso_1x1_0.bin**. Open GNU Radio, in GNU Radio, open the file **rx.grc** in **gr-ieee80211/example** folder. Run the flow graph and you will see
+4. Next we see the receiver. In the previous "How To Use **<font color=#f05050>PY-TB</font>**", you will have one bin files in **gr-ieee80211/tmp** folder named **sig80211GenMultipleSiso_1x1_0.bin**. Open GNU Radio, in GNU Radio, open the file **rx.grc** in **gr-ieee80211/example** folder. Run the flow graph and you will see
 
 ![alt text](https://github.com/cloud9477/gr-ieee80211/blob/main/figExample4.png?raw=true)
 

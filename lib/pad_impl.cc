@@ -117,7 +117,7 @@ namespace gr {
           d_pktFormat = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("format"), pmt::from_long(-1)));
           d_pktNss = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("nss"), pmt::from_long(-1)));
           d_pktLen = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("packet_len"), pmt::from_long(-1)));
-          std::cout<<"ieee80211 pad, get tag format:"<<d_pktFormat<<", nss"<<d_pktNss<<", len"<<d_pktLen<<std::endl;
+          std::cout<<"ieee80211 pad, get tag format:"<<d_pktFormat<<", nss:"<<d_pktNss<<", len:"<<d_pktLen<<std::endl;
           d_nSampCopied = 0;
           if(d_pktFormat == C8P_F_L)
           {
@@ -132,7 +132,7 @@ namespace gr {
           d_nSampTotal = (d_pktLen - d_scaleTotal);
 
           pmt::pmt_t dict = pmt::make_dict();
-          dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_nSampTotal+400));
+          dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_pktLen+400));
           pmt::pmt_t pairs = pmt::dict_items(dict);
           for (size_t i = 0; i < pmt::length(pairs); i++) {
               pmt::pmt_t pair = pmt::nth(i, pairs);

@@ -45,6 +45,18 @@ blocks:
     coordinate: [296, 12.0]
     rotation: 0
     state: enabled
+- name: freq_112
+  id: variable
+  parameters:
+    comment: ''
+    value: 5560e6
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [488, 12.0]
+    rotation: 0
+    state: enabled
 - name: freq_132
   id: variable
   parameters:
@@ -75,13 +87,14 @@ blocks:
     affinity: ''
     alias: ''
     comment: ''
+    ifdebug: 'True'
     maxoutbuf: '0'
     minoutbuf: '0'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1128, 168.0]
+    coordinate: [1120, 164.0]
     rotation: 0
     state: enabled
 - name: ieee80211_demod_0
@@ -163,7 +176,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1264, 140.0]
+    coordinate: [1336, 140.0]
     rotation: 0
     state: enabled
 - name: presiso_0
@@ -250,7 +263,7 @@ blocks:
     bw7: '0'
     bw8: '0'
     bw9: '0'
-    center_freq0: freq_100
+    center_freq0: freq_112
     center_freq1: '0'
     center_freq10: '0'
     center_freq11: '0'

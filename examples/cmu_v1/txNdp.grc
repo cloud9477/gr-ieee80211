@@ -45,6 +45,18 @@ blocks:
     coordinate: [288, 12.0]
     rotation: 0
     state: enabled
+- name: freq_112
+  id: variable
+  parameters:
+    comment: ''
+    value: 5560e6
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [384, 12.0]
+    rotation: 0
+    state: enabled
 - name: samp_rate
   id: variable
   parameters:
@@ -64,7 +76,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/sig80211GenVhtNdp_2x2_0.bin
+    file: ../tmp/sig80211GenVhtNdp_2x2_0.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -86,7 +98,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/cloud/sdr/sig80211GenVhtNdp_2x2_1.bin
+    file: ../tmp/sig80211GenVhtNdp_2x2_1.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -170,8 +182,8 @@ blocks:
     bw7: '0'
     bw8: '0'
     bw9: '0'
-    center_freq0: freq_100
-    center_freq1: freq_100
+    center_freq0: freq_112
+    center_freq1: freq_112
     center_freq10: '0'
     center_freq11: '0'
     center_freq12: '0'

@@ -45,6 +45,18 @@ blocks:
     coordinate: [296, 12.0]
     rotation: 0
     state: enabled
+- name: freq_112
+  id: variable
+  parameters:
+    comment: ''
+    value: 5560e6
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [488, 12.0]
+    rotation: 0
+    state: enabled
 - name: freq_132
   id: variable
   parameters:
@@ -446,8 +458,8 @@ blocks:
     bw7: '0'
     bw8: '0'
     bw9: '0'
-    center_freq0: freq_100
-    center_freq1: freq_100
+    center_freq0: freq_112
+    center_freq1: freq_112
     center_freq10: '0'
     center_freq11: '0'
     center_freq12: '0'
@@ -723,8 +735,8 @@ blocks:
     bw7: '0'
     bw8: '0'
     bw9: '0'
-    center_freq0: freq_100
-    center_freq1: freq_100
+    center_freq0: freq_112
+    center_freq1: freq_112
     center_freq10: '0'
     center_freq11: '0'
     center_freq12: '0'

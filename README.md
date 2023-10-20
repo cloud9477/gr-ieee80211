@@ -74,7 +74,7 @@ sdr@sdr:~$ make
 sdr@sdr:~$ sudo make install
 sdr@sdr:~$ sudo ldconfig
 ```
-- Next, gr-ieee80211 uses a hierarchical block **preproc** for Legacy pre-processing. For the first time to use gr-ieee80211, please open the file **presiso.grc** in example folder in GNU Radio and then click **Generate the flow graph** button. You will see two new files in the example folder, **presiso.block.yml** and **presiso.py**. Next, please copy them to the **.grc_gnuradio** folder in your home folder. For example, here is the path of my GNU Radio GRC folder, my Ubuntu user name is sdr:
+- Next, gr-ieee80211 uses a hierarchical block **preproc** for Legacy pre-processing. For the first time to use gr-ieee80211, please open the file **presiso.grc** in example folder in GNU Radio and then click **Generate the flow graph** button. You will see two new files in the example folder, **presiso.block.yml** and **presiso.py**. Next, please copy them to the **.grc_gnuradio** folder in your home folder (if no **.grc_gnuradio** folder there, you can create one using command **$ mkdir .grc_gnuradio**). For example, here is the path of my GNU Radio GRC folder, my Ubuntu user name is sdr:
 ```
 /home/sdr/.grc_gnuradio/
 ```

@@ -96,7 +96,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1360, 380.0]
+    coordinate: [1360, 396.0]
     rotation: 0
     state: enabled
 - name: blocks_stream_to_vector_0_1
@@ -106,7 +106,7 @@ blocks:
     alias: ''
     comment: ''
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
     num_items: '64'
     type: complex
     vlen: '1'
@@ -126,7 +126,7 @@ blocks:
     cp_len: '16'
     input_size: '64'
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
     rolloff: '0'
     tagname: '"packet_len"'
   states:
@@ -145,7 +145,7 @@ blocks:
     fft_size: '64'
     forward: 'False'
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
     nthreads: '1'
     shift: 'True'
     type: complex
@@ -164,7 +164,7 @@ blocks:
     alias: ''
     comment: ''
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
   states:
     bus_sink: false
     bus_source: false
@@ -179,7 +179,7 @@ blocks:
     alias: ''
     comment: ''
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
   states:
     bus_sink: false
     bus_source: false
@@ -194,7 +194,7 @@ blocks:
     alias: ''
     comment: ''
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
   states:
     bus_sink: false
     bus_source: false
@@ -209,7 +209,7 @@ blocks:
     alias: ''
     comment: ''
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
     tag: notag
   states:
     bus_sink: false

@@ -88,7 +88,7 @@ blocks:
     alias: ''
     comment: ''
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
     num_items: '64'
     type: complex
     vlen: '1'
@@ -96,7 +96,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [456, 440.0]
+    coordinate: [480, 392.0]
     rotation: 0
     state: enabled
 - name: digital_ofdm_cyclic_prefixer_0_0_1
@@ -108,14 +108,14 @@ blocks:
     cp_len: '16'
     input_size: '64'
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
     rolloff: '0'
     tagname: '"packet_len"'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [856, 420.0]
+    coordinate: [904, 372.0]
     rotation: 0
     state: enabled
 - name: fft_vxx_0_0_1
@@ -127,7 +127,7 @@ blocks:
     fft_size: '64'
     forward: 'False'
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
     nthreads: '1'
     shift: 'True'
     type: complex
@@ -136,7 +136,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [632, 404.0]
+    coordinate: [680, 356.0]
     rotation: 0
     state: enabled
 - name: ieee80211_decode_0
@@ -179,12 +179,12 @@ blocks:
     alias: ''
     comment: ''
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [104, 440.0]
+    coordinate: [128, 392.0]
     rotation: 0
     state: enabled
 - name: ieee80211_modulation_1
@@ -194,12 +194,12 @@ blocks:
     alias: ''
     comment: ''
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [296, 440.0]
+    coordinate: [320, 392.0]
     rotation: 0
     state: enabled
 - name: ieee80211_pad_0
@@ -209,12 +209,12 @@ blocks:
     alias: ''
     comment: ''
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1096, 440.0]
+    coordinate: [1160, 392.0]
     rotation: 0
     state: true
 - name: ieee80211_pktgen_0
@@ -224,13 +224,13 @@ blocks:
     alias: ''
     comment: ''
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
     tag: notag
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [88, 308.0]
+    coordinate: [112, 308.0]
     rotation: 180
     state: true
 - name: ieee80211_signal_0
@@ -295,7 +295,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [336, 284.0]
+    coordinate: [360, 284.0]
     rotation: 180
     state: true
 - name: network_socket_pdu_0_0
@@ -333,7 +333,7 @@ blocks:
     coordinate: [360, 120.0]
     rotation: 0
     state: enabled
-- name: uhd_usrp_sink_0_0
+- name: uhd_usrp_sink_0
   id: uhd_usrp_sink
   parameters:
     affinity: ''
@@ -371,7 +371,7 @@ blocks:
     ant8: '"TX/RX"'
     ant9: '"TX/RX"'
     bw0: 20e6
-    bw1: 20e6
+    bw1: '0'
     bw10: '0'
     bw11: '0'
     bw12: '0'
@@ -403,7 +403,7 @@ blocks:
     bw8: '0'
     bw9: '0'
     center_freq0: freq_112
-    center_freq1: freq_100
+    center_freq1: '0'
     center_freq10: '0'
     center_freq11: '0'
     center_freq12: '0'
@@ -447,7 +447,7 @@ blocks:
     dev_addr: '""'
     dev_args: ''
     gain0: '0.8'
-    gain1: '0.8'
+    gain1: '0'
     gain10: '0'
     gain11: '0'
     gain12: '0'
@@ -479,7 +479,7 @@ blocks:
     gain8: '0'
     gain9: '0'
     gain_type0: normalized
-    gain_type1: normalized
+    gain_type1: default
     gain_type10: default
     gain_type11: default
     gain_type12: default
@@ -607,7 +607,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1280, 364.0]
+    coordinate: [1360, 316.0]
     rotation: 0
     state: enabled
 - name: uhd_usrp_source_0
@@ -1055,7 +1055,7 @@ connections:
 - [ieee80211_demod_0, '0', ieee80211_decode_0, '0']
 - [ieee80211_encode_0, '0', ieee80211_modulation_1, '0']
 - [ieee80211_modulation_1, '0', blocks_stream_to_vector_0_1, '0']
-- [ieee80211_pad_0, '0', uhd_usrp_sink_0_0, '0']
+- [ieee80211_pad_0, '0', uhd_usrp_sink_0, '0']
 - [ieee80211_pktgen_0, '0', ieee80211_encode_0, '0']
 - [ieee80211_signal_0, '0', ieee80211_demod_0, '0']
 - [ieee80211_sync_0, '0', ieee80211_signal_0, '0']

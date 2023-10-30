@@ -87,7 +87,7 @@ if __name__ == "__main__":
                 print(tmpChanPkt)
                 pkts = genMac80211UdpAmpduVht([tmpChanPkt])
                 grPkt = phy80211.genPktGrData(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs = 1, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
-                time.sleep(staID)
+                time.sleep(staID * 0.001)
                 staMacSocket.sendto(grPkt, (staPhyIp, staPhyPort))
                 print("station channel packet sent")
         elif(tmpPktType == 2):

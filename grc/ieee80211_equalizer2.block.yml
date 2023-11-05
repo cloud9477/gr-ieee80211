@@ -1,0 +1,26 @@
+id: ieee80211_equalizer2
+label: equalizer2
+category: '[ieee80211]'
+
+templates:
+  imports: from gnuradio import ieee80211
+  make: ieee80211.equalizer2()
+
+inputs:
+- label: inSig0
+  domain: stream
+  dtype: complex
+  vlen: 64
+- label: inSig1
+  domain: stream
+  dtype: complex
+  vlen: 64
+
+outputs:
+- label: outLlr
+  domain: stream
+  dtype: float
+
+#  'file_format' specifies the version of the GRC yml format used in the file
+#  and should usually not be changed.
+file_format: 1

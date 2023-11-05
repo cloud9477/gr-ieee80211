@@ -26,7 +26,8 @@ list(APPEND ieee80211_sources
     encode2_impl.cc
     pad_impl.cc
     modulation2_impl.cc
-    pad2_impl.cc )
+    pad2_impl.cc
+    equalizer2_impl.cc )
 
 set(ieee80211_sources "${ieee80211_sources}" PARENT_SCOPE)
 if(NOT ieee80211_sources)

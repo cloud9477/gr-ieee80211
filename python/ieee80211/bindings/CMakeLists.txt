@@ -41,7 +41,8 @@ list(APPEND ieee80211_python_files
     encode2_python.cc
     pad_python.cc
     modulation2_python.cc
-    pad2_python.cc python_bindings.cc)
+    pad2_python.cc
+    equalizer2_python.cc python_bindings.cc)
 
 GR_PYBIND_MAKE_OOT(ieee80211
    ../../..

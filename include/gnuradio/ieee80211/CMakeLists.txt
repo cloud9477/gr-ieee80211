@@ -24,5 +24,6 @@ install(FILES
     encode2.h
     pad.h
     modulation2.h
-    pad2.h DESTINATION include/gnuradio/ieee80211
+    pad2.h
+    equalizer2.h DESTINATION include/gnuradio/ieee80211
 )

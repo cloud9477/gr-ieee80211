@@ -19,5 +19,6 @@ install(FILES
     ieee80211_encode2.block.yml
     ieee80211_pad.block.yml
     ieee80211_modulation2.block.yml
-    ieee80211_pad2.block.yml DESTINATION share/gnuradio/grc/blocks
+    ieee80211_pad2.block.yml
+    ieee80211_equalizer2.block.yml DESTINATION share/gnuradio/grc/blocks
 )

@@ -35,6 +35,7 @@ namespace py = pybind11;
     void bind_pad(py::module& m);
     void bind_modulation2(py::module& m);
     void bind_pad2(py::module& m);
+    void bind_equalizer2(py::module& m);
 // ) END BINDING_FUNCTION_PROTOTYPES
 
 
@@ -77,5 +78,6 @@ PYBIND11_MODULE(ieee80211_python, m)
     bind_pad(m);
     bind_modulation2(m);
     bind_pad2(m);
+    bind_equalizer2(m);
     // ) END BINDING_FUNCTION_CALLS
 }

@@ -44,6 +44,7 @@ namespace gr {
       d_HNL = std::vector<gr_complex>(64, gr_complex(0.0f, 0.0f));
       d_HNL2 = std::vector<gr_complex>(256, gr_complex(0.0f, 0.0f));
       d_HNL2INV = std::vector<gr_complex>(256, gr_complex(0.0f, 0.0f));
+      set_tag_propagation_policy(TPP_DONT);
     }
 
     demod2_impl::~demod2_impl()
@@ -91,7 +92,8 @@ namespace gr {
           d_pktLenL = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("len"), pmt::from_long(-1)));
           d_nSampTotal = pmt::to_long(pmt::dict_ref(d_meta, pmt::mp("nsamp"), pmt::from_long(-1)));
           d_HL = pmt::c32vector_elements(pmt::dict_ref(d_meta, pmt::mp("chan"), pmt::PMT_NIL));
-          std::cout<<"ieee80211 demod2, rd tag seq:"<<d_pktSeq<<", mcs:"<<d_pktMcsL<<", len:"<<d_pktLenL<<", samp:"<<d_nSampTotal<<std::endl;
+          // std::cout<<"ieee80211 demod2, rd tag seq:"<<d_pktSeq<<", mcs:"<<d_pktMcsL<<", len:"<<d_pktLenL<<", samp:"<<d_nSampTotal<<std::endl;
+          
           d_nSampConsumed = 0;
           d_nSampTotal += 320;
           d_nSymProcd = 0;
@@ -107,8 +109,6 @@ namespace gr {
             d_sDemod = DEMOD_S_FORMAT;
           }
         }
-        consume_each(0);
-        return 0;
       }
 
       if(d_sDemod == DEMOD_S_FORMAT)
@@ -125,7 +125,7 @@ namespace gr {
           {
             // go to vht
             signalParserVhtA(d_sigVhtABits, &d_m, &d_sigVhtA);
-            std::cout<<"ieee80211 demod2, vht a check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
+            // std::cout<<"ieee80211 demod2, vht a check pass nSS:"<<d_m.nSS<<" nLTF:"<<d_m.nLTF<<std::endl;
             d_sDemod = DEMOD_S_VHT;
             d_nSampConsumed += 160;
             d_nProced += 160;
@@ -137,7 +137,7 @@ namespace gr {
             {
               // go to ht
               signalParserHt(d_sigHtBits, &d_m, &d_sigHt);
-              std::cout<<"ieee80211 demod2, ht check pass nSS:"<<d_m.nSS<<", nLTF:"<<d_m.nLTF<<", len:"<<d_m.len<<std::endl;
+              // std::cout<<"ieee80211 demod2, ht check pass nSS:"<<d_m.nSS<<", nLTF:"<<d_m.nLTF<<", len:"<<d_m.len<<std::endl;
               d_sDemod = DEMOD_S_HT;
               d_nSampConsumed += 160;
               d_nProced += 160;
@@ -157,10 +157,10 @@ namespace gr {
       {
         if((d_nProc - d_nProced) >= (80 + d_m.nLTF*80 + 80)) // STF, LTF, sig b
         {
-          chanEstNL(&inSig0[80], &inSig1[80]);
-          vhtSigBDemod(&inSig0[80 + d_m.nLTF*80], &inSig1[80 + d_m.nLTF*80]);
+          chanEstNL(&inSig0[d_nProced+80], &inSig1[d_nProced+80]);
+          vhtSigBDemod(&inSig0[d_nProced+80+d_m.nLTF*80], &inSig1[d_nProced+80+d_m.nLTF*80]);
           signalParserVhtB(d_sigVhtB20Bits, &d_m);
-          std::cout<<"ieee80211 demodcu2, vht b len:"<<d_m.len<<", mcs:"<<d_m.mcs<<", nSS:"<<d_m.nSS<<", nSym:"<<d_m.nSym<<std::endl;
+          // std::cout<<"ieee80211 demod2, vht b len:"<<d_m.len<<", mcs:"<<d_m.mcs<<", nSS:"<<d_m.nSS<<", nSym:"<<d_m.nSym<<std::endl;
           int tmpNLegacySym = (d_pktLenL*8 + 22 + 23)/24;
           if(d_m.len > 0 && d_m.len <= 4095 && d_m.nSS <= 2 && (tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80 + 80))
           {
@@ -180,7 +180,7 @@ namespace gr {
       {
         if((d_nProc - d_nProced) >= (80 + d_m.nLTF*80))
         {
-          chanEstNL(&inSig0[80], &inSig1[80]);
+          chanEstNL(&inSig0[d_nProced+80], &inSig1[d_nProced+80]);
           int tmpNLegacySym = (d_pktLenL*8 + 22 + 23)/24;
           if(d_m.len > 0 && d_m.len <= 4095 && d_m.nSS <= 2 && (tmpNLegacySym * 80) >= (d_m.nSym * d_m.nSymSamp + 160 + 80 + d_m.nLTF * 80))
           {
@@ -192,12 +192,10 @@ namespace gr {
             d_sDemod = DEMOD_S_CLEAN;
           }
           d_nSampConsumed += (80 + d_m.nLTF*80);
-          consume_each(80 + d_m.nLTF*80);
-          return 0;
+          d_nProced += (80 + d_m.nLTF*80);
         }
-        consume_each(0);
-        return 0;
       }
+
       if(d_sDemod == DEMOD_S_COPY)
       {
         while((80 < (d_nProc - d_nProced)) && (64 < (d_nGen - d_nGened)) && (d_nSymProcd < d_m.nSym))
@@ -370,12 +368,13 @@ namespace gr {
       else if(d_m.nSS == 2)
       {
         memcpy(d_ofdm_fft1.get_inbuf(), &sig1[C8P_SYM_SAMP_SHIFT], sizeof(gr_complex) * 64);
-        memcpy(d_ofdm_fft2.get_inbuf(), &sig1[C8P_SYM_SAMP_SHIFT], sizeof(gr_complex) * 64);
+        memcpy(d_ofdm_fft2.get_inbuf(), &sig2[C8P_SYM_SAMP_SHIFT], sizeof(gr_complex) * 64);
         d_ofdm_fft1.execute();
         d_ofdm_fft2.execute();
         gr_complex *tmpFftOutput1 = d_ofdm_fft1.get_outbuf();
         gr_complex *tmpFftOutput2 = d_ofdm_fft2.get_outbuf();
         gr_complex tmp1, tmp2;
+        gr_complex tmp3, tmp4;
         int j=26;
         for(int i=0;i<64;i++)
         {
@@ -385,7 +384,9 @@ namespace gr {
           {
             tmp1 = tmpFftOutput1[i] * std::conj(d_HNL2[i*4+0]) + tmpFftOutput2[i] * std::conj(d_HNL2[i*4+1]);
             tmp2 = tmpFftOutput1[i] * std::conj(d_HNL2[i*4+2]) + tmpFftOutput2[i] * std::conj(d_HNL2[i*4+3]);
-            d_sigVhtB20IntedLlr[j] = (((tmp1 * d_HNL2INV[i*4+0] + tmp2 * d_HNL2INV[i*4+2])+(tmp1 * d_HNL2INV[i*4+1] + tmp2 * d_HNL2INV[i*4+3]))*0.5f).real();
+            tmp3 = (tmp1 * d_HNL2INV[i*4+0] + tmp2 * d_HNL2INV[i*4+2]);
+            tmp4 = (tmp1 * d_HNL2INV[i*4+1] + tmp2 * d_HNL2INV[i*4+3]);
+            d_sigVhtB20IntedLlr[j] = (tmp3.real()+tmp4.real())*0.5f;
             j++;
             if(j >= 52){j = 0;}
           }
@@ -396,12 +397,21 @@ namespace gr {
         memset(d_sigVhtB20Bits, 0, 26);
         return;
       }
+      for(int i=0;i<52;i++)
+      {
+        d_sigVhtB20CodedLlr[mapDeintVhtSigB20[i]] = d_sigVhtB20IntedLlr[i];
+      }
+      d_decoder.decode(d_sigVhtB20CodedLlr, d_sigVhtB20Bits, 26);
     }
 
     void
     demod2_impl::addTag()
     {
       pmt::pmt_t dict = pmt::make_dict();
+      dict = pmt::dict_add(dict, pmt::mp("seq"), pmt::from_long(d_pktSeq));
+      dict = pmt::dict_add(dict, pmt::mp("cfo"), pmt::from_float(d_cfo));  // rad * 20e6 / 2pi
+      dict = pmt::dict_add(dict, pmt::mp("snr"), pmt::from_float(d_snr));
+      dict = pmt::dict_add(dict, pmt::mp("rssi"), pmt::from_float(d_rssi));
       dict = pmt::dict_add(dict, pmt::mp("format"), pmt::from_long(d_m.format));
       dict = pmt::dict_add(dict, pmt::mp("mcs"), pmt::from_long(d_m.mcs));
       dict = pmt::dict_add(dict, pmt::mp("len"), pmt::from_long(d_m.len));

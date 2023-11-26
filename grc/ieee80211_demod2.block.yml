@@ -7,17 +7,20 @@ templates:
   make: ieee80211.demod2()
 
 inputs:
-- label: inSig1
+- label: inSig0
   domain: stream
   dtype: complex
-- label: inSig2
+- label: inSig1
   domain: stream
   dtype: complex
 
 outputs:
-- label: outLlr
+- label: outSig0
   domain: stream
-  dtype: float
+  dtype: complex
+- label: outSig1
+  domain: stream
+  dtype: complex
 
 #  'file_format' specifies the version of the GRC yml format used in the file
 #  and should usually not be changed.

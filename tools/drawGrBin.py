@@ -4,6 +4,24 @@ import os
 
 figureNum = 1
 
+def drawByte(p):
+    global figureNum
+    sigReal = []
+    fileName = p
+    if(os.path.exists(fileName)):
+        fileStats = os.stat(fileName)
+        fileSize = fileStats.st_size
+        sigSampNum = int(fileSize)
+        f = open(fileName,'rb')
+        fileBytes = f.read(fileSize)
+        f.close()
+        print("finish read")
+        for i in range(0, sigSampNum):
+            sigReal.append(struct.unpack('B', fileBytes[i:i+1])[0])
+        plt.figure(figureNum)
+        figureNum += 1
+        plt.plot(sigReal)
+
 def drawFloat(p):
     global figureNum
     sigReal = []

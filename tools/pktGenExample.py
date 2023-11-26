@@ -185,16 +185,16 @@ if __name__ == "__main__":
     pkt = genMac80211UdpMPDU(udpPayload)
     for mcsIter in range(0, 8):
         phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.L, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
-        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0, cfoHz = 0.0, num = 1, gap = True, gapLen = 1200)
+        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0, cfoHz = 0.0, num = 1, gap = True, gapLen = 1357)
         ssMultiList.append(ssFinal)
     for mcsIter in range(0, 8):
         phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.HT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
-        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0, cfoHz = 0.0, num = 1, gap = True, gapLen = 1200)
+        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0, cfoHz = 0.0, num = 1, gap = True, gapLen = 1357)
         ssMultiList.append(ssFinal)
     pkts = genMac80211UdpAmpduVht([udpPayload])
     for mcsIter in range(0, 9):
         phy80211Ins.genFromAmpdu(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=1, shortGi=False), vhtPartialAid=0, vhtGroupId=0)
-        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0, cfoHz = 0.0, num = 1, gap = True, gapLen = 1200)
+        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0, cfoHz = 0.0, num = 1, gap = True, gapLen = 1357)
         ssMultiList.append(ssFinal)
     phy80211Ins.genMultiSigBinFile(ssMultiList, os.path.join(pyToolPath, "../tmp/sig80211GenMultipleSiso"), True)
     """
@@ -207,12 +207,12 @@ if __name__ == "__main__":
     pkt = genMac80211UdpMPDU(udpPayload)
     for mcsIter in range(8, 16):
         phy80211Ins.genFromMpdu(pkt, p8h.modulation(phyFormat=p8h.F.HT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=2, shortGi=False))
-        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0 * np.sqrt(2), cfoHz = 0.0, num = 1, gap = True, gapLen = 1200)
+        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0 * np.sqrt(2), cfoHz = 0.0, num = 1, gap = True, gapLen = 1357)
         ssMultiList.append(ssFinal)
     pkts = genMac80211UdpAmpduVht([udpPayload])
     for mcsIter in range(0, 9):
         phy80211Ins.genFromAmpdu(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs=mcsIter, bw=p8h.BW.BW20, nSTS=2, shortGi=False))
-        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0 * np.sqrt(2), cfoHz = 0.0, num = 1, gap = True, gapLen = 1200)
+        ssFinal = phy80211Ins.genFinalSig(multiplier = 12.0 * np.sqrt(2), cfoHz = 0.0, num = 1, gap = True, gapLen = 1357)
         ssMultiList.append(ssFinal)
     phy80211Ins.genMultiSigBinFile(ssMultiList, os.path.join(pyToolPath, "../tmp/sig80211GenMultipleMimo"), True)
 

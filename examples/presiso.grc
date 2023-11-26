@@ -40,7 +40,7 @@ blocks:
     alias: ''
     comment: ''
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
     vlen: '1'
   states:
     bus_sink: false
@@ -56,7 +56,7 @@ blocks:
     alias: ''
     comment: ''
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
     vlen: '1'
   states:
     bus_sink: false
@@ -73,7 +73,7 @@ blocks:
     comment: The first 16 samples are 0
     delay: '16'
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
     num_ports: '1'
     type: complex
     vlen: '1'
@@ -91,7 +91,7 @@ blocks:
     alias: ''
     comment: ''
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
     num_inputs: '2'
     type: float
     vlen: '1'
@@ -111,7 +111,7 @@ blocks:
     length: '48'
     max_iter: '4000'
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
     scale: '1'
     type: complex
     vlen: '1'
@@ -131,7 +131,7 @@ blocks:
     length: '64'
     max_iter: '4000'
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
     scale: '1'
     type: float
     vlen: '1'
@@ -149,7 +149,7 @@ blocks:
     alias: ''
     comment: ''
     maxoutbuf: '0'
-    minoutbuf: '0'
+    minoutbuf: 4096 * 512
     vlen: '1'
   states:
     bus_sink: false

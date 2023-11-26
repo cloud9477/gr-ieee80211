@@ -1,6 +1,6 @@
 id: ieee80211_equalizer2
 label: equalizer2
-category: '[ieee80211]'
+category: '[IEEE 802.11 GR-WiFi]'
 
 templates:
   imports: from gnuradio import ieee80211

@@ -130,8 +130,6 @@ namespace gr {
             d_nSampleCopied = 0;
             // std::cout<<"ieee80211 signal, cfo:"<<(d_cfoRad) * 20000000.0f / 2.0f / M_PI<<", mcs: "<<d_nSigMcs<<", len:"<<d_nSigLen<<", nSym:"<<d_nSymbol<<", nSample:"<<d_nSample<<std::endl;
             // add info into tag
-            d_nSigPktSeq++;
-            if(d_nSigPktSeq >= 1000000000){d_nSigPktSeq = 0;}
             pmt::pmt_t dict = pmt::make_dict();
             dict = pmt::dict_add(dict, pmt::mp("cfo"), pmt::from_float(d_cfoRad * 3183098.8618379068f));  // rad * 20e6 / 2pi
             dict = pmt::dict_add(dict, pmt::mp("snr"), pmt::from_float(d_snr));
@@ -150,6 +148,8 @@ namespace gr {
                               pmt::cdr(pair),
                               alias_pmt());
             }
+            d_nSigPktSeq++;
+            if(d_nSigPktSeq >= 1000000000){d_nSigPktSeq = 0;}
             d_sSignal = S_COPY;
             d_nUsed += 224;
           }

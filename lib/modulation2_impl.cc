@@ -194,6 +194,8 @@ namespace gr {
             memcpy((uint8_t*)d_signl1mu, (uint8_t*)d_signl0mu, sizeof(gr_complex)*192);
             procChipsToQamNonShiftedScNL(&d_sigBitsIntedB0[0], d_signl0mu+384, C8P_QAM_BPSK);
             procChipsToQamNonShiftedScNL(&d_sigBitsIntedB1[0], d_signl1mu+384, C8P_QAM_BPSK);
+            procInsertPilots(d_signl0mu+384, tmpSigPilots);//insert sigB0 pilot 
+            procInsertPilots(d_signl1mu+384, tmpSigPilots);//insert sigB1 pilot 
             procCSD(d_signl1mu, -200);
             procCSD(d_signl1mu+64, -200);
             procCSD(d_signl1mu+128, -200);

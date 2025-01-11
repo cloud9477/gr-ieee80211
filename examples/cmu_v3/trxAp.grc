@@ -49,7 +49,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: 5560e6
+    value: 5600e6
   states:
     bus_sink: false
     bus_source: false
@@ -502,8 +502,8 @@ blocks:
     comment: Sync and TSB Tag
     dev_addr: '""'
     dev_args: ''
-    gain0: '0.8'
-    gain1: '0.8'
+    gain0: '0.85'
+    gain1: '0.85'
     gain10: '0'
     gain11: '0'
     gain12: '0'

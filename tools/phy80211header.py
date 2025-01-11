@@ -1344,18 +1344,19 @@ def procVhtChannelFeedback(ltfSym, bw, nSts, nRx):
             tmpChannel = dataPilotChanEst[k]
             for i in range(0, nRx):
                 tmpChannel[i] = tmpChannel[i] * tmpCsdCompensate
-            dataPilotChanEstNoCsd.append(tmpChannel)
+            # dataPilotChanEstNoCsd.append(tmpChannel)
+            dataPilotChanEstNoCsd.append([tmpChannel])
         # SVD, get the V
-        vDataPilot = []
-        for k in range(0, nScDataPilot):
-            """
-            If X is m-by-n with m >= n, then it is equivalent to SVD(X,0).
-            For m < n, only the first m columns of V are computed and S is m-by-m.
-            """
-            u, s, vh = np.linalg.svd(dataPilotChanEstNoCsd[k], full_matrices=False)
-            v = vh.conjugate().T * -1
-            vDataPilot.append(v)
-        return vDataPilot
+        # vDataPilot = []
+        # for k in range(0, nScDataPilot):
+        #     """
+        #     If X is m-by-n with m >= n, then it is equivalent to SVD(X,0).
+        #     For m < n, only the first m columns of V are computed and S is m-by-m.
+        #     """
+        #     u, s, vh = np.linalg.svd(dataPilotChanEstNoCsd[k], full_matrices=False)
+        #     v = vh.conjugate().T * -1
+        #     vDataPilot.append(v)
+        return dataPilotChanEstNoCsd
     else:
         print("cloud phy80211header, procVhtChannelFeedback input param error")
         return []

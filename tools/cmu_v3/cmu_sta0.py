@@ -6,6 +6,7 @@ sys.path.append(os.path.join(sys.path[0], '../'))
 import mac80211
 import phy80211
 import phy80211header as p8h
+import struct
 
 def genMac80211UdpAmpduVht(udpPayloads):
     if(isinstance(udpPayloads, list)):
@@ -83,8 +84,30 @@ if __name__ == "__main__":
             if(tmpPktLen == 1024):
                 count += 1
                 print("station NDP channel info recvd, gen channel packet %d" % (count))
-                tmpChanPkt = ("cloudchan"+str(staID)).encode('utf-8') + rxPkt[3:1024 + 3]
-                print(tmpChanPkt)
+                chanB = rxPkt[3:1024 + 3]
+                chan = [] 
+                for i in range(0, 128):
+                    tmpR = struct.unpack('f', chanB[i*8:i*8+4])[0]
+                    tmpI = struct.unpack('f', chanB[i*8+4:i*8+8])[0]
+                    chan.append(tmpR + tmpI * 1j)
+                nSts = 2
+                nRx = 1
+
+                # compute feedback
+                ltfSym = []
+                ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan[0:64]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nSts)))
+                ltfSym.append(p8h.procRemovePilots(p8h.procToneDescaling(p8h.procRmDcNonDataSc(p8h.procFftDemod(chan[64:128]), p8h.F.VHT), p8h.C_SCALENTF_LTF_VHT[p8h.BW.BW20.value], nSts)))
+                vFb = p8h.procVhtChannelFeedback(ltfSym, p8h.BW.BW20, nSts, nRx)
+                chanPkt = []
+                for i in range(len(vFb)):
+                    tmpH11 = vFb[i][0][0][0]
+                    tmpH21 = vFb[i][0][0][1]
+                    chanPkt.append(struct.pack('f',tmpH11.real)) 
+                    chanPkt.append(struct.pack('f',tmpH11.imag))
+                    chanPkt.append(struct.pack('f',tmpH21.real))
+                    chanPkt.append(struct.pack('f',tmpH21.imag))
+                chanPktBytes =  b''.join(chanPkt)
+                tmpChanPkt = ("cloudchan"+str(staID)).encode('utf-8') + chanPktBytes
                 pkts = genMac80211UdpAmpduVht([tmpChanPkt])
                 grPkt = phy80211.genPktGrData(pkts, p8h.modulation(phyFormat=p8h.F.VHT, mcs = 1, bw=p8h.BW.BW20, nSTS=1, shortGi=False))
                 time.sleep(staID * 0.001)

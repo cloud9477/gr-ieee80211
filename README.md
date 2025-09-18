@@ -1,4 +1,21 @@
 # gr-ieee80211
+
+- A GNU radio based WiFi platform with single-user and multi-user MIMO
+```
+@article{LIN2025102812,
+title = {GR-WiFi: A GNU radio based WiFi platform with single-user and multi-user MIMO capability},
+author = {Natong Lin and Zelin Yun and Shengli Zhou and Song Han},
+journal = {Physical Communication},
+volume = {72},
+pages = {102812},
+year = {2025}
+}
+```
+Paper link: https://www.sciencedirect.com/science/article/pii/S1874490725002150
+
+
+
+
 **<font color=#5050f0>GR-WiFi</font>** : GNU Radio IEEE 802.11a/g/n/ac (WiFi 5) Transceiver
 ------
 - Support SISO and upto 2x2 **<font color=orange>SU-MIMO</font>** and **<font color=orange>MU-MIMO</font>**.

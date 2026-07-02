@@ -11,10 +11,12 @@ pages = {102812},
 year = {2025}
 }
 ```
+
 Paper link: https://www.sciencedirect.com/science/article/pii/S1874490725002150
 
+arXiv link: https://arxiv.org/abs/2501.06176
 
-
+**Release Version For GR-WiFi Paper** please refer to v1.0 release tag [v1.0](https://github.com/cloud9477/gr-ieee80211/releases/tag/v1.0).
 
 **<font color=#5050f0>GR-WiFi</font>** : GNU Radio IEEE 802.11a/g/n/ac (WiFi 5) Transceiver
 ------
